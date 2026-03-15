@@ -2,11 +2,14 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Café Bar El Pelotazo - Pedidos</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+    <title>Café Bar El Pelotazo - Sistema Seguro</title>
+    
     <!-- Firebase SDK (Version 8) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
     <style>
         :root { 
             --azul-oscuro: #000a14; 
@@ -15,15 +18,35 @@
             --verde: #27ae60;
             --gris: #f4f7f6;
             --naranja: #f39c12;
+            --texto-oscuro: #1a1a1a;
+        }
+
+        /* SEGURIDAD: Evitar selección de texto y menús contextuales */
+        * {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            outline: none;
+        }
+
+        input, textarea {
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
+        /* SEGURIDAD: Protección contra captura de pantalla/impresión */
+        @media print {
+            body { display: none !important; }
         }
 
         body { 
-            font-family: 'Segoe UI', sans-serif; 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
             margin: 0; 
             background: var(--gris); 
             padding-bottom: 140px; 
-            position: relative;
             min-height: 100vh;
+            overflow-x: hidden;
+            color: var(--texto-oscuro);
         }
 
         header { 
@@ -34,68 +57,94 @@
             position: sticky; top: 0; z-index: 1000;
         }
         .logo-img { max-width: 80px; height: auto; display: block; margin: 0 auto 5px; }
-        h1 { color: white; margin: 0; font-size: 1rem; text-transform: uppercase; }
+        h1 { color: white; margin: 0; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px; }
 
-        .container { padding: 15px; max-width: 600px; margin: auto; position: relative; z-index: 1; }
+        .container { padding: 15px; max-width: 600px; margin: auto; }
         
-        .selector-group { display: block; margin-bottom: 15px; }
+        .selector-group { margin-bottom: 15px; }
         .input-style {
             width: 100%; padding: 12px; border-radius: 10px; border: 2px solid var(--azul-staff); 
             font-size: 1.2rem; box-sizing: border-box; font-weight: bold; text-align: center;
-            background: rgba(255, 255, 255, 0.9);
+            background: #fff; color: var(--azul-oscuro);
         }
-        label { display: block; font-size: 0.8rem; color: var(--azul-staff); font-weight: bold; margin-bottom: 4px; text-align: center; }
+        label { display: block; font-size: 0.9rem; color: var(--azul-staff); font-weight: bold; margin-bottom: 4px; text-align: center; }
 
-        .cat-block { margin-bottom: 8px; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        /* Acordeón */
+        .cat-block { margin-bottom: 8px; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); background: white; }
         .cat-header { 
-            background: white; padding: 15px; font-weight: bold; cursor: pointer;
-            display: flex; justify-content: space-between; border-left: 5px solid var(--rojo);
-            text-transform: uppercase;
+            padding: 18px; font-weight: bold; cursor: pointer;
+            display: flex; justify-content: space-between; border-left: 6px solid var(--rojo);
+            text-transform: uppercase; font-size: 1rem; color: var(--azul-staff);
         }
-        .cat-content { display: none; background: rgba(255, 255, 255, 0.7); padding: 0 15px; border-top: 1px solid #eee; }
+        .cat-content { display: none; padding: 0 15px; border-top: 1px solid #eee; }
         .cat-block.open .cat-content { display: block; }
-        .item-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
-        .price { font-weight: 900; color: var(--rojo); margin-right: 10px; }
-        .btn-plus { background: var(--azul-staff); color: white; border: none; width: 40px; height: 40px; border-radius: 8px; font-size: 1.2rem; cursor: pointer; }
+        
+        .item-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #f0f0f0; }
+        .item-name { font-size: 1.05rem; font-weight: 500; }
+        .price { font-weight: 900; color: var(--rojo); margin-right: 12px; font-size: 1.1rem; }
+        .btn-plus { background: var(--azul-staff); color: white; border: none; width: 44px; height: 44px; border-radius: 8px; font-size: 1.5rem; cursor: pointer; }
 
-        .footer-client { position: fixed; bottom: 0; width: 100%; background: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; box-shadow: 0 -5px 15px rgba(0,0,0,0.1); z-index: 999; }
-        #total-val { font-size: 2rem; font-weight: 900; color: var(--rojo); }
+        /* Pie de página cliente */
+        .footer-client { 
+            position: fixed; bottom: 0; width: 100%; background: white; 
+            padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; 
+            box-sizing: border-box; box-shadow: 0 -5px 15px rgba(0,0,0,0.1); z-index: 999; 
+        }
+        #total-val { font-size: 2.2rem; font-weight: 900; color: var(--rojo); }
 
-        #staff-panel { display: none; background: #eaeff2; min-height: 100vh; padding-top: 10px; }
-        .staff-nav { display: flex; gap: 5px; padding: 10px; background: white; position: sticky; top: 0; z-index: 1001; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .tab-btn { flex: 1; padding: 12px; border: none; background: #eee; border-radius: 8px; font-weight: bold; color: #555; cursor: pointer; }
+        /* Panel Staff */
+        #staff-panel { display: none; background: #eaeff2; min-height: 100vh; }
+        .staff-nav { display: flex; gap: 8px; padding: 12px; background: white; position: sticky; top: 0; z-index: 1001; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .tab-btn { flex: 1; padding: 14px; border: none; background: #e0e0e0; border-radius: 8px; font-weight: 900; cursor: pointer; font-size: 0.85rem; color: #333; }
         .tab-btn.active { background: var(--azul-staff); color: white; }
         .tab-content { display: none; padding: 15px; }
         .tab-content.active { display: block; }
 
-        .pedido-card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; border-left: 8px solid var(--naranja); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .pedido-header { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-        .mesa-num { font-weight: 900; font-size: 1.2rem; color: var(--azul-staff); }
-        .item-list { margin: 10px 0; font-size: 1.1rem; }
+        .pedido-card { background: white; padding: 18px; border-radius: 12px; margin-bottom: 18px; border-left: 10px solid var(--naranja); box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+        .pedido-header { display: flex; justify-content: space-between; margin-bottom: 12px; border-bottom: 2px solid #f0f0f0; padding-bottom: 8px; }
+        .mesa-num { font-weight: 900; font-size: 1.4rem; color: var(--azul-staff); }
+        .hora-text { color: #555; font-size: 0.9rem; font-weight: bold; }
         
-        /* Nuevo estilo para el total en la comanda del staff */
+        .item-list { font-size: 1.2rem; line-height: 1.6; margin: 12px 0; color: #000; }
+
         .staff-total-row { 
-            background: #fff3f3; 
-            padding: 10px; 
-            border-radius: 8px; 
-            text-align: right; 
-            margin: 10px 0; 
-            border: 1px dashed var(--rojo);
+            background: #fff0f0; padding: 12px; border-radius: 8px; text-align: right; 
+            margin: 15px 0; border: 2px dashed var(--rojo);
         }
-        .staff-total-label { font-size: 0.8rem; color: #666; font-weight: bold; }
-        .staff-total-amount { font-size: 1.4rem; font-weight: 900; color: var(--rojo); display: block; }
+        .staff-total-label { font-size: 0.9rem; color: #444; font-weight: 900; }
+        .staff-total-amount { font-size: 1.8rem; font-weight: 900; color: var(--rojo); display: block; }
 
-        .staff-action-area { border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; }
-        .staff-select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; margin-bottom: 10px; font-weight: bold; }
-        .btn-done { width: 100%; background: var(--verde); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .staff-action-area { border-top: 2px solid #eee; padding-top: 15px; margin-top: 10px; }
+        .staff-select { width: 100%; padding: 14px; border-radius: 8px; border: 2px solid var(--azul-staff); margin-bottom: 12px; font-weight: 900; background: #fff; font-size: 1.1rem; color: var(--azul-staff); }
+        .btn-done { width: 100%; background: var(--verde); color: white; border: none; padding: 16px; border-radius: 8px; font-weight: 900; cursor: pointer; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 1px; }
 
-        .admin-box { background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; border-top: 4px solid var(--azul-staff); }
-        .edit-row { display: grid; grid-template-columns: 1fr 70px 40px; gap: 8px; margin-bottom: 8px; }
-        .edit-row input { padding: 8px; border: 1px solid #ccc; border-radius: 5px; }
-        .btn-save-fixed { position: fixed; bottom: 20px; right: 20px; background: var(--verde); color: white; border: none; padding: 20px; border-radius: 50%; font-weight: bold; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 1100; cursor: pointer; }
+        /* Botón Staff en el cliente */
+        .staff-access-area {
+            margin-top: 40px;
+            padding: 30px 15px;
+            text-align: center;
+            border-top: 1px solid #ddd;
+        }
+        .btn-staff-trigger {
+            background: #d1d1d1;
+            color: #777;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        /* Admin */
+        .admin-box { background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; border-top: 5px solid var(--azul-staff); }
+        .edit-row { display: grid; grid-template-columns: 1fr 90px 45px; gap: 8px; margin-bottom: 10px; }
+        .edit-row input { padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 1rem; font-weight: bold; }
+        .btn-save-fixed { position: fixed; bottom: 25px; right: 25px; background: var(--verde); color: white; border: none; width: 75px; height: 75px; border-radius: 50%; font-weight: 900; box-shadow: 0 6px 20px rgba(0,0,0,0.4); z-index: 1100; cursor: pointer; font-size: 0.8rem; }
     </style>
 </head>
-<body>
+<body oncontextmenu="return false;">
 
 <div id="view-client">
     <header>
@@ -104,36 +153,43 @@
     </header>
     <div class="container">
         <div class="selector-group">
-            <label>MESA SELECCIONADA</label>
-            <input type="number" id="mesa-input" class="input-style" placeholder="Número de mesa">
+            <label>NÚMERO DE MESA</label>
+            <input type="number" id="mesa-input" class="input-style" placeholder="Ej: 5" inputmode="numeric">
         </div>
         <div id="menu-accordion"></div>
+
+        <div class="staff-access-area">
+            <button class="btn-staff-trigger" onclick="accesoStaff()">Acceso Administración</button>
+        </div>
     </div>
     <div class="footer-client">
-        <div><small>TOTAL:</small><div id="total-val">0.00€</div></div>
-        <button onclick="enviarPedidoFirebase()" style="background:var(--verde); color:white; border:none; padding:15px 30px; border-radius:12px; font-weight:bold; cursor:pointer;">ENVIAR PEDIDO</button>
+        <div><small style="font-weight: 900; color: #666;">SUBTOTAL:</small><div id="total-val">0.00€</div></div>
+        <button onclick="enviarPedidoFirebase()" style="background:var(--verde); color:white; border:none; padding:18px 28px; border-radius:12px; font-weight:900; cursor:pointer; font-size: 1rem;">ENVIAR COMANDA</button>
     </div>
-    <button onclick="accesoStaff()" style="width:100%; opacity:0; margin-top:40px; border:none; background:none; cursor:pointer; padding: 20px;">STAFF</button>
 </div>
 
 <div id="staff-panel">
     <div class="staff-nav">
         <button class="tab-btn active" onclick="switchTab('pedidos')">🔔 PEDIDOS</button>
-        <button class="tab-btn" onclick="switchTab('admin')">⚙️ CARTA/PRECIOS</button>
-        <button class="tab-btn" style="background:#666; color:white;" onclick="location.reload()">SALIR</button>
+        <button class="tab-btn" onclick="switchTab('admin')">⚙️ CARTA</button>
+        <button class="tab-btn" style="background:#cc0000; color:white;" onclick="cerrarSesion()">SALIR</button>
     </div>
     <div id="tab-pedidos" class="tab-content active">
-        <h2 style="text-align:center;">PEDIDOS PENDIENTES</h2>
+        <h2 style="text-align:center; font-size: 1.2rem; color: var(--azul-staff); text-transform: uppercase;">Comandas en Tiempo Real</h2>
         <div id="lista-pedidos-realtime"></div>
     </div>
     <div id="tab-admin" class="tab-content">
-        <h2 style="text-align:center;">EDITAR CARTA</h2>
+        <h2 style="text-align:center; font-size: 1.2rem; color: var(--azul-staff); text-transform: uppercase;">Editor de Precios</h2>
         <div id="editor-admin"></div>
-        <button class="btn-save-fixed" onclick="guardarCarta()">GUARDAR</button>
+        <button class="btn-save-fixed" onclick="guardarCarta()">GUARDAR<br>TODO</button>
     </div>
 </div>
 
 <script>
+    function escapeHTML(str) {
+        return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    }
+
     const firebaseConfig = {
         apiKey: "AIzaSyAxI0dtf4RdxNDYlmk_dVYhF5NyZOg8B2w",
         databaseURL: "https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app",
@@ -142,18 +198,30 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const categorias = ["BEBIDAS", "TAPAS", "OTROS"];
+    const categorias = [
+        "Tapas/Ración/Menú",
+        "Café/repostería/Postres",
+        "Bebidas/Refrescos",
+        "Tapas del día",
+        "Otros"
+    ];
+
     let productosLocal = [];
     let carrito = [];
+    const CLAVE_MAESTRA = "887233";
 
     window.onload = function() {
         const urlParams = new URLSearchParams(window.location.search);
         const mesaEnlace = urlParams.get('mesa');
         if (mesaEnlace) {
             const inputMesa = document.getElementById('mesa-input');
-            inputMesa.value = mesaEnlace;
+            inputMesa.value = parseInt(mesaEnlace);
             inputMesa.readOnly = true;
-            inputMesa.style.background = "#e9ecef";
+            inputMesa.style.background = "#eee";
+        }
+        
+        if(sessionStorage.getItem('staff_auth') === 'true') {
+            mostrarStaff();
         }
     };
 
@@ -163,8 +231,7 @@
     });
 
     db.ref('pedidos').on('value', snap => {
-        const pedidos = snap.val();
-        renderPedidos(pedidos);
+        renderPedidos(snap.val());
     });
 
     function renderMenuYAdmin() {
@@ -173,47 +240,49 @@
         menuDiv.innerHTML = ""; adminDiv.innerHTML = "";
 
         categorias.forEach(cat => {
+            const catId = cat.replace(/[^a-z0-9]/gi, '');
             const items = productosLocal.filter(p => p.cat === cat);
+            
             let itemsHtml = items.map(p => `
                 <div class="item-row">
-                    <span>${p.nombre}</span>
+                    <span class="item-name">${escapeHTML(p.nombre)}</span>
                     <div>
-                        <span class="price">${p.precio.toFixed(2)}€</span>
-                        <button class="btn-plus" onclick="addToCart('${p.nombre}', ${p.precio})">+</button>
+                        <span class="price">${parseFloat(p.price || p.precio || 0).toFixed(2)}€</span>
+                        <button class="btn-plus" onclick="addToCart('${escapeHTML(p.nombre)}', ${p.price || p.precio})">+</button>
                     </div>
                 </div>`).join('');
             
             menuDiv.innerHTML += `
-                <div class="cat-block" id="cat-${cat}">
-                    <div class="cat-header" onclick="document.getElementById('cat-${cat}').classList.toggle('open')">
+                <div class="cat-block" id="cat-box-${catId}">
+                    <div class="cat-header" onclick="document.getElementById('cat-box-${catId}').classList.toggle('open')">
                         ${cat} <span>▼</span>
                     </div>
-                    <div class="cat-content">${itemsHtml || '<p style="text-align:center; padding:10px;">Vacío</p>'}</div>
+                    <div class="cat-content">${itemsHtml || '<p style="text-align:center;padding:15px;font-size:0.9rem;color:#777">No hay artículos disponibles</p>'}</div>
                 </div>`;
 
             let rowsAdmin = items.map(p => {
                 const idx = productosLocal.indexOf(p);
                 return `
                 <div class="edit-row">
-                    <input type="text" value="${p.nombre}" onchange="editItem(${idx}, 'nombre', this.value)">
-                    <input type="number" step="0.05" value="${p.precio}" onchange="editItem(${idx}, 'precio', this.value)">
-                    <button style="color:red; background:none; border:none; font-weight:bold; cursor:pointer;" onclick="deleteItem(${idx})">✕</button>
+                    <input type="text" value="${escapeHTML(p.nombre)}" onchange="editItem(${idx}, 'nombre', this.value)">
+                    <input type="number" step="0.05" value="${p.price || p.precio}" onchange="editItem(${idx}, 'price', this.value)">
+                    <button style="color:red; background:#fff0f0; border:1px solid red; border-radius:5px; font-weight:900;" onclick="deleteItem(${idx})">✕</button>
                 </div>`;
             }).join('');
 
             adminDiv.innerHTML += `
                 <div class="admin-box">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                        <b style="color:var(--azul-staff)">${cat}</b>
-                        <button onclick="addItem('${cat}')" style="font-size:0.7rem; background:var(--azul-staff); color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">+ AÑADIR</button>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #eee; padding-bottom:5px;">
+                        <b style="font-size: 0.9rem; color:var(--azul-staff)">${cat.toUpperCase()}</b>
+                        <button onclick="addItem('${cat}')" style="background:var(--azul-staff); color:white; border:none; padding:6px 12px; border-radius:5px; font-size:0.7rem; font-weight:900;">+ PRODUCTO</button>
                     </div>
-                    ${rowsAdmin || '<p style="font-size:0.7rem; color:#999; text-align:center;">Vacío</p>'}
+                    ${rowsAdmin}
                 </div>`;
         });
     }
 
     function addToCart(nombre, precio) {
-        carrito.push({nombre, precio});
+        carrito.push({nombre, precio: parseFloat(precio)});
         actualizarTotal();
     }
 
@@ -224,18 +293,18 @@
 
     function enviarPedidoFirebase() {
         const mesa = document.getElementById('mesa-input').value;
-        if(!mesa || carrito.length === 0) return alert("Por favor, introduce el número de mesa y añade productos.");
+        if(!mesa) return alert("¡Atención! Introduce el número de mesa.");
+        if(carrito.length === 0) return alert("El pedido está vacío. Añade productos de la carta.");
 
         const pedido = {
-            mesa,
+            mesa: escapeHTML(mesa),
             items: carrito,
             hora: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-            timestamp: Date.now(),
-            estado: 'pendiente'
+            timestamp: Date.now()
         };
 
         db.ref('pedidos').push(pedido).then(() => {
-            alert("✅ Pedido enviado a barra.");
+            alert("✅ ¡Hecho! Tu pedido ha sido enviado a la barra.");
             carrito = []; actualizarTotal();
         });
     }
@@ -243,63 +312,87 @@
     function renderPedidos(pedidos) {
         const div = document.getElementById('lista-pedidos-realtime');
         div.innerHTML = "";
-        if(!pedidos) return div.innerHTML = "<p style='text-align:center; padding:20px;'>No hay pedidos pendientes.</p>";
+        if(!pedidos) return div.innerHTML = "<div style='text-align:center; padding:40px; color:#666; font-weight:bold; background:white; border-radius:10px;'>Esperando nuevas comandas...</div>";
 
         Object.keys(pedidos).sort((a,b) => pedidos[a].timestamp - pedidos[b].timestamp).forEach(key => {
             const p = pedidos[key];
-            const itemsCount = {};
-            let totalPedido = 0;
-
+            const resumen = {};
+            let subtotal = 0;
             p.items.forEach(i => {
-                itemsCount[i.nombre] = (itemsCount[i.nombre] || 0) + 1;
-                totalPedido += i.precio;
+                resumen[i.nombre] = (resumen[i.nombre] || 0) + 1;
+                subtotal += parseFloat(i.precio);
             });
 
-            let itemsHtml = Object.keys(itemsCount).map(name => `<div><b>${itemsCount[name]}x</b> ${name}</div>`).join('');
+            let itemsHtml = Object.keys(resumen).map(n => `<div><b>${resumen[n]}x</b> ${escapeHTML(n)}</div>`).join('');
 
             div.innerHTML += `
                 <div class="pedido-card">
                     <div class="pedido-header">
-                        <span class="mesa-num">MESA ${p.mesa}</span>
-                        <span style="color:#888; font-size:0.8rem">${p.hora}</span>
+                        <span class="mesa-num">MESA ${escapeHTML(p.mesa)}</span>
+                        <span class="hora-text">🕒 ${p.hora}</span>
                     </div>
                     <div class="item-list">${itemsHtml}</div>
-                    
                     <div class="staff-total-row">
-                        <span class="staff-total-label">TOTAL A COBRAR:</span>
-                        <span class="staff-total-amount">${totalPedido.toFixed(2)}€</span>
+                        <span class="staff-total-label">COBRAR AHORA:</span>
+                        <span class="staff-total-amount">${subtotal.toFixed(2)}€</span>
                     </div>
-
                     <div class="staff-action-area">
-                        <select id="camarero-servidor-${key}" class="staff-select">
-                            <option value="">¿Quién sirve?</option>
-                            <option value="1">Camarero 1</option>
-                            <option value="2">Camarero 2</option>
-                            <option value="3">Camarero 3</option>
-                            <option value="4">Camarero 4</option>
-                            <option value="5">Camarero 5</option>
+                        <select id="cam-serv-${key}" class="staff-select">
+                            <option value="">-- ELIGE CAMARERO --</option>
+                            <option value="1">CAMARERO 1</option>
+                            <option value="2">CAMARERO 2</option>
+                            <option value="3">CAMARERO 3</option>
+                            <option value="4">CAMARERO 4</option>
+                            <option value="5">CAMARERO 5</option>
                         </select>
-                        <button class="btn-done" onclick="marcarComoServido('${key}')">LISTO / SERVIDO</button>
+                        <button class="btn-done" onclick="finalizarPedido('${key}')">DAR POR SERVIDO</button>
                     </div>
                 </div>`;
         });
     }
 
-    function marcarComoServido(id) {
-        const camarero = document.getElementById('camarero-servidor-'+id).value;
-        if(!camarero) return alert("Selecciona primero qué camarero ha servido la mesa.");
+    function finalizarPedido(id) {
+        const cam = document.getElementById('cam-serv-'+id).value;
+        if(!cam) return alert("Error: Selecciona el camarero que ha realizado el servicio.");
         db.ref('pedidos/' + id).remove();
     }
 
-    function editItem(i, campo, val) { productosLocal[i][campo] = campo === 'precio' ? parseFloat(val) : val; }
-    function addItem(cat) { productosLocal.push({nombre: "Nuevo", precio: 0, cat}); renderMenuYAdmin(); }
-    function deleteItem(i) { if(confirm("¿Eliminar este producto?")) { productosLocal.splice(i,1); renderMenuYAdmin(); } }
-    function guardarCarta() { db.ref('carta').set(productosLocal).then(() => alert("Carta actualizada correctamente.")); }
+    function editItem(i, campo, val) { 
+        productosLocal[i][campo] = (campo === 'price') ? parseFloat(val) : val; 
+    }
+    function addItem(cat) { 
+        productosLocal.push({nombre: "Nuevo Articulo", price: 0, cat: cat}); 
+        renderMenuYAdmin(); 
+    }
+    function deleteItem(i) { 
+        if(confirm("¿Seguro que quieres borrar este producto de la carta?")) { 
+            productosLocal.splice(i,1); 
+            renderMenuYAdmin(); 
+        } 
+    }
+    function guardarCarta() { 
+        db.ref('carta').set(productosLocal).then(() => alert("✅ Carta guardada en la nube con éxito.")); 
+    }
 
     function accesoStaff() {
-        if(prompt("Clave de acceso Staff:") === "887233") {
-            document.getElementById('view-client').style.display = 'none';
-            document.getElementById('staff-panel').style.display = 'block';
+        const p = prompt("ACCESO STAFF - Introduce código de seguridad:");
+        if(p === CLAVE_MAESTRA) {
+            sessionStorage.setItem('staff_auth', 'true');
+            mostrarStaff();
+        } else if (p !== null) {
+            alert("Código incorrecto.");
+        }
+    }
+
+    function mostrarStaff() {
+        document.getElementById('view-client').style.display = 'none';
+        document.getElementById('staff-panel').style.display = 'block';
+    }
+
+    function cerrarSesion() {
+        if(confirm("¿Cerrar sesión de administración?")) {
+            sessionStorage.removeItem('staff_auth');
+            location.reload();
         }
     }
 
@@ -313,6 +406,11 @@
             document.getElementById('tab-admin').classList.add('active');
         }
     }
+
+    window.addEventListener('keydown', e => {
+        if(e.ctrlKey && (e.key === 's' || e.key === 'p' || e.key === 'u' || e.key === 'i')) e.preventDefault();
+        if(e.key === 'F12') e.preventDefault();
+    });
 </script>
 </body>
 </html>
