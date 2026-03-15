@@ -115,6 +115,19 @@
         .pedido-card { background: white; padding: 18px; border-radius: 12px; margin-bottom: 15px; border-left: 8px solid var(--naranja); box-shadow: var(--sombra-suave); position: relative;}
         .badge-camarero { position: absolute; top: 12px; right: 12px; background: #eee; padding: 4px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: 800; color: #555; text-transform: uppercase; }
 
+        /* Selector de Camareros (Solo Admin) */
+        .camarero-selector-admin {
+            background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px;
+            box-shadow: var(--sombra-suave); display: flex; flex-wrap: wrap; gap: 8px;
+            justify-content: center; border: 1px solid #ddd;
+        }
+        .camarero-btn {
+            border: 2px solid #eee; background: #fff; padding: 10px; border-radius: 8px;
+            font-size: 0.7rem; font-weight: 800; color: #777; cursor: pointer; flex: 1 1 22%;
+            text-align: center; transition: 0.2s;
+        }
+        .camarero-btn.selected { border-color: var(--rojo); color: var(--rojo); background: #fff5f5; box-shadow: 0 2px 8px rgba(255,0,0,0.1); }
+
         /* PANEL ADMIN */
         .admin-section { 
             background: white; 
@@ -159,19 +172,6 @@
         .btn-del { color: #dc3545; background: #fff5f5; border: 1px solid #ffebeb; padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
         .btn-add-cat { background: var(--azul-staff); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
-        /* Selector de Camareros */
-        .camarero-selector {
-            background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px;
-            box-shadow: var(--sombra-suave); display: flex; flex-wrap: wrap; gap: 8px;
-            justify-content: center;
-        }
-        .camarero-btn {
-            border: 2px solid #eee; background: #fff; padding: 8px 12px; border-radius: 6px;
-            font-size: 0.75rem; font-weight: 800; color: #777; cursor: pointer; flex: 1 1 20%;
-            text-align: center; transition: 0.2s;
-        }
-        .camarero-btn.selected { border-color: var(--rojo); color: var(--rojo); background: #fff5f5; }
-
         /* Footer info */
         .footer-info {
             text-align: center; padding: 60px 15px 140px 15px;
@@ -210,14 +210,7 @@
         <h1>Café Bar El Pelotazo</h1>
     </header>
     <div class="container">
-        <!-- Selector de Camarero para Cliente (opcional, pero útil para saber quién atiende) -->
-        <div style="margin-bottom:15px; text-align:center;">
-             <label style="font-weight:800; font-size:0.65rem; color:#999; text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:8px;">Selecciona tu Camarero</label>
-             <div class="camarero-selector" id="camarero-client-list">
-                 <!-- JS inyecta los 7 botones -->
-             </div>
-        </div>
-
+        <!-- Mesa centrada y limpia para el cliente -->
         <div style="margin-bottom:25px; text-align:center; background:white; padding:20px; border-radius:12px; box-shadow:var(--sombra-suave); border: 1px solid rgba(0,0,0,0.03);">
             <label style="font-weight:800; font-size:0.75rem; color:var(--azul-staff); text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:8px;">Número de Mesa</label>
             <input type="number" id="mesa-input" class="input-style" placeholder="0">
@@ -250,6 +243,11 @@
     </div>
     
     <div id="tab-pedidos" class="tab-content active" style="padding:15px;">
+        <!-- Selector de camareros movido aquí (Administración) -->
+        <div style="text-align:center; margin-bottom:15px;">
+            <p style="font-size:0.7rem; font-weight:900; color:var(--azul-staff); text-transform:uppercase; margin-bottom:8px;">Identificación de Camarero</p>
+            <div class="camarero-selector-admin" id="camarero-admin-list"></div>
+        </div>
         <div id="lista-pedidos-realtime"></div>
     </div>
     
@@ -285,23 +283,22 @@
     const categorias = ["Tapas/Ración/Menú", "Café/repostería/Postres", "Bebidas/Refrescos", "Tapas del día", "Otros"];
     let productosLocal = [];
     let carrito = [];
-    let camareroSeleccionado = null;
+    let camareroActivo = null; // Para uso en panel de administración
     const CLAVE_MAESTRA = "887233";
 
-    // Inicializar botones de camareros (1 al 7)
-    function initCamareros() {
-        const list = document.getElementById('camarero-client-list');
+    // Inyectar 7 camareros en el panel de Administración
+    function initCamarerosAdmin() {
+        const list = document.getElementById('camarero-admin-list');
         list.innerHTML = "";
         for(let i=1; i<=7; i++) {
-            list.innerHTML += `<div class="camarero-btn" id="cam-btn-${i}" onclick="selectCamarero(${i})">CAM. ${i}</div>`;
+            list.innerHTML += `<div class="camarero-btn" id="cam-admin-${i}" onclick="selectCamareroAdmin(${i})">CAMARERO ${i}</div>`;
         }
     }
-    initCamareros();
 
-    function selectCamarero(id) {
+    function selectCamareroAdmin(id) {
         document.querySelectorAll('.camarero-btn').forEach(b => b.classList.remove('selected'));
-        document.getElementById(`cam-btn-${id}`).classList.add('selected');
-        camareroSeleccionado = id;
+        document.getElementById(`cam-admin-${id}`).classList.add('selected');
+        camareroActivo = id;
     }
 
     db.ref('carta').on('value', snap => {
@@ -379,11 +376,9 @@
     function enviarPedidoFirebase() {
         const m = document.getElementById('mesa-input').value;
         if(!m || carrito.length === 0) return alert("Indica mesa y añade productos.");
-        if(!camareroSeleccionado) return alert("Por favor, selecciona qué camarero te atiende.");
 
         db.ref('pedidos').push({
             mesa: m, 
-            camarero: camareroSeleccionado,
             items: carrito,
             hora: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
             timestamp: Date.now()
@@ -401,22 +396,34 @@
             const p = pedidos[key];
             const resumen = {}; let total = 0;
             p.items.forEach(i => { resumen[i.nombre] = (resumen[i.nombre] || 0) + 1; total += i.precio; });
+            
+            // Si el pedido ya fue "tomado" por un camarero en barra, se muestra su ID
+            const camLabel = p.camarero ? `<div class="badge-camarero">Cam. ${p.camarero}</div>` : '';
+
             div.innerHTML += `
                 <div class="pedido-card">
-                    <div class="badge-camarero">Cam. ${p.camarero || '?'}</div>
+                    ${camLabel}
                     <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                         <span style="font-weight:900; font-size:1.1rem;">MESA ${p.mesa}</span>
-                        <span style="color:#666; font-size:0.8rem; margin-right: 50px;">${p.hora}</span>
+                        <span style="color:#666; font-size:0.8rem; margin-right: ${p.camarero ? '50px' : '0'};">${p.hora}</span>
                     </div>
                     <div style="font-size:0.95rem; line-height:1.6; color:#333;">
                         ${Object.keys(resumen).map(n => `<div><b>${resumen[n]}x</b> ${n}</div>`).join('')}
                     </div>
                     <div style="margin-top:15px; padding-top:10px; border-top:1px dashed #ddd; display:flex; justify-content:space-between; align-items:center;">
                         <span style="font-weight:900; color:var(--rojo); font-size:1.1rem;">${total.toFixed(2)}€</span>
-                        <button onclick="finalizarPedido('${key}')" style="background:var(--verde); color:white; border:none; padding:8px 15px; border-radius:6px; font-weight:bold; cursor:pointer;">LISTO</button>
+                        <div style="display:flex; gap:5px;">
+                            ${!p.camarero ? `<button onclick="atenderPedido('${key}')" style="background:var(--azul-staff); color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.75rem;">ATENDER</button>` : ''}
+                            <button onclick="finalizarPedido('${key}')" style="background:var(--verde); color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.75rem;">LISTO</button>
+                        </div>
                     </div>
                 </div>`;
         });
+    }
+
+    function atenderPedido(id) {
+        if(!camareroActivo) return alert("Selecciona primero qué camarero eres arriba.");
+        db.ref('pedidos/' + id).update({ camarero: camareroActivo });
     }
 
     function finalizarPedido(id) { db.ref('pedidos/' + id).remove(); }
@@ -427,7 +434,11 @@
     function guardarCarta() { db.ref('carta').set(productosLocal).then(() => alert("✅ Cambios guardados correctamente en la nube.")); }
 
     function accesoStaff() { if(prompt("CÓDIGO DE ACCESO:") === CLAVE_MAESTRA) mostrarStaff(); }
-    function mostrarStaff() { document.getElementById('view-client').style.display = 'none'; document.getElementById('staff-panel').style.display = 'block'; }
+    function mostrarStaff() { 
+        document.getElementById('view-client').style.display = 'none'; 
+        document.getElementById('staff-panel').style.display = 'block';
+        initCamarerosAdmin(); // Iniciamos el selector solo cuando entramos a admin
+    }
     function cerrarSesion() { location.reload(); }
     function switchTab(t) {
         document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
