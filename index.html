@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
-    <title>Café Bar El Pelotazo - Pedidos</title>
+    <title>Café Bar El Pelotazo - Sistema de Comandas</title>
     
     <!-- Firebase SDK (Version 8) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -21,8 +21,8 @@
             --texto-oscuro: #1a1a1a;
         }
 
-        /* Seguridad y Prevención de Copia */
-        * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; outline: none; }
+        /* Seguridad y UX Mobile */
+        * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; outline: none; box-sizing: border-box; }
         input { -webkit-user-select: text; user-select: text; }
         @media print { body { display: none !important; } }
 
@@ -48,77 +48,89 @@
         .container { padding: 15px; max-width: 600px; margin: auto; }
         
         .input-style {
-            width: 100%; padding: 12px; border-radius: 10px; border: 2px solid var(--azul-staff); 
-            font-size: 1.2rem; box-sizing: border-box; font-weight: bold; text-align: center;
+            width: 100%; padding: 14px; border-radius: 12px; border: 2px solid var(--azul-staff); 
+            font-size: 1.3rem; font-weight: bold; text-align: center;
             background: #fff; color: var(--azul-oscuro);
         }
 
-        /* Acordeón Cliente */
-        .cat-block { margin-bottom: 8px; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); background: white; }
+        /* Categorías Acordeón */
+        .cat-block { margin-bottom: 10px; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); background: white; }
         .cat-header { 
-            padding: 18px; font-weight: bold; cursor: pointer;
-            display: flex; justify-content: space-between; border-left: 6px solid var(--rojo);
+            padding: 20px; font-weight: 800; cursor: pointer;
+            display: flex; justify-content: space-between; border-left: 8px solid var(--rojo);
             text-transform: uppercase; font-size: 1rem; color: var(--azul-staff);
         }
         .cat-content { display: none; padding: 0 15px; border-top: 1px solid #eee; }
         .cat-block.open .cat-content { display: block; }
         
-        .item-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #f0f0f0; }
-        .price { font-weight: 900; color: var(--rojo); margin-right: 12px; font-size: 1.1rem; }
-        .btn-plus { background: var(--azul-staff); color: white; border: none; width: 44px; height: 44px; border-radius: 8px; font-size: 1.5rem; cursor: pointer; }
+        .item-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid #f0f0f0; }
+        .price { font-weight: 900; color: var(--rojo); margin-right: 15px; font-size: 1.2rem; }
+        .btn-plus { background: var(--azul-staff); color: white; border: none; width: 48px; height: 48px; border-radius: 10px; font-size: 1.6rem; cursor: pointer; }
 
-        /* Footer Cliente */
+        /* Pie de página dinámico */
         .footer-client { 
             position: fixed; bottom: 0; width: 100%; background: white; 
             padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; 
-            box-sizing: border-box; box-shadow: 0 -5px 15px rgba(0,0,0,0.1); z-index: 999; 
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.15); z-index: 999; 
         }
-        #total-val { font-size: 2.2rem; font-weight: 900; color: var(--rojo); }
+        #total-val { font-size: 2.4rem; font-weight: 900; color: var(--rojo); }
 
-        /* Panel Staff */
-        #staff-panel { display: none; background: #eaeff2; min-height: 100vh; }
-        .staff-nav { display: flex; gap: 8px; padding: 12px; background: white; position: sticky; top: 0; z-index: 1001; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .tab-btn { flex: 1; padding: 14px; border: none; background: #e0e0e0; border-radius: 8px; font-weight: 900; cursor: pointer; font-size: 0.85rem; }
+        /* Estilos Staff & Admin */
+        #staff-panel { display: none; background: #f0f2f5; min-height: 100vh; }
+        .staff-nav { display: flex; gap: 10px; padding: 12px; background: white; position: sticky; top: 0; z-index: 1001; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .tab-btn { flex: 1; padding: 15px; border: none; background: #e4e6eb; border-radius: 10px; font-weight: 900; cursor: pointer; }
         .tab-btn.active { background: var(--azul-staff); color: white; }
-        .tab-content { display: none; padding: 15px; }
-        .tab-content.active { display: block; }
-
-        .pedido-card { background: white; padding: 18px; border-radius: 12px; margin-bottom: 18px; border-left: 10px solid var(--naranja); box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
-        .staff-total-row { background: #fff0f0; padding: 12px; border-radius: 8px; text-align: right; margin: 15px 0; border: 2px dashed var(--rojo); }
-        .staff-total-amount { font-size: 1.8rem; font-weight: 900; color: var(--rojo); display: block; }
-
-        /* Admin / Editor */
-        .admin-box { background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; border-top: 5px solid var(--azul-staff); }
-        .edit-row { display: flex; flex-direction: column; gap: 8px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 12px; background: #fafafa; }
-        .edit-inputs { display: grid; grid-template-columns: 1fr 100px; gap: 8px; }
-        .edit-inputs input { padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-weight: bold; }
-        .edit-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; }
         
-        /* Toggle Switch */
-        .switch { position: relative; display: inline-block; width: 50px; height: 24px; }
+        .pedido-card { background: white; padding: 20px; border-radius: 15px; margin-bottom: 20px; border-left: 12px solid var(--naranja); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .staff-total-row { background: #fff0f0; padding: 15px; border-radius: 10px; text-align: right; margin: 15px 0; border: 2px dashed var(--rojo); }
+        .staff-total-amount { font-size: 2rem; font-weight: 900; color: var(--rojo); }
+
+        /* Editor de Productos */
+        .admin-box { background: white; padding: 15px; border-radius: 12px; margin-bottom: 25px; border-top: 6px solid var(--azul-staff); }
+        .edit-row { display: flex; flex-direction: column; gap: 10px; padding: 15px; border: 1px solid #ddd; border-radius: 10px; margin-bottom: 15px; background: #fdfdfd; }
+        .edit-inputs { display: grid; grid-template-columns: 1fr 110px; gap: 10px; }
+        .edit-inputs input { padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-weight: bold; font-size: 1rem; }
+        
+        /* Switch de activación */
+        .switch { position: relative; display: inline-block; width: 54px; height: 28px; }
         .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 28px; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--verde); }
         input:checked + .slider:before { transform: translateX(26px); }
 
-        /* Footer Créditos */
-        .rodante-footer {
+        /* Pie de página mejorado */
+        .footer-info {
             text-align: center;
-            padding: 5px 0 25px 0;
-            font-size: 0.65rem;
-            color: #999;
+            padding: 40px 15px;
+            margin-top: 20px;
         }
-        .rodante-footer a {
+        .btn-acceso-admin {
+            background: none;
+            border: none;
+            color: #bbb;
+            font-size: 0.7rem;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px; /* Más espacio entre el botón y el enlace */
+            display: block; /* Asegura que ocupe su propia línea */
+            width: 100%;
+        }
+        .rodante-footer-small {
+            font-size: 0.7rem;
+            color: #999;
+            line-height: 1.6;
+            margin-top: 10px;
+        }
+        .rodante-footer-small a {
             color: var(--azul-staff);
             text-decoration: none;
             font-weight: 900;
-            background: #eee;
-            padding: 1px 4px;
-            border-radius: 3px;
         }
 
-        .btn-save-fixed { position: fixed; bottom: 25px; right: 25px; background: var(--verde); color: white; border: none; width: 75px; height: 75px; border-radius: 50%; font-weight: 900; box-shadow: 0 6px 20px rgba(0,0,0,0.4); z-index: 1100; cursor: pointer; }
+        .btn-save-fixed { position: fixed; bottom: 30px; right: 30px; background: var(--verde); color: white; border: none; width: 85px; height: 85px; border-radius: 50%; font-weight: 900; box-shadow: 0 8px 25px rgba(0,0,0,0.4); z-index: 1100; cursor: pointer; font-size: 0.9rem; }
     </style>
 </head>
 <body oncontextmenu="return false;">
@@ -129,40 +141,49 @@
         <h1>Café Bar El Pelotazo</h1>
     </header>
     <div class="container">
-        <div style="margin-bottom:15px;">
-            <label style="display:block; text-align:center; font-weight:bold; font-size:0.9rem; color:var(--azul-staff); margin-bottom:5px;">NÚMERO DE MESA</label>
-            <input type="number" id="mesa-input" class="input-style" placeholder="Ej: 5">
+        <div style="margin-bottom:20px; text-align:center;">
+            <label style="font-weight:900; font-size:0.85rem; color:var(--azul-staff); text-transform:uppercase; letter-spacing:1px;">Indica tu Mesa</label>
+            <input type="number" id="mesa-input" class="input-style" placeholder="Ej: 4" style="margin-top:5px;">
         </div>
+        
+        <!-- Contenedor para el Menú -->
         <div id="menu-accordion"></div>
 
-        <div style="text-align:center; margin-top:30px;">
-            <button onclick="accesoStaff()" style="background:none; border:none; color:#bbb; font-size:0.7rem; cursor:pointer; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px;">Acceso Administración</button>
-            <div class="rodante-footer">
+        <!-- Pie de página reorganizado con más espacio -->
+        <div class="footer-info">
+            <button onclick="accesoStaff()" class="btn-acceso-admin">Panel Administración</button>
+            <div class="rodante-footer-small">
                 Creación y diseño de <a href="https://rodante.es" target="_blank">rodante.es</a>
             </div>
         </div>
     </div>
+
     <div class="footer-client">
-        <div><small style="font-weight:900; color:#666; display:block; font-size:0.7rem;">TOTAL:</small><div id="total-val">0.00€</div></div>
-        <button onclick="enviarPedidoFirebase()" style="background:var(--verde); color:white; border:none; padding:18px 25px; border-radius:12px; font-weight:900; cursor:pointer; font-size: 1rem; text-transform:uppercase;">ENVIAR COMANDA</button>
+        <div>
+            <small style="font-weight:900; color:#888; display:block; font-size:0.75rem; text-transform:uppercase;">Subtotal</small>
+            <div id="total-val">0.00€</div>
+        </div>
+        <button onclick="enviarPedidoFirebase()" style="background:var(--verde); color:white; border:none; padding:20px 30px; border-radius:15px; font-weight:900; cursor:pointer; font-size: 1.1rem; text-transform:uppercase; letter-spacing:1px; box-shadow: 0 4px 10px rgba(39, 174, 96, 0.3);">ENVIAR COMANDA</button>
     </div>
 </div>
 
 <div id="staff-panel">
     <div class="staff-nav">
         <button class="tab-btn active" onclick="switchTab('pedidos')">🔔 COMANDAS</button>
-        <button class="tab-btn" onclick="switchTab('admin')">⚙️ CARTA</button>
+        <button class="tab-btn" onclick="switchTab('admin')">⚙️ EDITAR CARTA</button>
         <button class="tab-btn" style="background:#cc0000; color:white;" onclick="cerrarSesion()">SALIR</button>
     </div>
-    <div id="tab-pedidos" class="tab-content active">
+    <div id="tab-pedidos" class="tab-content active" style="padding:15px;">
         <div id="lista-pedidos-realtime"></div>
     </div>
-    <div id="tab-admin" class="tab-content">
+    <div id="tab-admin" class="tab-content" style="padding:15px;">
         <div id="editor-admin"></div>
-        <div class="rodante-footer">
-            Creación y diseño de <a href="https://rodante.es" target="_blank">rodante.es</a>
+        <div class="footer-info">
+            <div class="rodante-footer-small">
+                Creación y diseño de <a href="https://rodante.es" target="_blank">rodante.es</a>
+            </div>
         </div>
-        <button class="btn-save-fixed" onclick="guardarCarta()">GUARDAR</button>
+        <button class="btn-save-fixed" onclick="guardarCarta()">GUARDAR<br>CARTA</button>
     </div>
 </div>
 
@@ -177,13 +198,33 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const categorias = ["Tapas/Ración/Menú", "Café/repostería/Postres", "Bebidas/Refrescos", "Tapas del día", "Otros"];
+    // CATEGORÍAS FIJAS
+    const categorias = [
+        "Tapas/Ración/Menú",
+        "Café/repostería/Postres",
+        "Bebidas/Refrescos",
+        "Tapas del día",
+        "Otros"
+    ];
+
     let productosLocal = [];
     let carrito = [];
     const CLAVE_MAESTRA = "887233";
 
+    // Cargar datos de Firebase
     db.ref('carta').on('value', snap => {
-        productosLocal = snap.val() ? Object.values(snap.val()) : [];
+        const data = snap.val();
+        if (!data) {
+            productosLocal = categorias.map(cat => ({
+                nombre: "Ejemplo " + cat,
+                price: 1.00,
+                cat: cat,
+                activo: true
+            }));
+            db.ref('carta').set(productosLocal);
+        } else {
+            productosLocal = Object.values(data);
+        }
         renderMenuYAdmin();
     });
 
@@ -196,19 +237,20 @@
 
         categorias.forEach(cat => {
             const catId = cat.replace(/[^a-z0-9]/gi, '');
-            const itemsCliente = productosLocal.filter(p => p.cat === cat && p.activo !== false);
-            const itemsAdmin = productosLocal.filter(p => p.cat === cat);
+            const itemsVisible = productosLocal.filter(p => p.cat === cat && p.activo !== false);
+            const itemsTodos = productosLocal.filter(p => p.cat === cat);
             
-            let itemsHtml = itemsCliente.map(p => `
+            // Lado Cliente
+            let itemsHtml = itemsVisible.map(p => `
                 <div class="item-row">
-                    <span style="font-weight:500;">${escapeHTML(p.nombre)}</span>
+                    <span style="font-weight:600; font-size:1.1rem;">${escapeHTML(p.nombre)}</span>
                     <div>
                         <span class="price">${parseFloat(p.price || 0).toFixed(2)}€</span>
                         <button class="btn-plus" onclick="addToCart('${escapeHTML(p.nombre)}', ${p.price})">+</button>
                     </div>
                 </div>`).join('');
             
-            if(itemsCliente.length > 0) {
+            if(itemsVisible.length > 0) {
                 menuDiv.innerHTML += `
                     <div class="cat-block" id="cat-box-${catId}">
                         <div class="cat-header" onclick="document.getElementById('cat-box-${catId}').classList.toggle('open')">
@@ -218,7 +260,8 @@
                     </div>`;
             }
 
-            let rowsAdmin = itemsAdmin.map(p => {
+            // Lado Admin
+            let rowsAdmin = itemsTodos.map(p => {
                 const idx = productosLocal.indexOf(p);
                 const isChecked = p.activo !== false ? 'checked' : '';
                 return `
@@ -227,28 +270,26 @@
                         <input type="text" value="${escapeHTML(p.nombre)}" onchange="editItem(${idx}, 'nombre', this.value)">
                         <input type="number" step="0.05" value="${p.price}" onchange="editItem(${idx}, 'price', this.value)">
                     </div>
-                    <div class="edit-controls">
-                        <div style="display:flex; align-items:center; gap:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="display:flex; align-items:center; gap:10px;">
                             <label class="switch">
                                 <input type="checkbox" ${isChecked} onchange="toggleItem(${idx}, this.checked)">
                                 <span class="slider"></span>
                             </label>
-                            <small style="font-weight:bold; color:${p.activo !== false ? 'var(--verde)' : '#999'}">
-                                ${p.activo !== false ? 'VISIBLE' : 'OCULTO'}
-                            </small>
+                            <span style="font-weight:900; font-size:0.8rem;">${p.activo !== false ? 'VISIBLE' : 'OCULTO'}</span>
                         </div>
-                        <button style="color:red; background:none; border:none; font-weight:900; font-size:0.7rem;" onclick="deleteItem(${idx})">ELIMINAR PRODUCTO</button>
+                        <button style="color:red; background:none; border:none; font-weight:bold;" onclick="deleteItem(${idx})">BORRAR</button>
                     </div>
                 </div>`;
             }).join('');
 
             adminDiv.innerHTML += `
                 <div class="admin-box">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #eee; padding-bottom:5px;">
-                        <b style="color:var(--azul-staff); font-size:0.85rem;">${cat.toUpperCase()}</b>
-                        <button onclick="addItem('${cat}')" style="background:var(--azul-staff); color:white; border:none; padding:6px 12px; border-radius:6px; font-size:0.7rem; font-weight:bold;">+ AÑADIR</button>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:2px solid #f0f0f0;">
+                        <b style="color:var(--azul-staff);">${cat}</b>
+                        <button onclick="addItem('${cat}')" style="background:var(--azul-staff); color:white; border:none; padding:5px 10px; border-radius:5px; margin-bottom:5px;">+ AÑADIR</button>
                     </div>
-                    ${rowsAdmin}
+                    ${rowsAdmin || '<p style="font-size:0.8rem; color:#999; text-align:center;">No hay productos.</p>'}
                 </div>`;
         });
     }
@@ -261,8 +302,8 @@
 
     function enviarPedidoFirebase() {
         const mesa = document.getElementById('mesa-input').value;
-        if(!mesa) return alert("Por favor, introduce tu número de mesa.");
-        if(carrito.length === 0) return alert("Añade algún producto a tu comanda.");
+        if(!mesa) return alert("Indica tu mesa.");
+        if(carrito.length === 0) return alert("Carrito vacío.");
         
         db.ref('pedidos').push({
             mesa: escapeHTML(mesa),
@@ -270,7 +311,7 @@
             hora: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
             timestamp: Date.now()
         }).then(() => {
-            alert("✅ Comanda enviada a la barra.");
+            alert("Comanda enviada.");
             carrito = []; document.getElementById('total-val').innerText = "0.00€";
         });
     }
@@ -278,67 +319,51 @@
     function renderPedidos(pedidos) {
         const div = document.getElementById('lista-pedidos-realtime');
         div.innerHTML = "";
-        if(!pedidos) return div.innerHTML = "<p style='text-align:center; padding:40px; color:#999; font-weight:bold;'>Esperando nuevas comandas...</p>";
+        if(!pedidos) return div.innerHTML = "<p style='text-align:center; padding:20px;'>No hay comandas pendientes.</p>";
         
-        Object.keys(pedidos).sort((a,b) => pedidos[a].timestamp - pedidos[b].timestamp).forEach(key => {
+        Object.keys(pedidos).forEach(key => {
             const p = pedidos[key];
             const resumen = {};
             let subtotal = 0;
-            p.items.forEach(i => { resumen[i.nombre] = (resumen[i.nombre] || 0) + 1; subtotal += parseFloat(i.precio); });
+            p.items.forEach(i => { resumen[i.nombre] = (resumen[i.nombre] || 0) + 1; subtotal += i.precio; });
             div.innerHTML += `
                 <div class="pedido-card">
-                    <div style="display:flex; justify-content:space-between; border-bottom:2px solid #f0f0f0; padding-bottom:8px; margin-bottom:10px;">
-                        <b style="font-size:1.4rem; color:var(--azul-staff);">MESA ${escapeHTML(p.mesa)}</b>
-                        <span style="color:#666; font-weight:bold;">🕒 ${p.hora}</span>
-                    </div>
-                    <div style="font-size:1.2rem; margin:15px 0; line-height:1.5;">
-                        ${Object.keys(resumen).map(n => `<div><b>${resumen[n]}x</b> ${escapeHTML(n)}</div>`).join('')}
-                    </div>
-                    <div class="staff-total-row">
-                        <span style="font-size:0.8rem; color:#666; font-weight:900;">TOTAL COMANDA:</span>
-                        <span class="staff-total-amount">${subtotal.toFixed(2)}€</span>
-                    </div>
-                    <select id="cam-serv-${key}" class="input-style" style="width:100%; margin-bottom:12px; border:2px solid #ddd; font-size:1.1rem; height:50px;">
-                        <option value="">¿Quién ha servido?</option>
+                    <b>MESA ${escapeHTML(p.mesa)}</b> - ${p.hora}<br>
+                    <hr>
+                    ${Object.keys(resumen).map(n => `<div>${resumen[n]}x ${n}</div>`).join('')}
+                    <div class="staff-total-row">Total: ${subtotal.toFixed(2)}€</div>
+                    <select id="cam-serv-${key}" class="input-style" style="margin: 10px 0; font-size: 1rem;">
+                        <option value="">¿Quién sirve?</option>
                         <option value="1">Camarero 1</option>
                         <option value="2">Camarero 2</option>
-                        <option value="3">Camarero 3</option>
-                        <option value="4">Camarero 4</option>
-                        <option value="5">Camarero 5</option>
                     </select>
-                    <button class="btn-done" style="width:100%; background:var(--verde); color:white; border:none; padding:18px; border-radius:10px; font-weight:900; font-size:1.1rem; text-transform:uppercase;" onclick="finalizarPedido('${key}')">Marcar como Servido</button>
+                    <button style="width:100%; padding:15px; background:var(--verde); color:white; border:none; border-radius:10px; font-weight:bold;" onclick="finalizarPedido('${key}')">LISTO / SERVIDO</button>
                 </div>`;
         });
     }
 
     function finalizarPedido(id) {
-        if(!document.getElementById('cam-serv-'+id).value) return alert("Por favor, selecciona quién ha realizado el servicio.");
+        if(!document.getElementById('cam-serv-'+id).value) return alert("Selecciona camarero.");
         db.ref('pedidos/' + id).remove();
     }
 
     function toggleItem(i, val) { productosLocal[i].activo = val; renderMenuYAdmin(); }
     function editItem(i, campo, val) { productosLocal[i][campo] = campo === 'price' ? parseFloat(val) : val; }
-    function addItem(cat) { productosLocal.push({nombre: "Nuevo Producto", price: 0, cat, activo: true}); renderMenuYAdmin(); }
-    function deleteItem(i) { if(confirm("¿Eliminar definitivamente de la carta?")) { productosLocal.splice(i,1); renderMenuYAdmin(); } }
-    function guardarCarta() { db.ref('carta').set(productosLocal).then(() => alert("Carta actualizada correctamente.")); }
+    function addItem(cat) { productosLocal.push({nombre: "Nuevo Producto", price: 0, cat: cat, activo: true}); renderMenuYAdmin(); }
+    function deleteItem(i) { if(confirm("¿Eliminar?")) { productosLocal.splice(i,1); renderMenuYAdmin(); } }
+    function guardarCarta() { db.ref('carta').set(productosLocal).then(() => alert("Carta guardada.")); }
 
     function accesoStaff() {
-        const pass = prompt("Acceso Staff - Introduce el código:");
-        if(pass === CLAVE_MAESTRA) { sessionStorage.setItem('staff_auth', 'true'); mostrarStaff(); }
-        else if(pass !== null) { alert("Código incorrecto."); }
+        const pass = prompt("CÓDIGO:");
+        if(pass === CLAVE_MAESTRA) mostrarStaff();
     }
     function mostrarStaff() { document.getElementById('view-client').style.display = 'none'; document.getElementById('staff-panel').style.display = 'block'; }
-    function cerrarSesion() { sessionStorage.removeItem('staff_auth'); location.reload(); }
+    function cerrarSesion() { location.reload(); }
     function switchTab(tab) {
         document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
-        if(tab === 'pedidos') { document.querySelector('.tab-btn:nth-child(1)').classList.add('active'); document.getElementById('tab-pedidos').classList.add('active'); }
+        if(tab === 'pedidos') { document.querySelector('.tab-btn:first-child').classList.add('active'); document.getElementById('tab-pedidos').classList.add('active'); }
         else { document.querySelector('.tab-btn:nth-child(2)').classList.add('active'); document.getElementById('tab-admin').classList.add('active'); }
     }
-
-    window.addEventListener('keydown', e => {
-        if(e.ctrlKey && (e.key === 's' || e.key === 'p' || e.key === 'u' || e.key === 'i')) e.preventDefault();
-        if(e.key === 'F12') e.preventDefault();
-    });
 </script>
 </body>
 </html>
