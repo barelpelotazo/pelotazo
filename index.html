@@ -112,17 +112,20 @@
         }
         .tab-btn.active { background: var(--rojo); color: white; }
         
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
         .pedido-card { background: white; padding: 18px; border-radius: 12px; margin-bottom: 15px; border-left: 8px solid var(--naranja); box-shadow: var(--sombra-suave); position: relative;}
-        .badge-atendido { background: #fff3cd; border: 1px solid #ffeeba; padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; color: #856404; margin-bottom: 10px; display: inline-block; width: 100%; font-weight: 800; text-align: center;}
+        .badge-atendido { background: #e7f3ff; border: 1px solid #bde0fe; padding: 6px 10px; border-radius: 6px; font-size: 0.85rem; color: #004085; margin-bottom: 12px; display: inline-block; width: 100%; font-weight: 800; text-align: center;}
 
         /* Selector de Camareros en Admin */
         .admin-camarero-bar {
-            background: white; padding: 15px; border-radius: 10px; margin-bottom: 15px;
-            box-shadow: var(--sombra-suave); border: 1px solid #ddd;
+            background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px;
+            box-shadow: var(--sombra-suave); border: 2px solid var(--azul-staff);
         }
         .select-cam-admin {
-            width: 100%; padding: 10px; border-radius: 6px; border: 2px solid var(--azul-staff);
-            font-weight: bold; color: var(--azul-staff); background: #f8f9fa;
+            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ced4da;
+            font-weight: bold; color: var(--azul-staff); background: #fff; font-size: 1rem;
         }
 
         /* PANEL ADMIN */
@@ -234,17 +237,17 @@
 
 <div id="staff-panel">
     <div class="staff-nav">
-        <button class="tab-btn active" onclick="switchTab('pedidos')">🔔 Comandas</button>
-        <button class="tab-btn" onclick="switchTab('admin')">⚙️ Editar Carta</button>
+        <button id="btn-tab-pedidos" class="tab-btn active" onclick="switchTab('pedidos')">🔔 Comandas</button>
+        <button id="btn-tab-admin" class="tab-btn" onclick="switchTab('admin')">⚙️ Editar Carta</button>
         <button class="tab-btn" style="background:#495057;" onclick="cerrarSesion()">Salir</button>
     </div>
     
+    <!-- PESTAÑA SOLO COMANDAS -->
     <div id="tab-pedidos" class="tab-content active" style="padding:15px;">
-        <!-- Selector de Camarero solo en Administración -->
         <div class="admin-camarero-bar">
-            <label style="font-size:0.7rem; font-weight:900; color:var(--azul-staff); text-transform:uppercase; display:block; margin-bottom:8px; text-align:center;">Identificación de Camarero para el Servicio</label>
+            <label style="font-size:0.75rem; font-weight:900; color:var(--azul-staff); text-transform:uppercase; display:block; margin-bottom:10px; text-align:center; letter-spacing:1px;">Identificación del Personal</label>
             <select id="camarero-admin-select" class="select-cam-admin">
-                <option value="" selected>-- Selecciona quién eres --</option>
+                <option value="" disabled selected>-- Elige tu número de camarero --</option>
                 <option value="1">Camarero 1</option>
                 <option value="2">Camarero 2</option>
                 <option value="3">Camarero 3</option>
@@ -257,6 +260,7 @@
         <div id="lista-pedidos-realtime"></div>
     </div>
     
+    <!-- PESTAÑA SOLO EDICIÓN CARTA -->
     <div id="tab-admin" class="tab-content" style="padding:15px;">
         <div id="editor-admin"></div>
         <div class="footer-info" style="padding-bottom: 100px;">
@@ -264,7 +268,7 @@
                 Gestión de contenidos - <a href="https://rodante.es" target="_blank">rodante.es</a>
             </div>
         </div>
-        <button class="btn-save-fixed" onclick="guardarCarta()">GUARDAR<br>CAMBIOS</button>
+        <button class="btn-save-fixed" onclick="guardarCarta()">GUARDAR<br>CARTA</button>
     </div>
 </div>
 
@@ -291,6 +295,7 @@
     let carrito = [];
     const CLAVE_MAESTRA = "887233";
 
+    // CARGAR CARTA
     db.ref('carta').on('value', snap => {
         productosLocal = snap.val() ? Object.values(snap.val()) : [];
         if(productosLocal.length === 0) {
@@ -300,6 +305,7 @@
         renderMenuYAdmin();
     });
 
+    // ESCUCHAR PEDIDOS
     db.ref('pedidos').on('value', snap => renderPedidos(snap.val()));
 
     function renderMenuYAdmin() {
@@ -373,38 +379,38 @@
             hora: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
             timestamp: Date.now()
         }).then(() => {
-            alert("¡Pedido enviado!"); carrito = []; document.getElementById('total-val').innerText = "0.00€";
+            alert("¡Pedido enviado a barra!"); carrito = []; document.getElementById('total-val').innerText = "0.00€";
         });
     }
 
     function renderPedidos(pedidos) {
         const div = document.getElementById('lista-pedidos-realtime');
         div.innerHTML = "";
-        if(!pedidos) return div.innerHTML = "<p style='text-align:center; padding:40px; color:#666;'>No hay pedidos pendientes.</p>";
+        if(!pedidos) return div.innerHTML = "<p style='text-align:center; padding:60px; color:#adb5bd; font-weight:bold;'>SIN COMANDAS PENDIENTES</p>";
         
         Object.keys(pedidos).forEach(key => {
             const p = pedidos[key];
             const resumen = {}; let total = 0;
             p.items.forEach(i => { resumen[i.nombre] = (resumen[i.nombre] || 0) + 1; total += i.precio; });
             
-            // Badge de camarero que se muestra solo si ha sido asignado en el panel staff
-            const camLabel = p.camarero ? `<div class="badge-atendido">Atendido por: Camarero ${p.camarero}</div>` : '';
+            // Identificación del camarero
+            const camLabel = p.camarero ? `<div class="badge-atendido">Fue atendido por: Camarero ${p.camarero}</div>` : '';
 
             div.innerHTML += `
                 <div class="pedido-card">
                     ${camLabel}
-                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                        <span style="font-weight:900; font-size:1.1rem;">MESA ${p.mesa}</span>
-                        <span style="color:#666; font-size:0.8rem;">${p.hora}</span>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                        <span style="font-weight:900; font-size:1.2rem; color:var(--azul-staff);">MESA ${p.mesa}</span>
+                        <span style="color:#666; font-size:0.85rem; font-weight:bold; background:#eee; padding:2px 8px; border-radius:4px;">${p.hora}</span>
                     </div>
-                    <div style="font-size:0.95rem; line-height:1.6; color:#333;">
-                        ${Object.keys(resumen).map(n => `<div><b>${resumen[n]}x</b> ${n}</div>`).join('')}
+                    <div style="font-size:1rem; line-height:1.6; color:#1a1a1a; margin-bottom:15px;">
+                        ${Object.keys(resumen).map(n => `<div><b style="color:var(--rojo);">${resumen[n]}x</b> ${n}</div>`).join('')}
                     </div>
-                    <div style="margin-top:15px; padding-top:10px; border-top:1px dashed #ddd; display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-weight:900; color:var(--rojo); font-size:1.1rem;">${total.toFixed(2)}€</span>
-                        <div style="display:flex; gap:5px;">
-                            ${!p.camarero ? `<button onclick="asignarCamarero('${key}')" style="background:var(--azul-staff); color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.7rem;">TOMAR COMANDA</button>` : ''}
-                            <button onclick="finalizarPedido('${key}')" style="background:var(--verde); color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.7rem;">LISTO</button>
+                    <div style="padding-top:12px; border-top:2px solid #f8f9fa; display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:900; color:var(--rojo); font-size:1.25rem;">${total.toFixed(2)}€</span>
+                        <div style="display:flex; gap:8px;">
+                            ${!p.camarero ? `<button onclick="asignarCamarero('${key}')" style="background:var(--azul-staff); color:white; border:none; padding:10px 14px; border-radius:8px; font-weight:800; cursor:pointer; font-size:0.75rem; text-transform:uppercase;">TOMAR COMANDA</button>` : ''}
+                            <button onclick="finalizarPedido('${key}')" style="background:var(--verde); color:white; border:none; padding:10px 14px; border-radius:8px; font-weight:800; cursor:pointer; font-size:0.75rem; text-transform:uppercase;">COBRADO/LISTO</button>
                         </div>
                     </div>
                 </div>`;
@@ -413,24 +419,41 @@
 
     function asignarCamarero(id) {
         const cam = document.getElementById('camarero-admin-select').value;
-        if(!cam) return alert("Por favor, selecciona qué camarero eres en el menú superior para poder tomar la comanda.");
+        if(!cam) return alert("⚠️ Error: Selecciona primero quién eres en el menú desplegable superior.");
         db.ref('pedidos/' + id).update({ camarero: cam });
     }
 
-    function finalizarPedido(id) { db.ref('pedidos/' + id).remove(); }
+    function finalizarPedido(id) { if(confirm("¿Comanda finalizada?")) db.ref('pedidos/' + id).remove(); }
+    
+    // FUNCIONES ADMIN
     function toggleItem(i, v) { productosLocal[i].activo = v; renderMenuYAdmin(); }
     function editItem(i, f, v) { productosLocal[i][f] = f === 'price' ? parseFloat(v) : v; }
     function addItem(c) { productosLocal.push({nombre: "Nuevo producto", price: 0, cat: c, activo: true}); renderMenuYAdmin(); }
-    function deleteItem(i) { if(confirm("¿Eliminar este producto?")) { productosLocal.splice(i,1); renderMenuYAdmin(); } }
-    function guardarCarta() { db.ref('carta').set(productosLocal).then(() => alert("✅ Cambios guardados correctamente en la nube.")); }
+    function deleteItem(i) { if(confirm("¿Eliminar este producto permanentemente?")) { productosLocal.splice(i,1); renderMenuYAdmin(); } }
+    function guardarCarta() { db.ref('carta').set(productosLocal).then(() => alert("✅ Carta actualizada en el servidor.")); }
 
-    function accesoStaff() { if(prompt("CÓDIGO DE ACCESO:") === CLAVE_MAESTRA) mostrarStaff(); }
-    function mostrarStaff() { document.getElementById('view-client').style.display = 'none'; document.getElementById('staff-panel').style.display = 'block'; }
+    // NAVEGACIÓN
+    function accesoStaff() { if(prompt("CÓDIGO DE ACCESO STAFF:") === CLAVE_MAESTRA) mostrarStaff(); }
+    function mostrarStaff() { 
+        document.getElementById('view-client').style.display = 'none'; 
+        document.getElementById('staff-panel').style.display = 'block'; 
+        switchTab('pedidos');
+    }
     function cerrarSesion() { location.reload(); }
+    
     function switchTab(t) {
-        document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
-        if(t === 'pedidos') { document.querySelector('.tab-btn:first-child').classList.add('active'); document.getElementById('tab-pedidos').classList.add('active'); }
-        else { document.querySelector('.tab-btn:nth-child(2)').classList.add('active'); document.getElementById('tab-admin').classList.add('active'); }
+        // Reset
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        // Activar
+        if(t === 'pedidos') {
+            document.getElementById('btn-tab-pedidos').classList.add('active');
+            document.getElementById('tab-pedidos').classList.add('active');
+        } else {
+            document.getElementById('btn-tab-admin').classList.add('active');
+            document.getElementById('tab-admin').classList.add('active');
+        }
     }
 </script>
 </body>
