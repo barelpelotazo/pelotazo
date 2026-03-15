@@ -26,19 +26,7 @@
             min-height: 100vh;
         }
 
-        body::before {
-            content: "";
-            position: fixed;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 70%; max-width: 400px; height: 100%;
-            background-image: url('logo%20pelotazo%20png.png');
-            background-repeat: no-repeat;
-            background-position: center;
-            background-size: contain;
-            opacity: 0.04; z-index: -1;
-            pointer-events: none;
-        }
+        /* Logo difuminado eliminado por petición del usuario */
 
         header { 
             background: var(--azul-oscuro); 
@@ -52,13 +40,13 @@
 
         .container { padding: 15px; max-width: 600px; margin: auto; position: relative; z-index: 1; }
         
-        .selector-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .selector-group { display: block; margin-bottom: 15px; }
         .input-style {
             width: 100%; padding: 12px; border-radius: 10px; border: 2px solid var(--azul-staff); 
-            font-size: 1rem; box-sizing: border-box; font-weight: bold; text-align: center;
+            font-size: 1.2rem; box-sizing: border-box; font-weight: bold; text-align: center;
             background: rgba(255, 255, 255, 0.9);
         }
-        label { display: block; font-size: 0.7rem; color: var(--azul-staff); font-weight: bold; margin-bottom: 4px; text-align: center; }
+        label { display: block; font-size: 0.8rem; color: var(--azul-staff); font-weight: bold; margin-bottom: 4px; text-align: center; }
 
         .cat-block { margin-bottom: 8px; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .cat-header { 
@@ -70,7 +58,7 @@
         .cat-block.open .cat-content { display: block; }
         .item-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
         .price { font-weight: 900; color: var(--rojo); margin-right: 10px; }
-        .btn-plus { background: var(--azul-staff); color: white; border: none; width: 35px; height: 35px; border-radius: 8px; font-size: 1.2rem; cursor: pointer; }
+        .btn-plus { background: var(--azul-staff); color: white; border: none; width: 40px; height: 40px; border-radius: 8px; font-size: 1.2rem; cursor: pointer; }
 
         .footer-client { position: fixed; bottom: 0; width: 100%; background: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; box-shadow: 0 -5px 15px rgba(0,0,0,0.1); z-index: 999; }
         #total-val { font-size: 2rem; font-weight: 900; color: var(--rojo); }
@@ -84,10 +72,13 @@
 
         .pedido-card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; border-left: 8px solid var(--naranja); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .pedido-header { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-        .mesa-num { font-weight: 900; font-size: 1.1rem; color: var(--azul-staff); }
-        .camarero-num { background: var(--azul-staff); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
-        .item-list { margin: 10px 0; font-size: 1rem; }
-        .btn-done { width: 100%; background: var(--verde); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; margin-top: 10px; cursor: pointer; }
+        .mesa-num { font-weight: 900; font-size: 1.2rem; color: var(--azul-staff); }
+        .item-list { margin: 10px 0; font-size: 1.1rem; }
+        
+        /* Selector staff al finalizar */
+        .staff-action-area { border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; }
+        .staff-select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; margin-bottom: 10px; font-weight: bold; }
+        .btn-done { width: 100%; background: var(--verde); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
         .admin-box { background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; border-top: 4px solid var(--azul-staff); }
         .edit-row { display: grid; grid-template-columns: 1fr 70px 40px; gap: 8px; margin-bottom: 8px; }
@@ -104,28 +95,13 @@
     </header>
     <div class="container">
         <div class="selector-group">
-            <div>
-                <label>Nº MESA</label>
-                <input type="number" id="mesa-input" class="input-style" placeholder="Mesa">
-            </div>
-            <div>
-                <label>CAMARERO</label>
-                <select id="camarero-input" class="input-style">
-                    <option value="">--</option>
-                    <option value="1">Camarero 1</option>
-                    <option value="2">Camarero 2</option>
-                    <option value="3">Camarero 3</option>
-                    <option value="4">Camarero 4</option>
-                    <option value="5">Camarero 5</option>
-                    <option value="6">Camarero 6</option>
-                    <option value="7">Camarero 7</option>
-                </select>
-            </div>
+            <label>MESA SELECCIONADA</label>
+            <input type="number" id="mesa-input" class="input-style" placeholder="Número de mesa">
         </div>
         <div id="menu-accordion"></div>
     </div>
     <div class="footer-client">
-        <div><small>CUENTA TOTAL:</small><div id="total-val">0.00€</div></div>
+        <div><small>TOTAL:</small><div id="total-val">0.00€</div></div>
         <button onclick="enviarPedidoFirebase()" style="background:var(--verde); color:white; border:none; padding:15px 30px; border-radius:12px; font-weight:bold; cursor:pointer;">ENVIAR PEDIDO</button>
     </div>
     <button onclick="accesoStaff()" style="width:100%; opacity:0; margin-top:40px; border:none; background:none; cursor:pointer; padding: 20px;">STAFF</button>
@@ -138,11 +114,11 @@
         <button class="tab-btn" style="background:#666; color:white;" onclick="location.reload()">SALIR</button>
     </div>
     <div id="tab-pedidos" class="tab-content active">
-        <h2 style="text-align:center;">PEDIDOS ENTRANTES</h2>
+        <h2 style="text-align:center;">PEDIDOS PENDIENTES</h2>
         <div id="lista-pedidos-realtime"></div>
     </div>
     <div id="tab-admin" class="tab-content">
-        <h2 style="text-align:center;">EDITAR PRECIOS</h2>
+        <h2 style="text-align:center;">EDITAR CARTA</h2>
         <div id="editor-admin"></div>
         <button class="btn-save-fixed" onclick="guardarCarta()">GUARDAR</button>
     </div>
@@ -161,7 +137,7 @@
     let productosLocal = [];
     let carrito = [];
 
-    // Función para detectar mesa por URL
+    // Función para detectar mesa por URL al cargar
     window.onload = function() {
         const urlParams = new URLSearchParams(window.location.search);
         const mesaEnlace = urlParams.get('mesa');
@@ -240,18 +216,18 @@
 
     function enviarPedidoFirebase() {
         const mesa = document.getElementById('mesa-input').value;
-        const camarero = document.getElementById('camarero-input').value;
-        if(!mesa || !camarero || carrito.length === 0) return alert("Falta Mesa, Camarero o Productos");
+        if(!mesa || carrito.length === 0) return alert("Por favor, introduce el número de mesa y añade productos.");
 
         const pedido = {
-            mesa, camarero,
+            mesa,
             items: carrito,
             hora: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            estado: 'pendiente'
         };
 
         db.ref('pedidos').push(pedido).then(() => {
-            alert("✅ Pedido enviado");
+            alert("✅ Pedido enviado a barra.");
             carrito = []; actualizarTotal();
         });
     }
@@ -259,7 +235,7 @@
     function renderPedidos(pedidos) {
         const div = document.getElementById('lista-pedidos-realtime');
         div.innerHTML = "";
-        if(!pedidos) return div.innerHTML = "<p style='text-align:center;'>Sin pedidos pendientes</p>";
+        if(!pedidos) return div.innerHTML = "<p style='text-align:center; padding:20px;'>No hay pedidos pendientes.</p>";
 
         Object.keys(pedidos).sort((a,b) => pedidos[a].timestamp - pedidos[b].timestamp).forEach(key => {
             const p = pedidos[key];
@@ -270,22 +246,43 @@
             div.innerHTML += `
                 <div class="pedido-card">
                     <div class="pedido-header">
-                        <span class="mesa-num">MESA ${p.mesa} <span class="camarero-num">C${p.camarero}</span></span>
+                        <span class="mesa-num">MESA ${p.mesa}</span>
                         <span style="color:#888; font-size:0.8rem">${p.hora}</span>
                     </div>
                     <div class="item-list">${itemsHtml}</div>
-                    <button class="btn-done" onclick="db.ref('pedidos/${key}').remove()">LISTO / SERVIDO</button>
+                    <div class="staff-action-area">
+                        <select id="camarero-servidor-${key}" class="staff-select">
+                            <option value="">¿Quién sirve?</option>
+                            <option value="1">Camarero 1</option>
+                            <option value="2">Camarero 2</option>
+                            <option value="3">Camarero 3</option>
+                            <option value="4">Camarero 4</option>
+                            <option value="5">Camarero 5</option>
+                        </select>
+                        <button class="btn-done" onclick="marcarComoServido('${key}')">LISTO / SERVIDO</button>
+                    </div>
                 </div>`;
+        });
+    }
+
+    function marcarComoServido(id) {
+        const camarero = document.getElementById('camarero-servidor-'+id).value;
+        if(!camarero) return alert("Selecciona primero qué camarero ha servido la mesa.");
+
+        // Guardamos quién lo sirvió y luego lo quitamos de pendientes
+        // En una app más avanzada aquí moveríamos el pedido a un 'historial'
+        db.ref('pedidos/' + id).remove().then(() => {
+            console.log("Pedido servido por camarero " + camarero);
         });
     }
 
     function editItem(i, campo, val) { productosLocal[i][campo] = campo === 'precio' ? parseFloat(val) : val; }
     function addItem(cat) { productosLocal.push({nombre: "Nuevo", precio: 0, cat}); renderMenuYAdmin(); }
-    function deleteItem(i) { if(confirm("¿Eliminar?")) { productosLocal.splice(i,1); renderMenuYAdmin(); } }
-    function guardarCarta() { db.ref('carta').set(productosLocal).then(() => alert("Carta guardada")); }
+    function deleteItem(i) { if(confirm("¿Eliminar este producto?")) { productosLocal.splice(i,1); renderMenuYAdmin(); } }
+    function guardarCarta() { db.ref('carta').set(productosLocal).then(() => alert("Carta actualizada correctamente.")); }
 
     function accesoStaff() {
-        if(prompt("Clave Staff:") === "887233") {
+        if(prompt("Clave de acceso Staff:") === "887233") {
             document.getElementById('view-client').style.display = 'none';
             document.getElementById('staff-panel').style.display = 'block';
         }
