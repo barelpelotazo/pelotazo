@@ -26,8 +26,6 @@
             min-height: 100vh;
         }
 
-        /* Logo difuminado eliminado por petición del usuario */
-
         header { 
             background: var(--azul-oscuro); 
             padding: 15px 10px; 
@@ -75,7 +73,18 @@
         .mesa-num { font-weight: 900; font-size: 1.2rem; color: var(--azul-staff); }
         .item-list { margin: 10px 0; font-size: 1.1rem; }
         
-        /* Selector staff al finalizar */
+        /* Nuevo estilo para el total en la comanda del staff */
+        .staff-total-row { 
+            background: #fff3f3; 
+            padding: 10px; 
+            border-radius: 8px; 
+            text-align: right; 
+            margin: 10px 0; 
+            border: 1px dashed var(--rojo);
+        }
+        .staff-total-label { font-size: 0.8rem; color: #666; font-weight: bold; }
+        .staff-total-amount { font-size: 1.4rem; font-weight: 900; color: var(--rojo); display: block; }
+
         .staff-action-area { border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; }
         .staff-select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; margin-bottom: 10px; font-weight: bold; }
         .btn-done { width: 100%; background: var(--verde); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
@@ -137,7 +146,6 @@
     let productosLocal = [];
     let carrito = [];
 
-    // Función para detectar mesa por URL al cargar
     window.onload = function() {
         const urlParams = new URLSearchParams(window.location.search);
         const mesaEnlace = urlParams.get('mesa');
@@ -240,7 +248,13 @@
         Object.keys(pedidos).sort((a,b) => pedidos[a].timestamp - pedidos[b].timestamp).forEach(key => {
             const p = pedidos[key];
             const itemsCount = {};
-            p.items.forEach(i => itemsCount[i.nombre] = (itemsCount[i.nombre] || 0) + 1);
+            let totalPedido = 0;
+
+            p.items.forEach(i => {
+                itemsCount[i.nombre] = (itemsCount[i.nombre] || 0) + 1;
+                totalPedido += i.precio;
+            });
+
             let itemsHtml = Object.keys(itemsCount).map(name => `<div><b>${itemsCount[name]}x</b> ${name}</div>`).join('');
 
             div.innerHTML += `
@@ -250,6 +264,12 @@
                         <span style="color:#888; font-size:0.8rem">${p.hora}</span>
                     </div>
                     <div class="item-list">${itemsHtml}</div>
+                    
+                    <div class="staff-total-row">
+                        <span class="staff-total-label">TOTAL A COBRAR:</span>
+                        <span class="staff-total-amount">${totalPedido.toFixed(2)}€</span>
+                    </div>
+
                     <div class="staff-action-area">
                         <select id="camarero-servidor-${key}" class="staff-select">
                             <option value="">¿Quién sirve?</option>
@@ -268,12 +288,7 @@
     function marcarComoServido(id) {
         const camarero = document.getElementById('camarero-servidor-'+id).value;
         if(!camarero) return alert("Selecciona primero qué camarero ha servido la mesa.");
-
-        // Guardamos quién lo sirvió y luego lo quitamos de pendientes
-        // En una app más avanzada aquí moveríamos el pedido a un 'historial'
-        db.ref('pedidos/' + id).remove().then(() => {
-            console.log("Pedido servido por camarero " + camarero);
-        });
+        db.ref('pedidos/' + id).remove();
     }
 
     function editItem(i, campo, val) { productosLocal[i][campo] = campo === 'precio' ? parseFloat(val) : val; }
