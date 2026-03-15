@@ -30,8 +30,10 @@
             font-family: 'Segoe UI', Roboto, sans-serif; 
             margin: 0; 
             background: var(--gris); 
-            padding-bottom: 160px; 
+            padding-bottom: 180px; 
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
             color: var(--texto-oscuro);
         }
 
@@ -45,7 +47,7 @@
         .logo-img { max-width: 80px; height: auto; display: block; margin: 0 auto 5px; }
         h1 { color: white; margin: 0; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px; }
 
-        .container { padding: 15px; max-width: 600px; margin: auto; }
+        .container { padding: 15px; max-width: 600px; margin: 0 auto; flex: 1; width: 100%; }
         
         .input-style {
             width: 100%; padding: 14px; border-radius: 12px; border: 2px solid var(--azul-staff); 
@@ -83,7 +85,6 @@
         
         .pedido-card { background: white; padding: 20px; border-radius: 15px; margin-bottom: 20px; border-left: 12px solid var(--naranja); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .staff-total-row { background: #fff0f0; padding: 15px; border-radius: 10px; text-align: right; margin: 15px 0; border: 2px dashed var(--rojo); }
-        .staff-total-amount { font-size: 2rem; font-weight: 900; color: var(--rojo); }
 
         /* Editor de Productos */
         .admin-box { background: white; padding: 15px; border-radius: 12px; margin-bottom: 25px; border-top: 6px solid var(--azul-staff); }
@@ -99,30 +100,35 @@
         input:checked + .slider { background-color: var(--verde); }
         input:checked + .slider:before { transform: translateX(26px); }
 
-        /* Pie de página mejorado */
+        /* Pie de página reorganizado con máxima separación */
         .footer-info {
             text-align: center;
-            padding: 40px 15px;
-            margin-top: 20px;
+            padding: 40px 15px 120px 15px; /* Mucho padding inferior para empujar el texto al final */
+            margin-top: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            min-height: 250px;
         }
         .btn-acceso-admin {
             background: none;
             border: none;
-            color: #bbb;
-            font-size: 0.7rem;
+            color: #ccc;
+            font-size: 0.65rem;
             cursor: pointer;
             font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 15px; /* Más espacio entre el botón y el enlace */
-            display: block; /* Asegura que ocupe su propia línea */
+            letter-spacing: 2px;
+            margin-bottom: 80px; /* Separación extrema con la línea de diseño */
+            display: block;
             width: 100%;
+            opacity: 0.7;
         }
         .rodante-footer-small {
-            font-size: 0.7rem;
-            color: #999;
-            line-height: 1.6;
-            margin-top: 10px;
+            font-size: 0.65rem;
+            color: #aaa;
+            line-height: 1;
+            letter-spacing: 0.5px;
         }
         .rodante-footer-small a {
             color: var(--azul-staff);
@@ -149,7 +155,7 @@
         <!-- Contenedor para el Menú -->
         <div id="menu-accordion"></div>
 
-        <!-- Pie de página reorganizado con más espacio -->
+        <!-- Pie de página con máxima separación -->
         <div class="footer-info">
             <button onclick="accesoStaff()" class="btn-acceso-admin">Panel Administración</button>
             <div class="rodante-footer-small">
@@ -198,7 +204,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // CATEGORÍAS FIJAS
     const categorias = [
         "Tapas/Ración/Menú",
         "Café/repostería/Postres",
@@ -211,7 +216,6 @@
     let carrito = [];
     const CLAVE_MAESTRA = "887233";
 
-    // Cargar datos de Firebase
     db.ref('carta').on('value', snap => {
         const data = snap.val();
         if (!data) {
@@ -240,7 +244,6 @@
             const itemsVisible = productosLocal.filter(p => p.cat === cat && p.activo !== false);
             const itemsTodos = productosLocal.filter(p => p.cat === cat);
             
-            // Lado Cliente
             let itemsHtml = itemsVisible.map(p => `
                 <div class="item-row">
                     <span style="font-weight:600; font-size:1.1rem;">${escapeHTML(p.nombre)}</span>
@@ -260,7 +263,6 @@
                     </div>`;
             }
 
-            // Lado Admin
             let rowsAdmin = itemsTodos.map(p => {
                 const idx = productosLocal.indexOf(p);
                 const isChecked = p.activo !== false ? 'checked' : '';
@@ -331,7 +333,7 @@
                     <b>MESA ${escapeHTML(p.mesa)}</b> - ${p.hora}<br>
                     <hr>
                     ${Object.keys(resumen).map(n => `<div>${resumen[n]}x ${n}</div>`).join('')}
-                    <div class="staff-total-row">Total: ${subtotal.toFixed(2)}€</div>
+                    <div style="background:#fff0f0; padding:10px; margin-top:10px; text-align:right; font-weight:900; color:var(--rojo);">Total: ${subtotal.toFixed(2)}€</div>
                     <select id="cam-serv-${key}" class="input-style" style="margin: 10px 0; font-size: 1rem;">
                         <option value="">¿Quién sirve?</option>
                         <option value="1">Camarero 1</option>
