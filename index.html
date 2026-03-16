@@ -11,23 +11,27 @@
     <style>
         :root {
             --azul-bar: #001f3f;
-            --rojo-vivo: #ff4136;
+            --rojo-vivo: #ff0000;
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f4f7f6;
             margin: 0;
-            padding-bottom: 180px; /* Espacio para el nuevo footer */
+            padding-bottom: 200px; 
         }
         header {
             background-color: var(--azul-bar);
             color: white;
-            padding: 30px 10px;
+            padding: 20px 10px;
             text-align: center;
             box-shadow: 0 2px 10px rgba(0,0,0,0.2);
         }
-        h1 { margin: 0; font-size: 2.2rem; letter-spacing: 2px; font-weight: 800; }
-        .tagline { color: var(--rojo-vivo); font-size: 0.8rem; font-weight: bold; margin-top: 5px; }
+        .logo-header {
+            max-width: 100px;
+            margin: 0 auto 10px;
+            display: block;
+        }
+        h1 { margin: 0; font-size: 1.8rem; letter-spacing: 2px; font-weight: 800; text-transform: uppercase; }
 
         .item-carta {
             background: white; margin: 10px; padding: 15px; border-radius: 8px;
@@ -36,60 +40,52 @@
         .precio { font-weight: bold; color: #333; margin-right: 15px; }
         .btn-add { background-color: var(--azul-bar); color: white; border: none; width: 40px; height: 40px; border-radius: 5px; font-size: 1.5rem; cursor: pointer; }
 
-        /* Estilos del nuevo Footer */
+        /* Footer Cliente */
         footer {
             position: fixed; bottom: 0; width: 100%; background: #fff;
-            padding: 15px; border-top: 2px solid var(--azul-bar);
-            box-sizing: border-box; z-index: 100;
+            padding: 15px; border-top: 3px solid var(--azul-bar);
+            box-sizing: border-box; z-index: 100; box-shadow: 0 -5px 10px rgba(0,0,0,0.1);
         }
-        .footer-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .footer-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        #total-cuenta { font-size: 2.2rem; font-weight: 900; color: var(--rojo-vivo); }
         #btn-pedido {
-            background-color: var(--rojo-vivo); color: white; border: none;
-            padding: 12px 25px; border-radius: 5px; font-weight: bold; text-transform: uppercase; cursor: pointer;
+            background-color: #27ae60; color: white; border: none;
+            padding: 15px 25px; border-radius: 8px; font-weight: bold; text-transform: uppercase; cursor: pointer;
+            font-size: 1rem;
         }
-        .btn-off { opacity: 0.3; pointer-events: none; }
+        .btn-off { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
 
-        /* Estilos de administración y créditos */
         .admin-access { text-align: center; font-size: 0.8rem; color: #666; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
-        .admin-access span { cursor: pointer; text-decoration: underline; font-weight: bold; }
-        .diseno-rodante { margin-top: 30px; font-size: 0.7rem; color: #bbb; text-transform: uppercase; }
+        .admin-access span { cursor: pointer; text-decoration: underline; font-weight: bold; color: var(--azul-bar); }
+        .diseno-rodante { margin-top: 25px; font-size: 0.7rem; color: #bbb; text-transform: uppercase; letter-spacing: 1px; }
         .diseno-rodante a { color: #999; text-decoration: none; font-weight: bold; }
 
         /* Panel Staff */
-        #panel-staff { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f0f4f8; z-index: 2000; overflow-y: auto; padding: 20px; box-sizing: border-box; }
-        .staff-header { display: flex; gap: 10px; margin-bottom: 20px; }
-        .btn-staff-tab { flex: 1; padding: 10px; border: none; background: #ddd; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 0.7rem; }
+        #panel-staff { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f0f4f8; z-index: 2000; overflow-y: auto; padding: 15px; box-sizing: border-box; }
+        .staff-header { display: flex; gap: 5px; margin-bottom: 20px; flex-wrap: wrap; }
+        .btn-staff-tab { flex: 1; min-width: 80px; padding: 12px 5px; border: none; background: #ddd; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 0.65rem; text-transform: uppercase; }
         .btn-staff-tab.active { background: var(--azul-bar); color: white; }
+        
+        .pedido-card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; border-left: 8px solid #f39c12; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     </style>
 </head>
 <body>
 
     <div id="vista-cliente">
         <header>
-            <h1>EL PELOTAZO</h1>
-            <div class="tagline">GASTRO BAR & COCKTAILS</div>
+            <img src="logo%20pelotazo%20png.png" alt="Logo" class="logo-header" onerror="this.style.display='none'">
+            <h1>Bar El Pelotazo</h1>
         </header>
 
         <div id="info-mesa" class="p-4 bg-white m-2 rounded shadow border-l-4 border-blue-900 text-center font-bold">
-            DETECTANDO MESA...
-        </div>
-
-        <div class="px-2">
-            <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">CAMARERO:</label>
-            <select id="camarero-id" class="w-full p-3 rounded border-2 border-blue-900 font-bold mb-4">
-                <option value="">-- SELECCIONA CAMARERO --</option>
-                <option value="1">Camarero 1</option>
-                <option value="2">Camarero 2</option>
-                <option value="3">Camarero 3</option>
-                <option value="4">Camarero 4</option>
-            </select>
+            CARGANDO MESA...
         </div>
 
         <div id="contenedor-carta"></div>
 
         <footer>
             <div class="footer-top">
-                <div id="total-cuenta" style="font-size: 1.5rem; font-weight: bold;">Total: 0.00€</div>
+                <div id="total-cuenta">0.00€</div>
                 <button id="btn-pedido" onclick="enviarCocina()">Enviar Pedido</button>
             </div>
             
@@ -105,26 +101,32 @@
     <!-- PANEL DE ADMINISTRACIÓN -->
     <div id="panel-staff">
         <div class="staff-header">
-            <button class="btn-staff-tab active" onclick="verPestana('comandas')">COMANDAS</button>
-            <button class="btn-staff-tab" onclick="verPestana('editar')">EDITAR CARTA</button>
-            <button class="btn-staff-tab" onclick="verPestana('resumen')">RESUMEN DIARIO</button>
-            <button class="btn-staff-tab" style="background:#666; color:white;" onclick="location.reload()">X</button>
+            <button class="btn-staff-tab active" onclick="verPestana('comandas')">SALÓN</button>
+            <button class="btn-staff-tab" onclick="verPestana('cocina')">🍳 COCINA</button>
+            <button class="btn-staff-tab" onclick="verPestana('resumen')">RESUMEN</button>
+            <button class="btn-staff-tab" onclick="verPestana('editar')">CARTA</button>
+            <button class="btn-staff-tab" style="background:#666; color:white;" onclick="location.reload()">SALIR</button>
         </div>
 
         <div id="sec-comandas">
-            <h2 class="font-bold mb-4">PEDIDOS ACTIVOS</h2>
+            <h2 class="font-bold mb-4 border-b-2 border-blue-900 pb-2">PEDIDOS EN SALÓN</h2>
             <div id="lista-comandas"></div>
         </div>
 
-        <div id="sec-editar" style="display:none;">
-            <h2 class="font-bold mb-4">EDITAR PRECIOS Y PLATOS</h2>
-            <div id="editor-lista"></div>
-            <button class="w-full bg-green-600 text-white p-4 rounded font-bold mt-4" onclick="guardarCambiosCarta()">GUARDAR CARTA</button>
+        <div id="sec-cocina" style="display:none;">
+            <h2 class="font-bold mb-4 border-b-2 border-orange-500 pb-2 text-orange-600">PENDIENTE DE COCINA</h2>
+            <div id="lista-cocina"></div>
         </div>
 
         <div id="sec-resumen" style="display:none;">
-            <h2 class="font-bold mb-4">RESUMEN VENTAS POR CAMARERO</h2>
+            <h2 class="font-bold mb-4 border-b-2 border-green-600 pb-2 text-green-700">CIERRE DE CAJA DIARIO</h2>
             <div id="lista-resumen"></div>
+        </div>
+
+        <div id="sec-editar" style="display:none;">
+            <h2 class="font-bold mb-4 border-b-2 border-gray-600 pb-2">EDITOR DE PRECIOS</h2>
+            <div id="editor-lista"></div>
+            <button class="w-full bg-green-600 text-white p-4 rounded font-bold mt-4" onclick="guardarCambiosCarta()">GUARDAR CARTA</button>
         </div>
     </div>
 
@@ -141,7 +143,6 @@
         let mesaDetectada = null;
         let cartaLocal = [];
 
-        // 1. Detección automática de Mesa
         function initMesa() {
             const urlParams = new URLSearchParams(window.location.search);
             mesaDetectada = urlParams.get('mesa');
@@ -149,15 +150,14 @@
             const btn = document.getElementById('btn-pedido');
 
             if(mesaDetectada) {
-                info.innerHTML = `MESA Nº: <span class="text-red-600 text-xl">${mesaDetectada}</span>`;
+                info.innerHTML = `MESA Nº: <span class="text-blue-900 text-2xl">${mesaDetectada}</span>`;
                 btn.classList.remove('btn-off');
             } else {
-                info.innerHTML = `<span class="text-red-600">⚠️ ESCANEA EL QR DE LA MESA PARA PEDIR</span>`;
+                info.innerHTML = `<span class="text-red-600">⚠️ ESCANEA EL QR DE TU MESA</span>`;
                 btn.classList.add('btn-off');
             }
         }
 
-        // 2. Cargar Carta
         db.ref('carta').on('value', snap => {
             const data = snap.val();
             cartaLocal = data ? Object.values(data) : [];
@@ -166,21 +166,19 @@
             div.innerHTML = ""; editor.innerHTML = "";
 
             cartaLocal.forEach((p, index) => {
-                // Vista Cliente
                 div.innerHTML += `
                     <div class="item-carta">
-                        <span style="font-weight:600">${p.nombre}</span>
+                        <span style="font-weight:600; color: #001f3f;">${p.nombre}</span>
                         <div>
                             <span class="precio">${p.precio.toFixed(2)}€</span>
                             <button class="btn-add" onclick="agregar('${p.nombre}', ${p.precio})">+</button>
                         </div>
                     </div>`;
                 
-                // Vista Editor Admin
                 editor.innerHTML += `
-                    <div class="flex gap-2 mb-2 bg-white p-2 rounded">
-                        <input type="text" value="${p.nombre}" class="flex-1 p-1 border" onchange="actualizarDatoCarta(${index}, 'nombre', this.value)">
-                        <input type="number" step="0.1" value="${p.precio}" class="w-20 p-1 border" onchange="actualizarDatoCarta(${index}, 'precio', this.value)">
+                    <div class="flex gap-2 mb-2 bg-white p-2 rounded shadow-sm">
+                        <input type="text" value="${p.nombre}" class="flex-1 p-1 border rounded" onchange="actualizarDatoCarta(${index}, 'nombre', this.value)">
+                        <input type="number" step="0.05" value="${p.precio}" class="w-20 p-1 border rounded" onchange="actualizarDatoCarta(${index}, 'precio', this.value)">
                     </div>`;
             });
         });
@@ -192,95 +190,115 @@
 
         function actualizarTotal() {
             const total = carrito.reduce((acc, item) => acc + item.precio, 0);
-            document.getElementById('total-cuenta').innerText = "Total: " + total.toFixed(2) + "€";
+            document.getElementById('total-cuenta').innerText = total.toFixed(2) + "€";
         }
 
         function enviarCocina() {
-            const cam = document.getElementById('camarero-id').value;
-            if(!mesaDetectada) return alert("Escanea el QR de tu mesa");
-            if(!cam) return alert("Selecciona camarero");
-            if(carrito.length === 0) return alert("Carrito vacío");
+            if(!mesaDetectada) return alert("Escanea el QR");
+            if(carrito.length === 0) return alert("Selecciona productos");
 
             const total = carrito.reduce((acc, item) => acc + item.precio, 0);
 
             db.ref('pedidos').push({
                 mesa: mesaDetectada,
-                camarero: cam,
+                camarero: "QR-Auto", // Identificador por defecto ya que se quita el select
                 items: carrito,
                 total: total,
                 hora: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
                 timestamp: Date.now()
             }).then(() => {
-                alert("¡Pedido enviado!");
+                alert("¡Pedido enviado correctamente!");
                 carrito = [];
                 actualizarTotal();
             });
         }
 
-        // --- FUNCIONES ADMIN ---
-
         function abrirAdmin() {
-            if(prompt("Clave:") === "887233") {
+            if(prompt("Clave de Seguridad:") === "887233") {
                 document.getElementById('panel-staff').style.display = 'block';
             }
         }
 
         function verPestana(id) {
             document.getElementById('sec-comandas').style.display = (id === 'comandas') ? 'block' : 'none';
-            document.getElementById('sec-editar').style.display = (id === 'editar') ? 'block' : 'none';
+            document.getElementById('sec-cocina').style.display = (id === 'cocina') ? 'block' : 'none';
             document.getElementById('sec-resumen').style.display = (id === 'resumen') ? 'block' : 'none';
+            document.getElementById('sec-editar').style.display = (id === 'editar') ? 'block' : 'none';
             
-            document.querySelectorAll('.btn-staff-tab').forEach(b => b.classList.remove('active'));
-            event.target.classList.add('active');
+            document.querySelectorAll('.btn-staff-tab').forEach(b => {
+                b.classList.remove('active');
+                if(b.innerText.toLowerCase().includes(id.toLowerCase()) || (id==='comandas' && b.innerText==='SALÓN')) b.classList.add('active');
+            });
         }
 
-        // Comandas en Tiempo Real
         db.ref('pedidos').on('value', snap => {
             const pedidos = snap.val();
-            const div = document.getElementById('lista-comandas');
-            const resDiv = document.getElementById('lista-resumen');
-            div.innerHTML = ""; resDiv.innerHTML = "";
+            const divComandas = document.getElementById('lista-comandas');
+            const divCocina = document.getElementById('lista-cocina');
+            const divResumen = document.getElementById('lista-resumen');
+            
+            divComandas.innerHTML = ""; divCocina.innerHTML = ""; divResumen.innerHTML = "";
             
             if(!pedidos) return;
 
-            const resumenCamareros = {};
+            const resumenVentas = {};
+            let cajaTotal = 0;
 
             Object.keys(pedidos).forEach(id => {
                 const p = pedidos[id];
-                // Lógica Resumen
-                if(!resumenCamareros[p.camarero]) resumenCamareros[p.camarero] = 0;
-                resumenCamareros[p.camarero] += (p.total || 0);
+                cajaTotal += (p.total || 0);
 
-                // Tarjeta Comanda
-                div.innerHTML += `
-                    <div class="bg-white p-4 rounded shadow mb-3 border-l-8 border-orange-500">
-                        <div class="flex justify-between font-bold">
-                            <span>MESA ${p.mesa}</span>
-                            <span class="bg-blue-900 text-white px-2 rounded">C${p.camarero}</span>
+                // Tarjeta General Salón
+                divComandas.innerHTML += `
+                    <div class="pedido-card">
+                        <div class="flex justify-between items-center border-b pb-2 mb-2">
+                            <span class="text-xl font-black">MESA ${p.mesa}</span>
+                            <span class="text-gray-500 text-sm">${p.hora}</span>
                         </div>
-                        <div class="my-2">${p.items.map(i => `• ${i.nombre}`).join('<br>')}</div>
-                        <button class="w-full bg-green-600 text-white py-2 rounded mt-2" onclick="completar('${id}')">LISTO</button>
+                        <div class="text-sm space-y-1">
+                            ${p.items.map(i => `<div>• ${i.nombre} <span class="float-right font-bold">${i.precio.toFixed(2)}€</span></div>`).join('')}
+                        </div>
+                        <div class="mt-3 pt-2 border-t flex justify-between font-bold">
+                            <span>TOTAL:</span>
+                            <span class="text-red-600">${p.total.toFixed(2)}€</span>
+                        </div>
+                        <button class="w-full bg-blue-900 text-white py-3 rounded-lg mt-3 font-bold uppercase text-xs" onclick="completar('${id}')">FINALIZAR Y COBRAR</button>
+                    </div>`;
+
+                // Tarjeta específica de Cocina (Solo productos)
+                divCocina.innerHTML += `
+                    <div class="pedido-card border-orange-500">
+                        <div class="flex justify-between font-black text-lg">
+                            <span>MESA ${p.mesa}</span>
+                            <span>${p.hora}</span>
+                        </div>
+                        <div class="my-3 text-lg font-bold">
+                            ${p.items.map(i => `<div>- ${i.nombre}</div>`).join('')}
+                        </div>
+                        <button class="w-full bg-orange-600 text-white py-3 rounded-lg font-bold" onclick="completar('${id}')">PEDIDO SERVIDO</button>
                     </div>`;
             });
 
-            // Render Resumen
-            Object.keys(resumenCamareros).forEach(c => {
-                resDiv.innerHTML += `
-                    <div class="flex justify-between bg-white p-4 rounded mb-2 font-bold">
-                        <span>Camarero ${c}</span>
-                        <span class="text-green-700">${resumenCamareros[c].toFixed(2)}€</span>
-                    </div>`;
-            });
+            divResumen.innerHTML = `
+                <div class="bg-blue-900 text-white p-6 rounded-xl text-center shadow-lg">
+                    <div class="text-sm opacity-80 uppercase tracking-widest">Caja Total Hoy</div>
+                    <div class="text-5xl font-black mt-2">${cajaTotal.toFixed(2)}€</div>
+                </div>
+            `;
         });
 
-        function completar(id) { db.ref('pedidos/' + id).remove(); }
+        function completar(id) {
+            if(confirm("¿Marcar este pedido como completado?")) {
+                db.ref('pedidos/' + id).remove();
+            }
+        }
 
         function actualizarDatoCarta(idx, campo, valor) {
             cartaLocal[idx][campo] = campo === 'precio' ? parseFloat(valor) : valor;
         }
 
         function guardarCambiosCarta() {
-            db.ref('carta').set(cartaLocal).then(() => alert("Carta actualizada con éxito"));
+            db.ref('carta').set(cartaLocal).then(() => alert("Carta guardada correctamente"));
         }
 
         window.onload = initMesa;
