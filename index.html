@@ -33,12 +33,27 @@
         }
         h1 { margin: 0; font-size: 1.8rem; letter-spacing: 2px; font-weight: 800; text-transform: uppercase; }
 
-        .item-carta {
-            background: white; margin: 10px; padding: 15px; border-radius: 8px;
-            display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd;
+        /* Estilo unificado para bloques (Mesa y Categorías) */
+        .bloque-estilo {
+            background: white; 
+            margin: 10px; 
+            padding: 15px; 
+            border-radius: 8px;
+            border-left: 6px solid var(--azul-bar);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
+
+        .item-producto {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .item-producto:last-child { border-bottom: none; }
+
         .precio { font-weight: bold; color: #333; margin-right: 15px; }
-        .btn-add { background-color: var(--azul-bar); color: white; border: none; width: 40px; height: 40px; border-radius: 5px; font-size: 1.5rem; cursor: pointer; }
+        .btn-add { background-color: var(--azul-bar); color: white; border: none; width: 38px; height: 38px; border-radius: 5px; font-size: 1.4rem; cursor: pointer; }
 
         /* Footer Cliente */
         footer {
@@ -77,10 +92,12 @@
             <h1>Bar El Pelotazo</h1>
         </header>
 
-        <div id="info-mesa" class="p-4 bg-white m-2 rounded shadow border-l-4 border-blue-900 text-center font-bold">
+        <!-- Bloque de Mesa con estilo unificado -->
+        <div id="info-mesa" class="bloque-estilo text-center font-bold">
             CARGANDO MESA...
         </div>
 
+        <!-- Contenedor de la carta con bloques por categoría -->
         <div id="contenedor-carta"></div>
 
         <footer>
@@ -101,7 +118,7 @@
     <!-- PANEL DE ADMINISTRACIÓN -->
     <div id="panel-staff">
         <div class="staff-header">
-            <button class="btn-staff-tab active" onclick="verPestana('comandas')">SALÓN</button>
+            <button class="btn-staff-tab active" onclick="verPestana('comandas')">COMANDAS</button>
             <button class="btn-staff-tab" onclick="verPestana('cocina')">🍳 COCINA</button>
             <button class="btn-staff-tab" onclick="verPestana('resumen')">RESUMEN</button>
             <button class="btn-staff-tab" onclick="verPestana('editar')">CARTA</button>
@@ -109,7 +126,7 @@
         </div>
 
         <div id="sec-comandas">
-            <h2 class="font-bold mb-4 border-b-2 border-blue-900 pb-2">PEDIDOS EN SALÓN</h2>
+            <h2 class="font-bold mb-4 border-b-2 border-blue-900 pb-2">TODAS LAS COMANDAS</h2>
             <div id="lista-comandas"></div>
         </div>
 
@@ -153,7 +170,7 @@
                 info.innerHTML = `MESA Nº: <span class="text-blue-900 text-2xl">${mesaDetectada}</span>`;
                 btn.classList.remove('btn-off');
             } else {
-                info.innerHTML = `<span class="text-red-600">⚠️ ESCANEA EL QR DE TU MESA</span>`;
+                info.innerHTML = `<span class="text-red-600">⚠️ ESCANEA EL QR DE TU MESA PARA REALIZAR EL PEDIDO</span>`;
                 btn.classList.add('btn-off');
             }
         }
@@ -165,16 +182,32 @@
             const editor = document.getElementById('editor-lista');
             div.innerHTML = ""; editor.innerHTML = "";
 
-            cartaLocal.forEach((p, index) => {
-                div.innerHTML += `
-                    <div class="item-carta">
-                        <span style="font-weight:600; color: #001f3f;">${p.nombre}</span>
-                        <div>
-                            <span class="precio">${p.precio.toFixed(2)}€</span>
-                            <button class="btn-add" onclick="agregar('${p.nombre}', ${p.precio})">+</button>
-                        </div>
-                    </div>`;
+            // Agrupar por categorías si existen, si no, lista simple
+            const categorias = [...new Set(cartaLocal.map(p => p.cat || "PRODUCTOS"))];
+
+            categorias.forEach(cat => {
+                let catBlock = document.createElement('div');
+                catBlock.className = "bloque-estilo";
+                catBlock.innerHTML = `<h3 class="font-bold text-blue-900 border-b mb-2 uppercase text-sm">${cat}</h3>`;
                 
+                const productosCat = cartaLocal.filter(p => (p.cat || "PRODUCTOS") === cat);
+                
+                productosCat.forEach((p) => {
+                    const idx = cartaLocal.indexOf(p);
+                    catBlock.innerHTML += `
+                        <div class="item-producto">
+                            <span style="font-weight:600; color: #001f3f;">${p.nombre}</span>
+                            <div>
+                                <span class="precio">${p.precio.toFixed(2)}€</span>
+                                <button class="btn-add" onclick="agregar('${p.nombre}', ${p.precio})">+</button>
+                            </div>
+                        </div>`;
+                });
+                div.appendChild(catBlock);
+            });
+
+            // Editor en Admin (Lista simple para facilitar edición)
+            cartaLocal.forEach((p, index) => {
                 editor.innerHTML += `
                     <div class="flex gap-2 mb-2 bg-white p-2 rounded shadow-sm">
                         <input type="text" value="${p.nombre}" class="flex-1 p-1 border rounded" onchange="actualizarDatoCarta(${index}, 'nombre', this.value)">
@@ -201,7 +234,7 @@
 
             db.ref('pedidos').push({
                 mesa: mesaDetectada,
-                camarero: "QR-Auto", // Identificador por defecto ya que se quita el select
+                camarero: "QR-Auto",
                 items: carrito,
                 total: total,
                 hora: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
@@ -227,7 +260,7 @@
             
             document.querySelectorAll('.btn-staff-tab').forEach(b => {
                 b.classList.remove('active');
-                if(b.innerText.toLowerCase().includes(id.toLowerCase()) || (id==='comandas' && b.innerText==='SALÓN')) b.classList.add('active');
+                if(b.innerText.toLowerCase().includes(id.toLowerCase())) b.classList.add('active');
             });
         }
 
@@ -241,14 +274,13 @@
             
             if(!pedidos) return;
 
-            const resumenVentas = {};
             let cajaTotal = 0;
 
             Object.keys(pedidos).forEach(id => {
                 const p = pedidos[id];
                 cajaTotal += (p.total || 0);
 
-                // Tarjeta General Salón
+                // Tarjeta General Comandas
                 divComandas.innerHTML += `
                     <div class="pedido-card">
                         <div class="flex justify-between items-center border-b pb-2 mb-2">
@@ -265,7 +297,7 @@
                         <button class="w-full bg-blue-900 text-white py-3 rounded-lg mt-3 font-bold uppercase text-xs" onclick="completar('${id}')">FINALIZAR Y COBRAR</button>
                     </div>`;
 
-                // Tarjeta específica de Cocina (Solo productos)
+                // Tarjeta Cocina
                 divCocina.innerHTML += `
                     <div class="pedido-card border-orange-500">
                         <div class="flex justify-between font-black text-lg">
@@ -288,7 +320,7 @@
         });
 
         function completar(id) {
-            if(confirm("¿Marcar este pedido como completado?")) {
+            if(confirm("¿Marcar comanda como completada?")) {
                 db.ref('pedidos/' + id).remove();
             }
         }
