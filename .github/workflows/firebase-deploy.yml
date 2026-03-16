@@ -10,7 +10,19 @@
       "**/*.txt",
       ".github/**",
       "subir.bat",
-      "reparar_y_subir.bat"
+      "reparar_y_subir.bat",
+      "subir_web.bat"
+    ],
+    "headers": [
+      {
+        "source": "**/*.bat",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
+      }
     ],
     "rewrites": [
       {
