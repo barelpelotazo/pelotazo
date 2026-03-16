@@ -33,7 +33,6 @@
         }
         h1 { margin: 0; font-size: 1.8rem; letter-spacing: 2px; font-weight: 800; text-transform: uppercase; }
 
-        /* Estilo unificado para bloques tipo pestaña */
         .bloque-estilo {
             background: white; 
             margin: 10px; 
@@ -61,19 +60,14 @@
         }
 
         .productos-container {
-            display: none; /* Oculto por defecto */
+            display: none;
             margin-top: 10px;
             border-top: 1px solid #eee;
             padding-top: 10px;
         }
 
-        .productos-container.open {
-            display: block;
-        }
-
-        .rotar {
-            transform: rotate(180deg);
-        }
+        .productos-container.open { display: block; }
+        .rotar { transform: rotate(180deg); }
 
         .item-producto {
             display: flex; 
@@ -114,6 +108,11 @@
         .btn-staff-tab.active { background: var(--azul-bar); color: white; }
         
         .pedido-card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; border-left: 8px solid #f39c12; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        
+        /* Botones de control en editor */
+        .btn-toggle-visible { padding: 5px; border-radius: 4px; font-size: 1.2rem; }
+        .visible-on { color: green; }
+        .visible-off { color: #ccc; text-decoration: line-through; }
     </style>
 </head>
 <body>
@@ -124,12 +123,10 @@
             <h1>Bar El Pelotazo</h1>
         </header>
 
-        <!-- Bloque de Mesa -->
         <div id="info-mesa" class="bloque-estilo text-center font-bold" style="font-size: 0.85rem; cursor: default;">
             CARGANDO MESA...
         </div>
 
-        <!-- Contenedor de la carta con bloques expandibles -->
         <div id="contenedor-carta"></div>
 
         <footer>
@@ -157,25 +154,41 @@
             <button class="btn-staff-tab" style="background:#666; color:white;" onclick="location.reload()">SALIR</button>
         </div>
 
+        <!-- SECCIÓN COMANDAS -->
         <div id="sec-comandas">
             <h2 class="font-bold mb-4 border-b-2 border-blue-900 pb-2">TODAS LAS COMANDAS</h2>
             <div id="lista-comandas"></div>
         </div>
 
+        <!-- SECCIÓN COCINA -->
         <div id="sec-cocina" style="display:none;">
             <h2 class="font-bold mb-4 border-b-2 border-orange-500 pb-2 text-orange-600">PENDIENTE DE COCINA</h2>
             <div id="lista-cocina"></div>
         </div>
 
+        <!-- SECCIÓN RESUMEN -->
         <div id="sec-resumen" style="display:none;">
             <h2 class="font-bold mb-4 border-b-2 border-green-600 pb-2 text-green-700">CIERRE DE CAJA DIARIO</h2>
             <div id="lista-resumen"></div>
         </div>
 
+        <!-- SECCIÓN EDITOR DE CARTA -->
         <div id="sec-editar" style="display:none;">
-            <h2 class="font-bold mb-4 border-b-2 border-gray-600 pb-2">EDITOR DE PRECIOS</h2>
-            <div id="editor-lista"></div>
-            <button class="w-full bg-green-600 text-white p-4 rounded font-bold mt-4" onclick="guardarCambiosCarta()">GUARDAR CARTA</button>
+            <h2 class="font-bold mb-4 border-b-2 border-gray-600 pb-2">GESTIÓN DE CARTA</h2>
+            
+            <!-- Formulario Nuevo Producto -->
+            <div class="bg-white p-4 rounded-lg shadow-sm mb-6 border border-blue-200">
+                <h3 class="font-bold text-blue-900 mb-3 text-sm uppercase">Añadir Nuevo Producto</h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="text" id="new-nombre" placeholder="Nombre" class="p-2 border rounded text-sm col-span-2">
+                    <input type="number" step="0.05" id="new-precio" placeholder="Precio €" class="p-2 border rounded text-sm">
+                    <input type="text" id="new-cat" placeholder="Categoría (Ej: BEBIDAS)" class="p-2 border rounded text-sm">
+                </div>
+                <button class="w-full bg-blue-900 text-white p-2 rounded mt-3 font-bold" onclick="crearProducto()">AÑADIR A LA CARTA</button>
+            </div>
+
+            <div id="editor-lista" class="space-y-2"></div>
+            <button class="w-full bg-green-600 text-white p-4 rounded font-bold mt-4 shadow-lg" onclick="guardarCambiosCarta()">GUARDAR TODOS LOS CAMBIOS</button>
         </div>
     </div>
 
@@ -207,21 +220,24 @@
             }
         }
 
+        // Listener de la carta
         db.ref('carta').on('value', snap => {
             const data = snap.val();
             cartaLocal = data ? Object.values(data) : [];
-            const div = document.getElementById('contenedor-carta');
-            const editor = document.getElementById('editor-lista');
-            
-            div.innerHTML = ""; editor.innerHTML = "";
+            renderCartaCliente();
+            renderEditorAdmin();
+        });
 
-            // Obtener categorías únicas
-            const categorias = [...new Set(cartaLocal.map(p => p.cat || "PRODUCTOS"))];
+        function renderCartaCliente() {
+            const div = document.getElementById('contenedor-carta');
+            div.innerHTML = "";
+            
+            // Solo productos visibles para el cliente
+            const visibles = cartaLocal.filter(p => p.visible !== false);
+            const categorias = [...new Set(visibles.map(p => p.cat || "OTROS"))];
 
             categorias.forEach((cat, catIdx) => {
                 const catID = "cat-" + catIdx;
-                
-                // Bloque Pestaña Categoría
                 let catBlock = document.createElement('div');
                 catBlock.className = "bloque-estilo";
                 catBlock.onclick = () => toggleCat(catID);
@@ -231,13 +247,11 @@
                         <span>${cat}</span>
                         <span class="flecha" id="flecha-${catID}">▼</span>
                     </div>
-                    <div class="productos-container" id="container-${catID}">
-                        <!-- Aquí se inyectan los productos -->
-                    </div>
+                    <div class="productos-container" id="container-${catID}"></div>
                 `;
                 
                 const container = catBlock.querySelector(`#container-${catID}`);
-                const productosCat = cartaLocal.filter(p => (p.cat || "PRODUCTOS") === cat);
+                const productosCat = visibles.filter(p => (p.cat || "OTROS") === cat);
                 
                 productosCat.forEach((p) => {
                     container.innerHTML += `
@@ -249,28 +263,71 @@
                             </div>
                         </div>`;
                 });
-                
                 div.appendChild(catBlock);
             });
+        }
 
-            // Llenar editor de admin
+        function renderEditorAdmin() {
+            const editor = document.getElementById('editor-lista');
+            editor.innerHTML = "";
+
             cartaLocal.forEach((p, index) => {
+                const isVisible = p.visible !== false;
                 editor.innerHTML += `
-                    <div class="flex gap-2 mb-2 bg-white p-2 rounded shadow-sm">
-                        <input type="text" value="${p.nombre}" class="flex-1 p-1 border rounded text-xs" onchange="actualizarDatoCarta(${index}, 'nombre', this.value)">
-                        <input type="number" step="0.05" value="${p.precio}" class="w-20 p-1 border rounded text-xs" onchange="actualizarDatoCarta(${index}, 'precio', this.value)">
+                    <div class="bg-white p-3 rounded shadow-sm border-l-4 ${isVisible ? 'border-green-500' : 'border-gray-300'}">
+                        <div class="flex gap-2 mb-2">
+                            <input type="text" value="${p.nombre}" class="flex-1 p-1 border rounded text-xs font-bold" onchange="actualizarDatoCarta(${index}, 'nombre', this.value)">
+                            <button class="btn-toggle-visible ${isVisible ? 'visible-on' : 'visible-off'}" onclick="toggleVisibilidad(${index})">
+                                ${isVisible ? '👁️' : '🙈'}
+                            </button>
+                            <button class="text-red-500 font-bold px-2" onclick="eliminarProducto(${index})">✕</button>
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="number" step="0.05" value="${p.precio}" class="w-24 p-1 border rounded text-xs" onchange="actualizarDatoCarta(${index}, 'precio', this.value)">
+                            <input type="text" value="${p.cat || ''}" placeholder="Categoría" class="flex-1 p-1 border rounded text-xs text-blue-800" onchange="actualizarDatoCarta(${index}, 'cat', this.value.toUpperCase())">
+                        </div>
                     </div>`;
             });
-        });
+        }
 
-        // Función para abrir/cerrar categorías
+        function crearProducto() {
+            const nombre = document.getElementById('new-nombre').value;
+            const precio = parseFloat(document.getElementById('new-precio').value);
+            const cat = document.getElementById('new-cat').value.toUpperCase() || "OTROS";
+
+            if(!nombre || isNaN(precio)) return alert("Nombre y precio son obligatorios");
+
+            cartaLocal.push({ nombre, precio, cat, visible: true });
+            
+            // Limpiar campos
+            document.getElementById('new-nombre').value = "";
+            document.getElementById('new-precio').value = "";
+            renderEditorAdmin();
+        }
+
+        function actualizarDatoCarta(idx, campo, valor) {
+            cartaLocal[idx][campo] = campo === 'precio' ? parseFloat(valor) : valor;
+        }
+
+        function toggleVisibilidad(idx) {
+            cartaLocal[idx].visible = cartaLocal[idx].visible === false ? true : false;
+            renderEditorAdmin();
+        }
+
+        function eliminarProducto(idx) {
+            if(confirm("¿Eliminar este producto definitivamente?")) {
+                cartaLocal.splice(idx, 1);
+                renderEditorAdmin();
+            }
+        }
+
+        function guardarCambiosCarta() {
+            db.ref('carta').set(cartaLocal).then(() => alert("¡Carta actualizada correctamente en todos los dispositivos!"));
+        }
+
         function toggleCat(id) {
             const container = document.getElementById('container-' + id);
             const flecha = document.getElementById('flecha-' + id);
-            
-            // Cerrar otros si se desea (opcional)
-            // document.querySelectorAll('.productos-container').forEach(c => c.classList.remove('open'));
-
             container.classList.toggle('open');
             flecha.classList.toggle('rotar');
         }
@@ -293,7 +350,6 @@
 
             db.ref('pedidos').push({
                 mesa: mesaDetectada,
-                camarero: "Auto-Servicio",
                 items: carrito,
                 total: total,
                 hora: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
@@ -380,14 +436,6 @@
             if(confirm("¿Marcar comanda como completada?")) {
                 db.ref('pedidos/' + id).remove();
             }
-        }
-
-        function actualizarDatoCarta(idx, campo, valor) {
-            cartaLocal[idx][campo] = campo === 'precio' ? parseFloat(valor) : valor;
-        }
-
-        function guardarCambiosCarta() {
-            db.ref('carta').set(cartaLocal).then(() => alert("Carta guardada correctamente"));
         }
 
         window.onload = initMesa;
