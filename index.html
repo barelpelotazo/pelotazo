@@ -43,6 +43,11 @@
             font-size: 1rem; box-sizing: border-box; font-weight: bold; text-align: center;
             background: white;
         }
+        .input-style:disabled {
+            background: #e9ecef;
+            border-color: var(--verde);
+            color: var(--verde);
+        }
         label { display: block; font-size: 0.7rem; color: var(--azul-staff); font-weight: bold; margin-bottom: 4px; text-align: center; }
 
         /* CARTA CLIENTE (DESPLEGABLES) */
@@ -92,13 +97,13 @@
 <div id="view-client">
     <header>
         <img src="logo%20pelotazo%20png.png" alt="Logo" class="logo-img">
-        <h1>Bar El Pelotazo</h1>
+        <h1 id="header-title">Bar El Pelotazo</h1>
     </header>
     <div class="container">
         <div class="selector-group">
             <div>
                 <label>Nº MESA</label>
-                <input type="number" id="mesa-input" class="input-style" placeholder="Mesa">
+                <input type="text" id="mesa-input" class="input-style" placeholder="Escanea QR" readonly>
             </div>
             <div>
                 <label>CAMARERO</label>
@@ -118,7 +123,7 @@
     </div>
     <div class="footer-client">
         <div><small>CUENTA TOTAL:</small><div id="total-val">0.00€</div></div>
-        <button onclick="enviarPedidoFirebase()" style="background:var(--verde); color:white; border:none; padding:15px 30px; border-radius:12px; font-weight:bold; cursor:pointer;">ENVIAR PEDIDO</button>
+        <button id="btn-enviar-final" onclick="enviarPedidoFirebase()" style="background:var(--verde); color:white; border:none; padding:15px 30px; border-radius:12px; font-weight:bold; cursor:pointer;">ENVIAR PEDIDO</button>
     </div>
     <button onclick="accesoStaff()" style="width:100%; opacity:0; margin-top:40px; border:none; background:none; cursor:pointer; padding: 20px;">STAFF</button>
 </div>
@@ -130,13 +135,11 @@
         <button class="tab-btn" style="background:#666; color:white;" onclick="location.reload()">SALIR</button>
     </div>
 
-    <!-- Pestaña Pedidos -->
     <div id="tab-pedidos" class="tab-content active">
         <h2 style="text-align:center;">PEDIDOS ENTRANTES</h2>
         <div id="lista-pedidos-realtime"></div>
     </div>
 
-    <!-- Pestaña Administración -->
     <div id="tab-admin" class="tab-content">
         <h2 style="text-align:center;">EDITAR PRECIOS</h2>
         <div id="editor-admin"></div>
@@ -156,8 +159,30 @@
     const categorias = ["BEBIDAS", "TAPAS", "OTROS"];
     let productosLocal = [];
     let carrito = [];
+    let mesaIdentificada = null;
 
-    // --- CARGA DE DATOS ---
+    // --- CARGA DE DATOS Y QR ---
+    window.onload = () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        mesaIdentificada = urlParams.get('mesa');
+        const mesaInp = document.getElementById('mesa-input');
+        const btnEnviar = document.getElementById('btn-enviar-final');
+        const headTitle = document.getElementById('header-title');
+
+        if (mesaIdentificada) {
+            mesaInp.value = "MESA " + mesaIdentificada;
+            mesaInp.disabled = true;
+            headTitle.innerHTML = `Bar El Pelotazo <span style="color:var(--verde); font-size:0.7rem;">● MESA ${mesaIdentificada}</span>`;
+        } else {
+            mesaInp.value = "SIN MESA";
+            mesaInp.style.borderColor = "var(--rojo)";
+            mesaInp.style.color = "var(--rojo)";
+            btnEnviar.style.background = "#999";
+            btnEnviar.innerText = "ESCANEA QR";
+            headTitle.innerHTML = `Bar El Pelotazo <span style="color:var(--rojo); font-size:0.7rem;">(ESCANEA TU MESA)</span>`;
+        }
+    };
+
     db.ref('carta').on('value', snap => {
         productosLocal = snap.val() ? Object.values(snap.val()) : [];
         renderMenuYAdmin();
@@ -176,7 +201,6 @@
         categorias.forEach(cat => {
             const items = productosLocal.filter(p => p.cat === cat);
             
-            // Cliente
             let itemsHtml = items.map(p => `
                 <div class="item-row">
                     <span>${p.nombre}</span>
@@ -194,7 +218,6 @@
                     <div class="cat-content">${itemsHtml || '<p style="text-align:center; color:#999; font-size:0.8rem;">Vacío</p>'}</div>
                 </div>`;
 
-            // Admin
             let rowsAdmin = items.map(p => {
                 const idx = productosLocal.indexOf(p);
                 return `
@@ -228,15 +251,14 @@
     }
 
     function enviarPedidoFirebase() {
-        const mesa = document.getElementById('mesa-input').value;
         const camarero = document.getElementById('camarero-input').value;
 
-        if(!mesa) return alert("Indica el número de MESA");
+        if(!mesaIdentificada) return alert("❌ ERROR: Debes escanear el código QR de tu mesa para realizar el pedido.");
         if(!camarero) return alert("Selecciona el CAMARERO");
         if(carrito.length === 0) return alert("Añade productos al pedido");
 
         const pedido = {
-            mesa: mesa,
+            mesa: mesaIdentificada,
             camarero: camarero,
             items: carrito,
             hora: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
