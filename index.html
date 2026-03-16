@@ -1,402 +1,289 @@
 <!DOCTYPE html>
-
 <html lang="es">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bar El Pelotazo - Gestión y Pedidos</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --azul-bar: #001f3f;
+            --rojo-vivo: #ff4136;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding-bottom: 180px; /* Espacio para el nuevo footer */
+        }
+        header {
+            background-color: var(--azul-bar);
+            color: white;
+            padding: 30px 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        h1 { margin: 0; font-size: 2.2rem; letter-spacing: 2px; font-weight: 800; }
+        .tagline { color: var(--rojo-vivo); font-size: 0.8rem; font-weight: bold; margin-top: 5px; }
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+        .item-carta {
+            background: white; margin: 10px; padding: 15px; border-radius: 8px;
+            display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd;
+        }
+        .precio { font-weight: bold; color: #333; margin-right: 15px; }
+        .btn-add { background-color: var(--azul-bar); color: white; border: none; width: 40px; height: 40px; border-radius: 5px; font-size: 1.5rem; cursor: pointer; }
 
-<title>Bar El Pelotazo</title>
+        /* Estilos del nuevo Footer */
+        footer {
+            position: fixed; bottom: 0; width: 100%; background: #fff;
+            padding: 15px; border-top: 2px solid var(--azul-bar);
+            box-sizing: border-box; z-index: 100;
+        }
+        .footer-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        #btn-pedido {
+            background-color: var(--rojo-vivo); color: white; border: none;
+            padding: 12px 25px; border-radius: 5px; font-weight: bold; text-transform: uppercase; cursor: pointer;
+        }
+        .btn-off { opacity: 0.3; pointer-events: none; }
 
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+        /* Estilos de administración y créditos */
+        .admin-access { text-align: center; font-size: 0.8rem; color: #666; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
+        .admin-access span { cursor: pointer; text-decoration: underline; font-weight: bold; }
+        .diseno-rodante { margin-top: 30px; font-size: 0.7rem; color: #bbb; text-transform: uppercase; }
+        .diseno-rodante a { color: #999; text-decoration: none; font-weight: bold; }
 
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
-<style>
-
-body{
-font-family:Arial;
-margin:0;
-background:#f4f4f4;
-padding-bottom:140px;
-}
-
-header{
-background:#000a14;
-color:white;
-padding:15px;
-text-align:center;
-border-bottom:4px solid red;
-}
-
-.container{
-max-width:600px;
-margin:auto;
-padding:15px;
-}
-
-.cat{
-background:white;
-margin-bottom:10px;
-border-radius:8px;
-overflow:hidden;
-}
-
-.cat-title{
-padding:14px;
-font-weight:bold;
-cursor:pointer;
-background:#fff;
-border-left:5px solid red;
-}
-
-.cat-content{
-display:none;
-padding:10px;
-}
-
-.cat.open .cat-content{
-display:block;
-}
-
-.item{
-display:flex;
-justify-content:space-between;
-padding:10px 0;
-border-bottom:1px solid #eee;
-}
-
-.price{
-color:red;
-font-weight:bold;
-}
-
-.btn{
-background:#001f3f;
-color:white;
-border:none;
-width:32px;
-height:32px;
-border-radius:6px;
-cursor:pointer;
-}
-
-.footer-order{
-
-position:fixed;
-bottom:60px;
-left:0;
-width:100%;
-background:white;
-padding:12px;
-display:flex;
-justify-content:space-between;
-align-items:center;
-box-shadow:0 -3px 10px rgba(0,0,0,.1);
-
-}
-
-#total{
-font-size:22px;
-font-weight:bold;
-color:red;
-}
-
-footer{
-position:fixed;
-bottom:0;
-width:100%;
-background:#fff;
-text-align:center;
-padding:10px;
-font-size:12px;
-box-shadow:0 -2px 10px rgba(0,0,0,.1);
-}
-
-footer a{
-color:#1a73e8;
-text-decoration:none;
-}
-
-.staff{
-display:none;
-padding:20px;
-}
-
-.tab{
-display:inline-block;
-margin-right:5px;
-padding:8px 12px;
-background:#ddd;
-cursor:pointer;
-border-radius:5px;
-}
-
-.tab.active{
-background:#001f3f;
-color:white;
-}
-
-.panel{
-display:none;
-margin-top:15px;
-}
-
-.panel.active{
-display:block;
-}
-
-</style>
-
+        /* Panel Staff */
+        #panel-staff { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f0f4f8; z-index: 2000; overflow-y: auto; padding: 20px; box-sizing: border-box; }
+        .staff-header { display: flex; gap: 10px; margin-bottom: 20px; }
+        .btn-staff-tab { flex: 1; padding: 10px; border: none; background: #ddd; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 0.7rem; }
+        .btn-staff-tab.active { background: var(--azul-bar); color: white; }
+    </style>
 </head>
-
 <body>
 
-<header>
-<h2>Bar El Pelotazo</h2>
-</header>
-
-<div id="cliente">
-
-<div class="container">
-
-<div id="mesa-info"></div>
-
-<div id="menu"></div>
-
-</div>
-
-<div class="footer-order">
-
-<div>
-TOTAL
-<div id="total">0€</div>
-</div>
-
-<button id="btn-enviar" onclick="enviarPedido()">Enviar</button>
-
-</div>
-
-</div>
-
-<footer>
-
-<a href="#" onclick="abrirStaff()">Acceso administración</a>
-
-<br>
-
-Creación y diseño <a href="https://rodante.es">Rodante</a>
-
-</footer>
-
-<div id="staff" class="staff">
-
-<div>
-
-<span class="tab active" onclick="tab('pedidos')">Pedidos</span> <span class="tab" onclick="tab('cocina')">Cocina</span> <span class="tab" onclick="tab('resumen')">Resumen</span> <span class="tab" onclick="tab('carta')">Carta</span> <span class="tab" onclick="tab('camareros')">Camareros</span>
-
-</div>
-
-<div id="pedidos" class="panel active"></div>
-<div id="cocina" class="panel"></div>
-<div id="resumen" class="panel"></div>
-<div id="carta" class="panel"></div>
-
-<div id="camareros" class="panel">
-
-<h3>Camareros</h3>
-
-<input id="nuevoCam" placeholder="Nombre camarero">
-
-<button onclick="addCam()">Añadir</button>
-
-<ul id="listaCam"></ul>
-
-</div>
-
-</div>
-
-<script>
-
-/* FIREBASE */
-
-const firebaseConfig={
-apiKey:"AIzaSyAxI0dtf4RdxNDYlmk_dVYhF5NyZOg8B2w",
-databaseURL:"https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app",
-projectId:"bar-el-pelotazo-16c19"
-}
-
-firebase.initializeApp(firebaseConfig)
-const db=firebase.database()
-
-/* DETECTAR MESA */
-
-const params=new URLSearchParams(location.search)
-const mesa=params.get("mesa")
-
-if(mesa){
-
-document.getElementById("mesa-info").innerHTML="<b>Mesa "+mesa+"</b>"
-
-}else{
-
-document.getElementById("mesa-info").innerHTML="Carta del bar"
-
-document.getElementById("btn-enviar").disabled=true
-
-}
-
-/* PRODUCTOS */
-
-let productos=[
-
-{n:"Cerveza",p:2.5,c:"Bebidas"},
-{n:"Refresco",p:2,c:"Bebidas"},
-{n:"Hamburguesa",p:7,c:"Tapas"},
-{n:"Patatas bravas",p:5,c:"Tapas"}
-
-]
-
-let cart=[]
-
-function render(){
-
-let cats=[...new Set(productos.map(x=>x.c))]
-
-let html=""
-
-cats.forEach(cat=>{
-
-html+="<div class='cat'>"
-
-html+="<div class='cat-title' onclick='this.parentNode.classList.toggle(\"open\")'>"+cat+"</div>"
-
-html+="<div class='cat-content'>"
-
-productos.filter(p=>p.c==cat).forEach(p=>{
-
-html+="<div class='item'>"
-
-html+="<span>"+p.n+"</span>"
-
-html+="<div>"
-
-html+="<span class='price'>"+p.p+"€</span> "
-
-html+="<button class='btn' onclick=\"add('"+p.n+"',"+p.p+")\">+</button>"
-
-html+="</div></div>"
-
-})
-
-html+="</div></div>"
-
-})
-
-document.getElementById("menu").innerHTML=html
-
-}
-
-render()
-
-function add(n,p){
-
-cart.push({n,p})
-
-total()
-
-}
-
-function total(){
-
-let t=0
-cart.forEach(i=>t+=i.p)
-
-document.getElementById("total").innerHTML=t.toFixed(2)+"€"
-
-}
-
-/* ENVIAR */
-
-function enviarPedido(){
-
-if(!mesa){
-
-alert("Escanee el QR de su mesa para pedir")
-
-return
-
-}
-
-let pedido={
-
-mesa:mesa,
-items:cart,
-hora:new Date().toLocaleTimeString()
-
-}
-
-db.ref("pedidos").push(pedido)
-
-alert("Pedido enviado")
-
-cart=[]
-total()
-
-}
-
-/* STAFF */
-
-function abrirStaff(){
-
-let pass=prompt("Clave")
-
-if(pass=="887233"){
-
-document.getElementById("cliente").style.display="none"
-document.getElementById("staff").style.display="block"
-
-}
-
-}
-
-function tab(id){
-
-document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"))
-document.querySelectorAll(".tab").forEach(p=>p.classList.remove("active"))
-
-document.getElementById(id).classList.add("active")
-event.target.classList.add("active")
-
-}
-
-/* CAMAREROS */
-
-function addCam(){
-
-let n=document.getElementById("nuevoCam").value
-
-db.ref("camareros").push({nombre:n})
-
-document.getElementById("nuevoCam").value=""
-
-}
-
-db.ref("camareros").on("value",s=>{
-
-let html=""
-
-s.forEach(c=>{
-
-html+="<li>"+c.val().nombre+"</li>"
-
-})
-
-document.getElementById("listaCam").innerHTML=html
-
-})
-
-</script>
-
+    <div id="vista-cliente">
+        <header>
+            <h1>EL PELOTAZO</h1>
+            <div class="tagline">GASTRO BAR & COCKTAILS</div>
+        </header>
+
+        <div id="info-mesa" class="p-4 bg-white m-2 rounded shadow border-l-4 border-blue-900 text-center font-bold">
+            DETECTANDO MESA...
+        </div>
+
+        <div class="px-2">
+            <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">CAMARERO:</label>
+            <select id="camarero-id" class="w-full p-3 rounded border-2 border-blue-900 font-bold mb-4">
+                <option value="">-- SELECCIONA CAMARERO --</option>
+                <option value="1">Camarero 1</option>
+                <option value="2">Camarero 2</option>
+                <option value="3">Camarero 3</option>
+                <option value="4">Camarero 4</option>
+            </select>
+        </div>
+
+        <div id="contenedor-carta"></div>
+
+        <footer>
+            <div class="footer-top">
+                <div id="total-cuenta" style="font-size: 1.5rem; font-weight: bold;">Total: 0.00€</div>
+                <button id="btn-pedido" onclick="enviarCocina()">Enviar Pedido</button>
+            </div>
+            
+            <div class="admin-access">
+                <span onclick="abrirAdmin()">Acceso Administración</span>
+                <div class="diseno-rodante">
+                    CREACIÓN Y DISEÑO <a href="http://rodante.es" target="_blank">RODANTE.ES</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- PANEL DE ADMINISTRACIÓN -->
+    <div id="panel-staff">
+        <div class="staff-header">
+            <button class="btn-staff-tab active" onclick="verPestana('comandas')">COMANDAS</button>
+            <button class="btn-staff-tab" onclick="verPestana('editar')">EDITAR CARTA</button>
+            <button class="btn-staff-tab" onclick="verPestana('resumen')">RESUMEN DIARIO</button>
+            <button class="btn-staff-tab" style="background:#666; color:white;" onclick="location.reload()">X</button>
+        </div>
+
+        <div id="sec-comandas">
+            <h2 class="font-bold mb-4">PEDIDOS ACTIVOS</h2>
+            <div id="lista-comandas"></div>
+        </div>
+
+        <div id="sec-editar" style="display:none;">
+            <h2 class="font-bold mb-4">EDITAR PRECIOS Y PLATOS</h2>
+            <div id="editor-lista"></div>
+            <button class="w-full bg-green-600 text-white p-4 rounded font-bold mt-4" onclick="guardarCambiosCarta()">GUARDAR CARTA</button>
+        </div>
+
+        <div id="sec-resumen" style="display:none;">
+            <h2 class="font-bold mb-4">RESUMEN VENTAS POR CAMARERO</h2>
+            <div id="lista-resumen"></div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAxI0dtf4RdxNDYlmk_dVYhF5NyZOg8B2w",
+            databaseURL: "https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "bar-el-pelotazo-16c19"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let carrito = [];
+        let mesaDetectada = null;
+        let cartaLocal = [];
+
+        // 1. Detección automática de Mesa
+        function initMesa() {
+            const urlParams = new URLSearchParams(window.location.search);
+            mesaDetectada = urlParams.get('mesa');
+            const info = document.getElementById('info-mesa');
+            const btn = document.getElementById('btn-pedido');
+
+            if(mesaDetectada) {
+                info.innerHTML = `MESA Nº: <span class="text-red-600 text-xl">${mesaDetectada}</span>`;
+                btn.classList.remove('btn-off');
+            } else {
+                info.innerHTML = `<span class="text-red-600">⚠️ ESCANEA EL QR DE LA MESA PARA PEDIR</span>`;
+                btn.classList.add('btn-off');
+            }
+        }
+
+        // 2. Cargar Carta
+        db.ref('carta').on('value', snap => {
+            const data = snap.val();
+            cartaLocal = data ? Object.values(data) : [];
+            const div = document.getElementById('contenedor-carta');
+            const editor = document.getElementById('editor-lista');
+            div.innerHTML = ""; editor.innerHTML = "";
+
+            cartaLocal.forEach((p, index) => {
+                // Vista Cliente
+                div.innerHTML += `
+                    <div class="item-carta">
+                        <span style="font-weight:600">${p.nombre}</span>
+                        <div>
+                            <span class="precio">${p.precio.toFixed(2)}€</span>
+                            <button class="btn-add" onclick="agregar('${p.nombre}', ${p.precio})">+</button>
+                        </div>
+                    </div>`;
+                
+                // Vista Editor Admin
+                editor.innerHTML += `
+                    <div class="flex gap-2 mb-2 bg-white p-2 rounded">
+                        <input type="text" value="${p.nombre}" class="flex-1 p-1 border" onchange="actualizarDatoCarta(${index}, 'nombre', this.value)">
+                        <input type="number" step="0.1" value="${p.precio}" class="w-20 p-1 border" onchange="actualizarDatoCarta(${index}, 'precio', this.value)">
+                    </div>`;
+            });
+        });
+
+        function agregar(nombre, precio) {
+            carrito.push({nombre, precio});
+            actualizarTotal();
+        }
+
+        function actualizarTotal() {
+            const total = carrito.reduce((acc, item) => acc + item.precio, 0);
+            document.getElementById('total-cuenta').innerText = "Total: " + total.toFixed(2) + "€";
+        }
+
+        function enviarCocina() {
+            const cam = document.getElementById('camarero-id').value;
+            if(!mesaDetectada) return alert("Escanea el QR de tu mesa");
+            if(!cam) return alert("Selecciona camarero");
+            if(carrito.length === 0) return alert("Carrito vacío");
+
+            const total = carrito.reduce((acc, item) => acc + item.precio, 0);
+
+            db.ref('pedidos').push({
+                mesa: mesaDetectada,
+                camarero: cam,
+                items: carrito,
+                total: total,
+                hora: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                timestamp: Date.now()
+            }).then(() => {
+                alert("¡Pedido enviado!");
+                carrito = [];
+                actualizarTotal();
+            });
+        }
+
+        // --- FUNCIONES ADMIN ---
+
+        function abrirAdmin() {
+            if(prompt("Clave:") === "887233") {
+                document.getElementById('panel-staff').style.display = 'block';
+            }
+        }
+
+        function verPestana(id) {
+            document.getElementById('sec-comandas').style.display = (id === 'comandas') ? 'block' : 'none';
+            document.getElementById('sec-editar').style.display = (id === 'editar') ? 'block' : 'none';
+            document.getElementById('sec-resumen').style.display = (id === 'resumen') ? 'block' : 'none';
+            
+            document.querySelectorAll('.btn-staff-tab').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        // Comandas en Tiempo Real
+        db.ref('pedidos').on('value', snap => {
+            const pedidos = snap.val();
+            const div = document.getElementById('lista-comandas');
+            const resDiv = document.getElementById('lista-resumen');
+            div.innerHTML = ""; resDiv.innerHTML = "";
+            
+            if(!pedidos) return;
+
+            const resumenCamareros = {};
+
+            Object.keys(pedidos).forEach(id => {
+                const p = pedidos[id];
+                // Lógica Resumen
+                if(!resumenCamareros[p.camarero]) resumenCamareros[p.camarero] = 0;
+                resumenCamareros[p.camarero] += (p.total || 0);
+
+                // Tarjeta Comanda
+                div.innerHTML += `
+                    <div class="bg-white p-4 rounded shadow mb-3 border-l-8 border-orange-500">
+                        <div class="flex justify-between font-bold">
+                            <span>MESA ${p.mesa}</span>
+                            <span class="bg-blue-900 text-white px-2 rounded">C${p.camarero}</span>
+                        </div>
+                        <div class="my-2">${p.items.map(i => `• ${i.nombre}`).join('<br>')}</div>
+                        <button class="w-full bg-green-600 text-white py-2 rounded mt-2" onclick="completar('${id}')">LISTO</button>
+                    </div>`;
+            });
+
+            // Render Resumen
+            Object.keys(resumenCamareros).forEach(c => {
+                resDiv.innerHTML += `
+                    <div class="flex justify-between bg-white p-4 rounded mb-2 font-bold">
+                        <span>Camarero ${c}</span>
+                        <span class="text-green-700">${resumenCamareros[c].toFixed(2)}€</span>
+                    </div>`;
+            });
+        });
+
+        function completar(id) { db.ref('pedidos/' + id).remove(); }
+
+        function actualizarDatoCarta(idx, campo, valor) {
+            cartaLocal[idx][campo] = campo === 'precio' ? parseFloat(valor) : valor;
+        }
+
+        function guardarCambiosCarta() {
+            db.ref('carta').set(cartaLocal).then(() => alert("Carta actualizada con éxito"));
+        }
+
+        window.onload = initMesa;
+    </script>
 </body>
 </html>
