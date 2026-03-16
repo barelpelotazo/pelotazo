@@ -33,7 +33,7 @@
         }
         h1 { margin: 0; font-size: 1.8rem; letter-spacing: 2px; font-weight: 800; text-transform: uppercase; }
 
-        /* Categorías Acordeón */
+        /* Categorías Acordeón Cliente */
         .cat-btn {
             width: 100%; text-align: left; padding: 15px; background: white;
             margin-bottom: 5px; border-radius: 8px; font-weight: bold;
@@ -89,8 +89,10 @@
             <h1>Bar El Pelotazo</h1>
         </header>
 
-        <div id="info-mesa" class="p-4 bg-white m-2 rounded shadow border-l-4 border-blue-900 text-center font-bold text-gray-700">
-            CARGANDO MESA...
+        <!-- Texto QR Corregido -->
+        <div id="info-mesa" class="p-5 bg-white m-3 rounded shadow-md border-l-8 border-blue-900 text-center">
+            <p class="font-bold text-gray-700 leading-tight">ESTADO DE TU MESA:</p>
+            <p class="text-sm text-gray-500 mt-1">Detectando número de mesa...</p>
         </div>
 
         <div id="carta-categorias" class="px-2 mt-4">
@@ -99,7 +101,7 @@
 
         <footer>
             <div id="total-cuenta">0.00€</div>
-            <button id="btn-pedido" onclick="enviarPedido()">ENVIAR PEDIDO</button>
+            <button id="btn-pedido" onclick="enviarPedido()">ENVIAR PEDIDO A BARRA</button>
             
             <div class="admin-link">
                 <span onclick="abrirAdmin()">Acceso Administración</span>
@@ -112,28 +114,35 @@
 
     <!-- PANEL STAFF -->
     <div id="panel-staff">
-        <div class="flex gap-2 mb-4">
-            <button class="flex-1 bg-blue-900 text-white p-2 rounded text-xs font-bold" onclick="verSeccion('pedidos')">COMANDAS</button>
-            <button class="flex-1 bg-orange-600 text-white p-2 rounded text-xs font-bold" onclick="verSeccion('cocina')">COCINA</button>
-            <button class="flex-1 bg-gray-600 text-white p-2 rounded text-xs font-bold" onclick="verSeccion('editar')">EDITAR CARTA</button>
-            <button class="bg-red-600 text-white p-2 rounded text-xs font-bold" onclick="location.reload()">SALIR</button>
+        <div class="flex gap-2 mb-4 sticky top-0 bg-gray-100 p-2 z-50 rounded shadow">
+            <button class="flex-1 bg-blue-900 text-white p-3 rounded text-xs font-bold uppercase" onclick="verSeccion('pedidos')">Comandas</button>
+            <button class="flex-1 bg-orange-600 text-white p-3 rounded text-xs font-bold uppercase" onclick="verSeccion('cocina')">Cocina</button>
+            <button class="flex-1 bg-gray-600 text-white p-3 rounded text-xs font-bold uppercase" onclick="verSeccion('editar')">Editar Carta</button>
+            <button class="bg-red-600 text-white p-3 rounded text-xs font-bold" onclick="location.reload()">SALIR</button>
         </div>
 
         <div id="sec-pedidos">
-            <h2 class="font-bold border-b pb-2 mb-4">COMANDAS PENDIENTES</h2>
+            <h2 class="font-bold border-b-2 border-blue-900 pb-2 mb-4 text-blue-900">LISTADO DE COMANDAS</h2>
             <div id="lista-pedidos-admin"></div>
-            <div id="caja-hoy" class="mt-6 p-4 bg-green-100 rounded text-center font-bold text-green-800 text-xl">Caja: 0.00€</div>
+            <div id="caja-hoy" class="mt-6 p-4 bg-green-100 rounded text-center font-bold text-green-800 text-2xl border-2 border-green-300">Total Caja: 0.00€</div>
         </div>
 
         <div id="sec-cocina" style="display:none">
-            <h2 class="font-bold border-b pb-2 mb-4 text-orange-700">SOLO COCINA</h2>
+            <h2 class="font-bold border-b-2 border-orange-600 pb-2 mb-4 text-orange-600">PEDIDOS PARA COCINA</h2>
             <div id="lista-cocina"></div>
         </div>
 
         <div id="sec-editar" style="display:none">
-            <h2 class="font-bold border-b pb-2 mb-4">EDITOR DE PRODUCTOS</h2>
+            <div class="bg-blue-50 p-4 rounded mb-6 border border-blue-200">
+                <h2 class="font-bold text-blue-900 text-lg">EDITOR DE PRODUCTOS</h2>
+                <p class="text-xs text-blue-700">Aquí puedes añadir productos, cambiar precios o activarlos/desactivarlos de la carta principal.</p>
+            </div>
+            
             <div id="editor-productos"></div>
-            <button class="w-full bg-blue-900 text-white p-4 rounded mt-4 font-bold shadow-lg" onclick="guardarCarta()">💾 GUARDAR TODOS LOS CAMBIOS</button>
+            
+            <div class="sticky bottom-4">
+                <button class="w-full bg-blue-900 text-white p-5 rounded-xl font-bold shadow-2xl border-2 border-white" onclick="guardarCarta()">💾 GUARDAR TODOS LOS CAMBIOS</button>
+            </div>
         </div>
     </div>
 
@@ -163,9 +172,16 @@
             mesa = params.get('mesa');
             const info = document.getElementById('info-mesa');
             if(mesa) {
-                info.innerHTML = `MESA Nº: <span class="text-blue-900 text-2xl">${mesa}</span>`;
+                info.innerHTML = `
+                    <p class="font-bold text-gray-700 leading-tight">ESTÁS EN LA MESA:</p>
+                    <p class="text-blue-900 text-4xl font-black mt-1">${mesa}</p>
+                    <p class="text-xs text-green-600 font-bold mt-2">● PEDIDOS ACTIVADOS</p>
+                `;
             } else {
-                info.innerHTML = `<span class="text-red-600">⚠️ ESCANEA EL QR DE TU MESA</span>`;
+                info.innerHTML = `
+                    <p class="text-red-600 font-bold text-lg">⚠️ QR NO DETECTADO</p>
+                    <p class="text-sm text-gray-600 mt-2 px-4 italic">Por favor, escanea el código QR de tu mesa para poder realizar el pedido correctamente desde tu móvil.</p>
+                `;
                 document.getElementById('btn-pedido').classList.add('btn-off');
             }
             cargarCarta();
@@ -185,7 +201,6 @@
             container.innerHTML = "";
 
             categorias.forEach((cat, index) => {
-                // Solo mostrar los activos al cliente
                 const items = carta.filter(p => p.categoria === cat && p.activo !== false);
                 const catId = `cat-${index}`;
                 
@@ -197,13 +212,13 @@
                         <div id="${catId}" class="cat-content">
                             ${items.length ? items.map(p => `
                                 <div class="item-row">
-                                    <span>${p.nombre}</span>
+                                    <span class="font-semibold text-gray-800">${p.nombre}</span>
                                     <div>
                                         <span class="precio">${p.precio.toFixed(2)}€</span>
                                         <button class="btn-add" onclick="agregar('${p.nombre}', ${p.precio})">+</button>
                                     </div>
                                 </div>
-                            `).join('') : '<p class="text-center p-2 text-gray-400 text-xs">No hay productos disponibles</p>'}
+                            `).join('') : '<p class="text-center p-2 text-gray-400 text-xs">Sección vacía o platos no publicados</p>'}
                         </div>
                     </div>
                 `;
@@ -224,15 +239,16 @@
         }
 
         function enviarPedido() {
-            if(!mesa) return alert("Error de mesa.");
-            if(carrito.length === 0) return alert("Selecciona productos.");
+            if(!mesa) return alert("Error: Por favor, escanea el QR de tu mesa.");
+            if(carrito.length === 0) return alert("Tu carrito está vacío.");
+            
             const total = carrito.reduce((s, i) => s + i.precio, 0);
             db.ref('pedidos').push({
                 mesa, items: carrito, total, 
                 hora: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
                 timestamp: Date.now()
             }).then(() => {
-                alert("Pedido enviado!");
+                alert("✅ Pedido enviado. ¡Te lo llevamos en un momento!");
                 carrito = [];
                 document.getElementById('total-cuenta').innerText = "0.00€";
             });
@@ -249,7 +265,9 @@
         }
 
         function abrirAdmin() {
-            if(prompt("Clave:") === "887233") document.getElementById('panel-staff').style.display = 'block';
+            if(prompt("Clave Maestro:") === "887233") {
+                document.getElementById('panel-staff').style.display = 'block';
+            }
         }
 
         function verSeccion(id) {
@@ -270,56 +288,75 @@
                 const p = data[id];
                 caja += p.total;
                 const html = `
-                    <div class="bg-white p-3 rounded shadow mb-3 border-l-4 border-blue-900">
-                        <div class="flex justify-between font-bold"><span>MESA ${p.mesa}</span><span class="text-xs text-gray-400">${p.hora}</span></div>
-                        <div class="text-sm my-2">${p.items.map(i => `• ${i.nombre}`).join('<br>')}</div>
-                        <button class="w-full bg-green-600 text-white py-2 rounded text-xs font-bold uppercase" onclick="finalizar('${id}')">Listo / Cobrado</button>
+                    <div class="bg-white p-4 rounded-lg shadow-sm mb-4 border-l-8 border-blue-900">
+                        <div class="flex justify-between items-center font-bold">
+                            <span class="text-lg">MESA ${p.mesa}</span>
+                            <span class="text-xs bg-gray-200 px-2 py-1 rounded">${p.hora}</span>
+                        </div>
+                        <div class="text-sm my-3 font-medium text-gray-700">
+                            ${p.items.map(i => `<div class="py-1 border-b border-gray-50">• ${i.nombre}</div>`).join('')}
+                        </div>
+                        <div class="flex justify-between items-center mt-3 pt-2 border-t">
+                            <span class="font-black text-blue-900">${p.total.toFixed(2)}€</span>
+                            <button class="bg-green-600 text-white px-4 py-2 rounded text-xs font-bold uppercase" onclick="finalizar('${id}')">✓ Finalizado</button>
+                        </div>
                     </div>`;
                 listP.innerHTML += html;
                 listC.innerHTML += html;
             });
-            document.getElementById('caja-hoy').innerText = "Caja: " + caja.toFixed(2) + "€";
+            document.getElementById('caja-hoy').innerText = "Total Caja: " + caja.toFixed(2) + "€";
         });
 
         function finalizar(id) { db.ref('pedidos/' + id).remove(); }
 
         function renderEditor() {
             const div = document.getElementById('editor-productos');
-            div.innerHTML = categorias.map(cat => `
-                <div class="mb-4 bg-white p-3 rounded shadow-sm border-t-4 border-blue-900">
-                    <div class="flex justify-between items-center mb-3">
-                        <b class="text-sm">${cat.toUpperCase()}</b> 
-                        <button class="bg-blue-900 text-white px-3 py-1 rounded text-xs" onclick="nuevoItem('${cat}')">+ AÑADIR</button>
+            div.innerHTML = "";
+
+            categorias.forEach(cat => {
+                const itemsDeCat = carta.filter(p => p.categoria === cat);
+                div.innerHTML += `
+                    <div class="mb-6 bg-white p-4 rounded-lg shadow border-t-4 border-blue-900">
+                        <div class="flex justify-between items-center mb-4 border-b pb-2">
+                            <div class="flex flex-col">
+                                <span class="text-xs text-gray-400 font-bold uppercase">Categoría</span>
+                                <b class="text-blue-900">${cat.toUpperCase()}</b>
+                            </div>
+                            <button class="bg-blue-900 text-white px-4 py-2 rounded-lg text-xs font-bold" onclick="nuevoItem('${cat}')">+ PRODUCTO</button>
+                        </div>
+                        <div id="items-${cat.replace(/\//g,'')}" class="space-y-4">
+                            ${itemsDeCat.length ? itemsDeCat.map((p) => {
+                                const idx = carta.indexOf(p);
+                                const isVisible = p.activo !== false;
+                                return `
+                                <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 ${!isVisible ? 'opacity-60 bg-gray-200' : ''}">
+                                    <div class="flex gap-2 mb-3">
+                                        <input type="text" value="${p.nombre}" class="flex-1 p-2 text-sm border rounded focus:ring-2 focus:ring-blue-900 outline-none" onchange="updItem(${idx}, 'nombre', this.value)" placeholder="Nombre del plato">
+                                        <input type="number" step="0.1" value="${p.precio}" class="w-24 p-2 text-sm border rounded text-right font-bold" onchange="updItem(${idx}, 'precio', this.value)">
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <div class="flex items-center gap-3">
+                                            <label class="switch">
+                                                <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="updItem(${idx}, 'activo', this.checked)">
+                                                <span class="slider"></span>
+                                            </label>
+                                            <span class="text-[10px] font-black ${isVisible ? 'text-green-600' : 'text-gray-500'}">
+                                                ${isVisible ? 'PUBLICADO' : 'NO PUBLICADO'}
+                                            </span>
+                                        </div>
+                                        <button class="text-red-500 text-xs font-bold hover:underline" onclick="delItem(${idx})">Eliminar Permanente</button>
+                                    </div>
+                                </div>`;
+                            }).join('') : '<p class="text-xs text-gray-400 italic text-center py-2">Sin productos en esta sección.</p>'}
+                        </div>
                     </div>
-                    ${carta.filter(p => p.categoria === cat).map((p) => {
-                        const idx = carta.indexOf(p);
-                        const isVisible = p.activo !== false;
-                        return `
-                        <div class="flex flex-col gap-2 mb-4 p-2 bg-gray-50 rounded border border-gray-100">
-                            <div class="flex gap-1">
-                                <input type="text" value="${p.nombre}" class="flex-1 p-2 text-sm border rounded" onchange="updItem(${idx}, 'nombre', this.value)" placeholder="Nombre">
-                                <input type="number" step="0.1" value="${p.precio}" class="w-20 p-2 text-sm border rounded text-center" onchange="updItem(${idx}, 'precio', this.value)">
-                            </div>
-                            <div class="flex justify-between items-center px-1">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-xs font-bold ${isVisible ? 'text-green-600' : 'text-gray-400'}">${isVisible ? 'VISIBLE' : 'OCULTO'}</span>
-                                    <label class="switch">
-                                        <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="updItem(${idx}, 'activo', this.checked)">
-                                        <span class="slider"></span>
-                                    </label>
-                                </div>
-                                <button class="text-red-500 text-xs font-bold" onclick="delItem(${idx})">ELIMINAR ✕</button>
-                            </div>
-                        </div>`;
-                    }).join('')}
-                </div>
-            `).join('');
+                `;
+            });
         }
 
         function updItem(i, campo, val) { 
             if(campo === 'precio') val = parseFloat(val);
             carta[i][campo] = val; 
-            // Re-renderizar solo el editor para actualizar el estado visual de los textos
             renderEditor();
         }
         
@@ -329,7 +366,7 @@
         }
 
         function delItem(i) { 
-            if(confirm("¿Seguro que quieres borrar este producto permanentemente?")) { 
+            if(confirm("⚠ ¿Eliminar definitivamente este producto? No podrás recuperarlo.")) { 
                 carta.splice(i, 1); 
                 renderEditor(); 
             } 
@@ -337,8 +374,8 @@
 
         function guardarCarta() { 
             db.ref('carta').set(carta).then(() => {
-                alert("✅ Carta guardada con éxito.");
-                renderCarta(); // Actualizar vista cliente si está abierta
+                alert("✅ CAMBIOS GUARDADOS: La carta ha sido actualizada para todos los clientes.");
+                renderCarta(); 
             }); 
         }
 
