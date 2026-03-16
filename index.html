@@ -4,7 +4,7 @@
 <head>
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 
 <title>Bar El Pelotazo</title>
 
@@ -14,176 +14,136 @@
 
 <style>
 
-:root{
---azul-oscuro:#000a14;
---azul-staff:#001f3f;
---rojo:#ff0000;
---verde:#27ae60;
---gris:#f4f7f6;
---naranja:#f39c12;
-}
-
 body{
-font-family:'Segoe UI',sans-serif;
+font-family:Arial;
 margin:0;
-background:var(--gris);
+background:#f4f4f4;
 padding-bottom:140px;
 }
 
 header{
-background:var(--azul-oscuro);
+background:#000a14;
+color:white;
 padding:15px;
 text-align:center;
-border-bottom:4px solid var(--rojo);
-}
-
-h1{
-color:white;
-margin:0;
-font-size:1rem;
+border-bottom:4px solid red;
 }
 
 .container{
-padding:15px;
 max-width:600px;
 margin:auto;
-}
-
-.input-style{
-width:100%;
-padding:12px;
-border-radius:10px;
-border:2px solid var(--azul-staff);
-font-size:1rem;
-font-weight:bold;
-text-align:center;
-margin-bottom:10px;
-}
-
-/* MENU */
-
-.cat-block{
-margin-bottom:8px;
-border-radius:10px;
-overflow:hidden;
-box-shadow:0 2px 4px rgba(0,0,0,.1);
-}
-
-.cat-header{
-background:white;
 padding:15px;
+}
+
+.cat{
+background:white;
+margin-bottom:10px;
+border-radius:8px;
+overflow:hidden;
+}
+
+.cat-title{
+padding:14px;
 font-weight:bold;
 cursor:pointer;
-display:flex;
-justify-content:space-between;
-border-left:5px solid var(--rojo);
+background:#fff;
+border-left:5px solid red;
 }
 
 .cat-content{
 display:none;
-background:white;
-padding:0 15px;
+padding:10px;
 }
 
-.cat-block.open .cat-content{
+.cat.open .cat-content{
 display:block;
 }
 
-.item-row{
+.item{
 display:flex;
 justify-content:space-between;
-align-items:center;
-padding:12px 0;
+padding:10px 0;
 border-bottom:1px solid #eee;
 }
 
 .price{
-font-weight:900;
-color:var(--rojo);
-margin-right:10px;
+color:red;
+font-weight:bold;
 }
 
-.btn-plus{
-background:var(--azul-staff);
+.btn{
+background:#001f3f;
 color:white;
 border:none;
-width:35px;
-height:35px;
-border-radius:8px;
-font-size:1.2rem;
+width:32px;
+height:32px;
+border-radius:6px;
 cursor:pointer;
 }
 
-.footer-client{
+.footer-order{
+
 position:fixed;
-bottom:0;
+bottom:60px;
+left:0;
 width:100%;
 background:white;
-padding:15px 20px;
+padding:12px;
 display:flex;
 justify-content:space-between;
 align-items:center;
-box-shadow:0 -5px 15px rgba(0,0,0,.1);
+box-shadow:0 -3px 10px rgba(0,0,0,.1);
+
 }
 
-#total-val{
-font-size:2rem;
-font-weight:900;
-color:var(--rojo);
-}
-
-#staff-panel{
-display:none;
-padding:20px;
-}
-
-.staff-nav{
-display:flex;
-gap:5px;
-margin-bottom:15px;
-}
-
-.tab-btn{
-flex:1;
-padding:10px;
-border:none;
-background:#ddd;
-border-radius:6px;
+#total{
+font-size:22px;
 font-weight:bold;
-cursor:pointer;
-}
-
-.tab-btn.active{
-background:var(--azul-staff);
-color:white;
-}
-
-.tab-content{
-display:none;
-}
-
-.tab-content.active{
-display:block;
-}
-
-.pedido-card{
-background:white;
-padding:15px;
-border-radius:12px;
-margin-bottom:15px;
-border-left:8px solid var(--naranja);
+color:red;
 }
 
 footer{
+position:fixed;
+bottom:0;
+width:100%;
+background:#fff;
 text-align:center;
+padding:10px;
 font-size:12px;
-color:#777;
-margin-top:30px;
+box-shadow:0 -2px 10px rgba(0,0,0,.1);
 }
 
 footer a{
 color:#1a73e8;
 text-decoration:none;
+}
+
+.staff{
+display:none;
+padding:20px;
+}
+
+.tab{
+display:inline-block;
+margin-right:5px;
+padding:8px 12px;
+background:#ddd;
+cursor:pointer;
+border-radius:5px;
+}
+
+.tab.active{
+background:#001f3f;
+color:white;
+}
+
+.panel{
+display:none;
+margin-top:15px;
+}
+
+.panel.active{
+display:block;
 }
 
 </style>
@@ -193,75 +153,65 @@ text-decoration:none;
 <body>
 
 <header>
-<h1>Bar El Pelotazo</h1>
+<h2>Bar El Pelotazo</h2>
 </header>
 
-<div id="view-client">
+<div id="cliente">
 
 <div class="container">
 
-<input id="mesa-input" class="input-style" readonly>
+<div id="mesa-info"></div>
 
-<select id="camarero-input" class="input-style">
-<option value="">CAMARERO</option>
-<option value="1">Camarero 1</option>
-<option value="2">Camarero 2</option>
-<option value="3">Camarero 3</option>
-<option value="4">Camarero 4</option>
-<option value="5">Camarero 5</option>
-</select>
-
-<div id="menu-accordion"></div>
+<div id="menu"></div>
 
 </div>
 
-<div class="footer-client">
+<div class="footer-order">
 
 <div>
-<small>TOTAL</small>
-<div id="total-val">0€</div>
+TOTAL
+<div id="total">0€</div>
 </div>
 
-<button onclick="enviarPedidoFirebase()" style="background:var(--verde);color:white;border:none;padding:15px;border-radius:12px;">
-ENVIAR
-</button>
+<button id="btn-enviar" onclick="enviarPedido()">Enviar</button>
+
+</div>
 
 </div>
 
 <footer>
 
-<a href="#" onclick="accesoStaff()">Acceso administración</a>
+<a href="#" onclick="abrirStaff()">Acceso administración</a>
 
-<br><br>
+<br>
 
 Creación y diseño <a href="https://rodante.es">Rodante</a>
 
 </footer>
 
-</div>
+<div id="staff" class="staff">
 
-<div id="staff-panel">
+<div>
 
-<div class="staff-nav">
-
-<button class="tab-btn active" onclick="switchTab('pedidos')">PEDIDOS</button> <button class="tab-btn" onclick="switchTab('cocina')">COCINA</button> <button class="tab-btn" onclick="switchTab('resumen')">RESUMEN</button> <button class="tab-btn" onclick="switchTab('carta')">CARTA</button>
+<span class="tab active" onclick="tab('pedidos')">Pedidos</span> <span class="tab" onclick="tab('cocina')">Cocina</span> <span class="tab" onclick="tab('resumen')">Resumen</span> <span class="tab" onclick="tab('carta')">Carta</span> <span class="tab" onclick="tab('camareros')">Camareros</span>
 
 </div>
 
-<div id="tab-pedidos" class="tab-content active">
-<div id="lista-pedidos"></div>
-</div>
+<div id="pedidos" class="panel active"></div>
+<div id="cocina" class="panel"></div>
+<div id="resumen" class="panel"></div>
+<div id="carta" class="panel"></div>
 
-<div id="tab-cocina" class="tab-content">
-<div id="lista-cocina"></div>
-</div>
+<div id="camareros" class="panel">
 
-<div id="tab-resumen" class="tab-content">
-<div id="lista-resumen"></div>
-</div>
+<h3>Camareros</h3>
 
-<div id="tab-carta" class="tab-content">
-<div id="editor-carta"></div>
+<input id="nuevoCam" placeholder="Nombre camarero">
+
+<button onclick="addCam()">Añadir</button>
+
+<ul id="listaCam"></ul>
+
 </div>
 
 </div>
@@ -270,135 +220,119 @@ Creación y diseño <a href="https://rodante.es">Rodante</a>
 
 /* FIREBASE */
 
-const firebaseConfig = {
-
-apiKey: "AIzaSyAxI0dtf4RdxNDYlmk_dVYhF5NyZOg8B2w",
-
-databaseURL: "https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app",
-
-projectId: "bar-el-pelotazo-16c19"
-
+const firebaseConfig={
+apiKey:"AIzaSyAxI0dtf4RdxNDYlmk_dVYhF5NyZOg8B2w",
+databaseURL:"https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app",
+projectId:"bar-el-pelotazo-16c19"
 }
 
 firebase.initializeApp(firebaseConfig)
+const db=firebase.database()
 
-const db = firebase.database()
+/* DETECTAR MESA */
 
-/* VALIDAR QR */
+const params=new URLSearchParams(location.search)
+const mesa=params.get("mesa")
 
-const params = new URLSearchParams(window.location.search)
+if(mesa){
 
-const mesa = params.get("mesa")
-const token = params.get("token")
+document.getElementById("mesa-info").innerHTML="<b>Mesa "+mesa+"</b>"
 
-if(!mesa || token !== "pelotazo2026"){
+}else{
 
-document.body.innerHTML = "<h2 style='text-align:center;margin-top:100px;'>Escanee el QR de la mesa para pedir</h2>"
+document.getElementById("mesa-info").innerHTML="Carta del bar"
+
+document.getElementById("btn-enviar").disabled=true
 
 }
-
-document.getElementById("mesa-input").value = "MESA " + mesa
 
 /* PRODUCTOS */
 
-let productos = [
+let productos=[
 
-{nombre:"Cerveza",precio:2.5,cat:"BEBIDAS",destino:"barra"},
-{nombre:"Refresco",precio:2,cat:"BEBIDAS",destino:"barra"},
-{nombre:"Hamburguesa",precio:7,cat:"TAPAS",destino:"cocina"},
-{nombre:"Patatas Bravas",precio:5,cat:"TAPAS",destino:"cocina"}
+{n:"Cerveza",p:2.5,c:"Bebidas"},
+{n:"Refresco",p:2,c:"Bebidas"},
+{n:"Hamburguesa",p:7,c:"Tapas"},
+{n:"Patatas bravas",p:5,c:"Tapas"}
 
 ]
 
-let carrito = []
+let cart=[]
 
-function renderMenu(){
+function render(){
 
-const cats=[...new Set(productos.map(p=>p.cat))]
+let cats=[...new Set(productos.map(x=>x.c))]
 
-const menu=document.getElementById("menu-accordion")
-
-menu.innerHTML=""
+let html=""
 
 cats.forEach(cat=>{
 
-const items=productos.filter(p=>p.cat==cat)
+html+="<div class='cat'>"
 
-let html=items.map(p=>`
+html+="<div class='cat-title' onclick='this.parentNode.classList.toggle(\"open\")'>"+cat+"</div>"
 
-<div class="item-row">
+html+="<div class='cat-content'>"
 
-<span>${p.nombre}</span>
+productos.filter(p=>p.c==cat).forEach(p=>{
 
-<div>
+html+="<div class='item'>"
 
-<span class="price">${p.precio.toFixed(2)}€</span>
+html+="<span>"+p.n+"</span>"
 
-<button class="btn-plus" onclick="addToCart('${p.nombre}',${p.precio},'${p.destino}')">+</button>
+html+="<div>"
 
-</div>
+html+="<span class='price'>"+p.p+"€</span> "
 
-</div>`).join("")
+html+="<button class='btn' onclick=\"add('"+p.n+"',"+p.p+")\">+</button>"
 
-menu.innerHTML+=`
-
-<div class="cat-block">
-
-<div class="cat-header" onclick="this.parentNode.classList.toggle('open')">
-
-${cat}<span>▼</span>
-
-</div>
-
-<div class="cat-content">${html}</div>
-
-</div>`
+html+="</div></div>"
 
 })
 
-}
+html+="</div></div>"
 
-renderMenu()
+})
 
-function addToCart(nombre,precio,destino){
-
-carrito.push({nombre,precio,destino})
-
-actualizarTotal()
+document.getElementById("menu").innerHTML=html
 
 }
 
-function actualizarTotal(){
+render()
 
-let total=0
+function add(n,p){
 
-carrito.forEach(i=>total+=i.precio)
+cart.push({n,p})
 
-document.getElementById("total-val").innerText=total.toFixed(2)+"€"
+total()
 
 }
 
-/* ENVIAR PEDIDO */
+function total(){
 
-function enviarPedidoFirebase(){
+let t=0
+cart.forEach(i=>t+=i.p)
 
-const camarero=document.getElementById("camarero-input").value
+document.getElementById("total").innerHTML=t.toFixed(2)+"€"
 
-if(!camarero) return alert("Seleccione camarero")
+}
 
-if(carrito.length==0) return alert("Añada productos")
+/* ENVIAR */
 
-const pedido={
+function enviarPedido(){
 
-mesa,
+if(!mesa){
 
-camarero,
+alert("Escanee el QR de su mesa para pedir")
 
-items:carrito,
+return
 
-hora:new Date().toLocaleTimeString(),
+}
 
-timestamp:Date.now()
+let pedido={
+
+mesa:mesa,
+items:cart,
+hora:new Date().toLocaleTimeString()
 
 }
 
@@ -406,40 +340,63 @@ db.ref("pedidos").push(pedido)
 
 alert("Pedido enviado")
 
-carrito=[]
-
-actualizarTotal()
-
-}
-
-/* ACCESO STAFF */
-
-function accesoStaff(){
-
-if(prompt("Clave staff")=="887233"){
-
-document.getElementById("view-client").style.display="none"
-
-document.getElementById("staff-panel").style.display="block"
+cart=[]
+total()
 
 }
 
+/* STAFF */
+
+function abrirStaff(){
+
+let pass=prompt("Clave")
+
+if(pass=="887233"){
+
+document.getElementById("cliente").style.display="none"
+document.getElementById("staff").style.display="block"
+
 }
 
-function switchTab(tab){
+}
 
-document.querySelectorAll(".tab-content").forEach(el=>el.classList.remove("active"))
+function tab(id){
 
-document.querySelectorAll(".tab-btn").forEach(el=>el.classList.remove("active"))
+document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"))
+document.querySelectorAll(".tab").forEach(p=>p.classList.remove("active"))
 
-document.getElementById("tab-"+tab).classList.add("active")
-
+document.getElementById(id).classList.add("active")
 event.target.classList.add("active")
 
 }
 
+/* CAMAREROS */
+
+function addCam(){
+
+let n=document.getElementById("nuevoCam").value
+
+db.ref("camareros").push({nombre:n})
+
+document.getElementById("nuevoCam").value=""
+
+}
+
+db.ref("camareros").on("value",s=>{
+
+let html=""
+
+s.forEach(c=>{
+
+html+="<li>"+c.val().nombre+"</li>"
+
+})
+
+document.getElementById("listaCam").innerHTML=html
+
+})
+
 </script>
 
 </body>
-
 </html>
