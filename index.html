@@ -166,7 +166,7 @@
             if(mesa) {
                 info.innerHTML = `<p class="text-xs text-gray-500 font-bold">MESA</p><p class="text-blue-900 text-3xl font-black">${mesa}</p>`;
             } else {
-                info.innerHTML = `<p class="text-red-600 font-bold">⚠️ ESCANEA EL QR DE TU MESA</p><p class="text-xs text-gray-400 mt-1">Necesitas el código de la mesa para pedir.</p>`;
+                info.innerHTML = `<p class="text-red-600 font-bold">⚠️ ESCANEA EL QR DE TU MESA</p><p class="text-xs text-gray-400 mt-1">Usa el código de tu mesa para pedir.</p>`;
                 document.getElementById('btn-pedido').classList.add('btn-off');
             }
             cargarCarta();
@@ -188,7 +188,7 @@
             categorias.forEach((cat, index) => {
                 const itemsActivos = carta.filter(p => p.categoria === cat && p.activo !== false);
                 
-                // REGLA: Si no hay items activos, no mostrar la categoría
+                // Si no hay items activos, no mostrar la categoría
                 if (itemsActivos.length === 0) return;
 
                 const catId = `cat-${index}`;
@@ -274,7 +274,6 @@
                 const p = data[id];
                 caja += p.total;
                 
-                // Comanda completa para barra
                 const htmlBarra = `
                     <div class="bg-white p-4 rounded-lg shadow-sm mb-4 border-l-8 border-blue-900">
                         <div class="flex justify-between items-center font-bold">
@@ -291,7 +290,6 @@
                     </div>`;
                 listP.innerHTML += htmlBarra;
 
-                // Filtrar solo lo que va a COCINA
                 const itemsCocina = p.items.filter(i => categoriasCocina.includes(i.categoria));
                 if(itemsCocina.length > 0) {
                     listC.innerHTML += `
