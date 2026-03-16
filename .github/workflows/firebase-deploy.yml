@@ -18,6 +18,10 @@
         "source": "**/*.bat",
         "headers": [
           {
+            "key": "Content-Type",
+            "value": "text/html"
+          },
+          {
             "key": "Cache-Control",
             "value": "no-cache, no-store, must-revalidate"
           }
