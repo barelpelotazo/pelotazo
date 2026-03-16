@@ -2,288 +2,178 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Café Bar El Pelotazo - Gestión Total</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bar El Pelotazo - Carta Digital</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <style>
-        :root { 
-            --azul-oscuro: #000a14; --azul-staff: #001f3f; --rojo: #ff0000;
-            --verde: #27ae60; --gris-bg: #f8f9fa; --naranja: #f39c12;
-            --cocina: #8e44ad; --rodante: #007bff; --texto: #1a1a1a;
-        }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--gris-bg); color: var(--texto); padding-bottom: 80px; }
-        
-        /* Header */
-        header { background: var(--azul-oscuro); padding: 10px 15px; text-align: center; border-bottom: 4px solid var(--rojo); position: sticky; top: 0; z-index: 1000; }
-        .logo-img { max-width: 120px; height: auto; display: block; margin: 0 auto 5px auto; }
-        h1 { color: white; margin: 0; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; }
-
-        /* Admin Nav */
-        .staff-nav { display: flex; background: var(--azul-oscuro); padding: 5px; gap: 2px; overflow-x: auto; position: sticky; top: 0; z-index: 1100; }
-        .tab-btn { flex: 1; padding: 12px 5px; border: none; background: rgba(255,255,255,0.1); color: white; border-radius: 5px; font-weight: bold; font-size: 0.65rem; cursor: pointer; text-transform: uppercase; white-space: nowrap; }
-        .tab-btn.active { background: var(--rojo); }
-
-        .container { padding: 15px; max-width: 800px; margin: 0 auto; }
-        
-        /* Cards */
-        .pedido-card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; border-left: 8px solid #ccc; box-shadow: 0 4px 10px rgba(0,0,0,0.1); position: relative; }
-        .pedido-card.atendido { border-left-color: #3498db; }
-        .pedido-card.pendiente { border-left-color: var(--naranja); background: #fffdf5; }
-        
-        .mesa-badge { font-size: 1.3rem; font-weight: 900; color: var(--azul-staff); }
-        .camarero-tag { background: #e7f3ff; color: #004085; padding: 8px; border-radius: 6px; font-weight: bold; display: block; margin-bottom: 10px; text-align: center; font-size: 0.9rem; border: 1px solid #bde0fe; }
-        
-        .btn-accion { border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; text-transform: uppercase; font-size: 0.75rem; flex: 1; }
-        .btn-atender { background: var(--azul-staff); }
-        .btn-cuenta { background: var(--naranja); }
-        .btn-cobrar { background: var(--verde); }
-
-        /* Cocina */
-        .cocina-card { background: #1c2833; color: white; padding: 20px; border-radius: 15px; margin-bottom: 20px; border-top: 8px solid var(--cocina); }
-        .cocina-item { font-size: 1.4rem; margin: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; }
-
-        /* Caja */
-        .caja-row { background: white; padding: 15px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; border: 1px solid #eee; align-items: center; }
-
-        /* Pie de página */
-        footer { text-align: center; padding: 30px; font-size: 0.8rem; color: #666; }
-        .rodante-link { color: var(--rodante); text-decoration: none; font-weight: bold; }
-
-        /* Cliente Items */
-        .cat-header { background: white; padding: 15px; font-weight: bold; border-left: 5px solid var(--rojo); margin-bottom: 5px; cursor: pointer; display: flex; justify-content: space-between; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .cat-content { display: none; background: white; padding: 0 15px; margin-bottom: 10px; }
-        .cat-open .cat-content { display: block; }
-        .item-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
-        .btn-add { background: var(--azul-staff); color: white; border: none; width: 35px; height: 35px; border-radius: 5px; font-size: 1.2rem; }
-
-        .footer-fixed { position: fixed; bottom: 0; width: 100%; background: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 -4px 10px rgba(0,0,0,0.1); z-index: 999; box-sizing: border-box; }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
+        .category-card { transition: all 0.3s ease; }
+        .category-card:active { transform: scale(0.98); }
+        .disabled-btn { background-color: #9ca3af !important; cursor: not-allowed; }
     </style>
 </head>
-<body>
+<body class="bg-slate-50 min-h-screen pb-24">
 
-<div id="view-client">
-    <header>
-        <!-- Logotipo centrado en la cabecera -->
-        <img src="logo%20pelotazo%20png.png" alt="Logo El Pelotazo" class="logo-img" onerror="this.src='https://via.placeholder.com/120x60/000a14/ffffff?text=EL+PELOTAZO'">
-        <h1>Café Bar El Pelotazo</h1>
+    <!-- Header -->
+    <header class="bg-red-600 text-white p-6 shadow-lg text-center">
+        <h1 class="text-3xl font-bold italic">BAR EL PELOTAZO</h1>
+        <p class="text-sm opacity-90 mt-1" id="status-mesa">Escanea el QR de tu mesa para pedir</p>
     </header>
 
-    <div class="container">
-        <div style="background:white; padding:15px; border-radius:12px; margin-bottom:20px; text-align:center; border: 2px solid var(--azul-staff);">
-            <label style="font-weight:bold; font-size:0.75rem; color:var(--azul-staff); display:block;">NÚMERO DE MESA</label>
-            <input type="number" id="mesa-input" style="width:100%; padding:10px; font-size:1.6rem; text-align:center; font-weight:bold; border:none;" placeholder="0">
-            <div id="mesa-auto" style="display:none; color:var(--verde); font-size:0.8rem; font-weight:bold; margin-top:5px;">✓ Mesa detectada automáticamente</div>
-        </div>
-
-        <div id="menu-container"></div>
-
-        <footer>
-            <button onclick="accesoStaff()" style="opacity:0.2; background:none; border:none; margin-bottom:20px; cursor:pointer;">Acceso Interno</button><br>
-            Desarrollado por <a href="https://rodante.es" target="_blank" class="rodante-link">rodante.es</a>
-        </footer>
-    </div>
-
-    <div class="footer-fixed">
-        <div>
-            <div style="font-size:0.7rem; color:#999; font-weight:bold;">TOTAL</div>
-            <div id="total-val" style="font-size:1.8rem; font-weight:900; color:var(--rojo);">0.00€</div>
-        </div>
-        <button onclick="enviarPedido()" style="background:var(--verde); color:white; border:none; padding:15px 30px; border-radius:10px; font-weight:bold; cursor:pointer;">ENVIAR COMANDA</button>
-    </div>
-</div>
-
-<!-- PANEL ADMINISTRACIÓN -->
-<div id="staff-panel" style="display:none;">
-    <div class="staff-nav">
-        <button class="tab-btn active" onclick="switchTab('pedidos')">🔔 Comandas</button>
-        <button class="tab-btn" onclick="switchTab('cocina')">🍳 Cocina</button>
-        <button class="tab-btn" onclick="switchTab('caja')">💰 Cierre</button>
-        <button class="tab-btn" onclick="switchTab('admin')">⚙️ Carta</button>
-        <button class="tab-btn" style="background:#444;" onclick="location.reload()">Salir</button>
-    </div>
-
-    <div class="container">
-        <div id="id-selector" style="background:white; padding:10px; border-radius:8px; margin-bottom:15px; border:2px solid var(--azul-staff);">
-            <select id="camarero-id" style="width:100%; padding:10px; font-weight:bold; font-size:1rem;">
-                <option value="">-- ¿Quién eres? Identifícate --</option>
-                <option value="1">Camarero 1</option>
-                <option value="2">Camarero 2</option>
-                <option value="3">Camarero 3</option>
-                <option value="4">Camarero 4</option>
-                <option value="5">Camarero 5</option>
-                <option value="6">Camarero 6</option>
-                <option value="7">Camarero 7</option>
+    <!-- Selector de Mesa (Bloqueado por defecto) -->
+    <div class="max-w-md mx-auto mt-4 px-4">
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+            <span class="font-bold text-slate-700">Mesa:</span>
+            <select id="numero-mesa" class="bg-slate-100 border-none rounded-lg p-2 font-bold text-red-600 focus:ring-2 focus:ring-red-500">
+                <option value="">Seleccionar...</option>
+                <option value="1">Mesa 1</option>
+                <option value="2">Mesa 2</option>
+                <option value="3">Mesa 3</option>
+                <option value="4">Mesa 4</option>
+                <option value="5">Mesa 5</option>
+                <option value="6">Mesa 6</option>
+                <option value="7">Mesa 7</option>
+                <option value="8">Mesa 8</option>
+                <option value="9">Mesa 9</option>
+                <option value="10">Mesa 10</option>
             </select>
         </div>
-
-        <div id="tab-pedidos" class="tab-content active"><div id="list-comandas"></div></div>
-        <div id="tab-cocina" class="tab-content"><div id="list-cocina"></div></div>
-        <div id="tab-caja" class="tab-content">
-            <h2 style="text-align:center;">Ventas por Camarero</h2>
-            <div id="reporte-caja"></div>
-            <div id="gran-total" style="background:var(--azul-oscuro); color:white; padding:20px; border-radius:10px; text-align:center; font-size:1.5rem; font-weight:bold; margin-top:15px;">0.00€</div>
-            <button onclick="limpiarTurno()" style="width:100%; margin-top:20px; padding:15px; background:var(--rojo); color:white; border:none; border-radius:10px; font-weight:bold;">CERRAR TURNO Y REINICIAR</button>
-        </div>
-        <div id="tab-admin" class="tab-content"><div id="editor-carta"></div><button onclick="saveCarta()" style="position:fixed; bottom:20px; right:20px; width:70px; height:70px; border-radius:50%; background:var(--verde); color:white; border:none; font-weight:bold; box-shadow:0 4px 10px rgba(0,0,0,0.3); z-index:2000;">GUARDAR</button></div>
     </div>
-</div>
 
-<script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyAxI0dtf4RdxNDYlmk_dVYhF5NyZOg8B2w",
-        databaseURL: "https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "bar-el-pelotazo-16c19"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-
-    let carta = [];
-    let carrito = [];
-    const categorias = ["Tapas/Ración/Menú", "Café/repostería/Postres", "Bebidas/Refrescos", "Tapas del día", "Otros"];
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const mesaURL = urlParams.get('mesa');
-    if(mesaURL) {
-        const inp = document.getElementById('mesa-input');
-        inp.value = mesaURL; inp.readOnly = true; inp.style.background = "#f0fff0";
-        document.getElementById('mesa-auto').style.display = "block";
-    }
-
-    db.ref('carta').on('value', s => { carta = s.val() || []; renderMenu(); renderEditor(); });
-    db.ref('pedidos').on('value', s => { renderAdmin(s.val() || {}); });
-
-    function renderMenu() {
-        const cont = document.getElementById('menu-container');
-        cont.innerHTML = "";
-        categorias.forEach(cat => {
-            const items = carta.filter(i => i.cat === cat);
-            if(items.length > 0) {
-                const div = document.createElement('div');
-                div.className = "cat-block";
-                div.innerHTML = `<div class="cat-header" onclick="this.parentElement.classList.toggle('cat-open')">${cat} <span>▼</span></div>
-                                 <div class="cat-content">${items.map(i => `<div class="item-row"><span>${i.nombre} (${i.price.toFixed(2)}€)</span><button class="btn-add" onclick="addCar('${i.nombre}',${i.price})">+</button></div>`).join('')}</div>`;
-                cont.appendChild(div);
-            }
-        });
-    }
-
-    function addCar(n, p) { carrito.push({nombre:n, precio:p}); calcTotal(); }
-    function calcTotal() { document.getElementById('total-val').innerText = carrito.reduce((a,b)=>a+b.precio,0).toFixed(2) + "€"; }
-
-    function enviarPedido() {
-        const m = document.getElementById('mesa-input').value;
-        if(!m || carrito.length === 0) return alert("Mesa o Carrito vacío");
-        db.ref('pedidos').push({
-            mesa: m, items: carrito, hora: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
-            estado: 'nuevo', cocinaListo: false
-        }).then(() => { alert("¡Comanda enviada!"); carrito = []; calcTotal(); });
-    }
-
-    function renderAdmin(pedidos) {
-        const listC = document.getElementById('list-comandas');
-        const listK = document.getElementById('list-cocina');
-        const repCaja = document.getElementById('reporte-caja');
-        let totalCaja = 0; let staffCaja = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0};
-
-        listC.innerHTML = ""; listK.innerHTML = "";
-        
-        Object.keys(pedidos).forEach(id => {
-            const p = pedidos[id];
-            const sum = p.items.reduce((a,b)=>a+b.precio,0);
-
-            if(p.estado === 'cobrado') {
-                if(p.camarero) staffCaja[p.camarero] += sum;
-                totalCaja += sum; return;
-            }
-
-            listC.innerHTML += `
-                <div class="pedido-card ${p.camarero ? (p.estado==='pendiente'?'pendiente':'atendido'):''}">
-                    ${p.cocinaListo ? '<div style="position:absolute; top:10px; right:10px; background:var(--verde); color:white; padding:4px 8px; border-radius:4px; font-weight:bold; font-size:0.7rem; animation: pulse 1s infinite;">PLATO LISTO 🍽️</div>':''}
-                    ${p.camarero ? `<span class="camarero-tag">Mesa atendida por: CAMARERO ${p.camarero}</span>` : ''}
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span class="mesa-badge">MESA ${p.mesa}</span>
-                        <span style="font-weight:bold; font-size:1.1rem;">${sum.toFixed(2)}€</span>
+    <!-- Menú de Productos -->
+    <main class="max-w-md mx-auto p-4 space-y-6">
+        <!-- Sección Bebidas -->
+        <section>
+            <h2 class="text-xl font-bold text-slate-800 mb-3 border-b-2 border-red-500 pb-1">Refrescos y Cervezas</h2>
+            <div class="space-y-3">
+                <div class="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center border border-slate-100">
+                    <div>
+                        <h3 class="font-bold">Caña de Cerveza</h3>
+                        <p class="text-slate-500 text-sm">1.50€</p>
                     </div>
-                    <div style="margin:10px 0; font-size:0.9rem; color:#444; line-height:1.4;">${p.items.map(i => `• ${i.nombre}`).join('<br>')}</div>
-                    <div style="display:flex; gap:5px; margin-top:10px;">
-                        ${!p.camarero ? 
-                            `<button class="btn-accion btn-atender" onclick="updP('${id}', {estado:'atendido', camarero:document.getElementById('camarero-id').value})">ATENDER</button>` :
-                            (p.estado==='atendido' ? 
-                                `<button class="btn-accion btn-cuenta" onclick="updP('${id}', {estado:'pendiente'})">CUENTA</button>` :
-                                `<button class="btn-accion btn-cobrar" onclick="updP('${id}', {estado:'cobrado'})">COBRADO</button>`)
-                        }
+                    <button onclick="agregarAlCarrito('Caña', 1.50)" class="bg-red-500 text-white w-10 h-10 rounded-full font-bold shadow-md active:bg-red-700">+</button>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center border border-slate-100">
+                    <div>
+                        <h3 class="font-bold">Refresco 33cl</h3>
+                        <p class="text-slate-500 text-sm">2.00€</p>
                     </div>
-                </div>`;
+                    <button onclick="agregarAlCarrito('Refresco', 2.00)" class="bg-red-500 text-white w-10 h-10 rounded-full font-bold shadow-md active:bg-red-700">+</button>
+                </div>
+            </div>
+        </section>
 
-            const cocinaItems = p.items.filter(i => {
-                const info = carta.find(c => c.nombre === i.nombre);
-                return info && info.esCocina === true;
-            });
+        <!-- Sección Raciones -->
+        <section>
+            <h2 class="text-xl font-bold text-slate-800 mb-3 border-b-2 border-red-500 pb-1">Raciones y Tapas</h2>
+            <div class="space-y-3">
+                <div class="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center border border-slate-100">
+                    <div>
+                        <h3 class="font-bold">Patatas Bravas</h3>
+                        <p class="text-slate-500 text-sm">5.00€</p>
+                    </div>
+                    <button onclick="agregarAlCarrito('Bravas', 5.00)" class="bg-red-500 text-white w-10 h-10 rounded-full font-bold shadow-md active:bg-red-700">+</button>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center border border-slate-100">
+                    <div>
+                        <h3 class="font-bold">Tortilla de Patatas</h3>
+                        <p class="text-slate-500 text-sm">3.50€</p>
+                    </div>
+                    <button onclick="agregarAlCarrito('Tortilla', 3.50)" class="bg-red-500 text-white w-10 h-10 rounded-full font-bold shadow-md active:bg-red-700">+</button>
+                </div>
+            </div>
+        </section>
+    </main>
 
-            if(cocinaItems.length > 0 && !p.cocinaListo) {
-                listK.innerHTML += `
-                    <div class="cocina-card">
-                        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.2); padding-bottom:10px;">
-                            <span style="font-size:1.6rem; font-weight:bold;">MESA ${p.mesa}</span>
-                            <span>${p.hora}</span>
-                        </div>
-                        <div style="padding:15px 0;">${cocinaItems.map(i => `<div class="cocina-item">${i.nombre}</div>`).join('')}</div>
-                        <button onclick="updP('${id}', {cocinaListo:true})" style="width:100%; padding:15px; background:var(--verde); border:none; border-radius:10px; color:white; font-weight:bold; cursor:pointer;">AVISAR CAMARERO ✅</button>
-                    </div>`;
+    <!-- Barra Inferior de Pedido -->
+    <footer class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+        <div class="max-w-md mx-auto flex items-center justify-between">
+            <div class="text-slate-800">
+                <p class="text-xs uppercase font-bold text-slate-400">Total a pagar</p>
+                <p class="text-2xl font-black text-red-600" id="total-display">0.00€</p>
+            </div>
+            <button id="enviar-pedido" onclick="confirmarPedido()" class="bg-red-600 text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-red-200 active:scale-95 transition-all">
+                PEDIR AHORA
+            </button>
+        </div>
+    </footer>
+
+    <script>
+        // --- CONFIGURACIÓN FIREBASE ---
+        const firebaseConfig = {
+            databaseURL: "https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app/"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // --- LÓGICA DE SEGURIDAD QR Y MESA ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const mesaDetectada = urlParams.get('mesa');
+        const selectorMesa = document.getElementById('numero-mesa');
+        const btnEnviar = document.getElementById('enviar-pedido');
+        const statusMesaText = document.getElementById('status-mesa');
+
+        let pedidoActual = [];
+        let total = 0;
+
+        // Al cargar, validamos si viene de un QR
+        window.onload = () => {
+            if (mesaDetectada && mesaDetectada > 0 && mesaDetectada <= 10) {
+                selectorMesa.value = mesaDetectada;
+                selectorMesa.disabled = true; // El cliente no puede cambiar la mesa
+                statusMesaText.innerText = "Pidiendo desde Mesa " + mesaDetectada;
+                statusMesaText.classList.add('text-green-300', 'font-bold');
+            } else {
+                // Bloqueo de seguridad si no hay mesa en URL
+                btnEnviar.disabled = true;
+                btnEnviar.classList.add('disabled-btn');
+                btnEnviar.innerText = "ESCANEA TU QR";
+                selectorMesa.disabled = true;
+                statusMesaText.innerText = "⚠️ DEBES ESCANEAR EL QR DE TU MESA";
+                statusMesaText.classList.add('text-yellow-300');
             }
-        });
+        };
 
-        repCaja.innerHTML = "";
-        for(let i=1; i<=7; i++) {
-            repCaja.innerHTML += `<div class="caja-row"><b>CAMARERO ${i}</b> <span style="font-weight:bold; color:var(--verde); font-size:1.1rem;">${staffCaja[i].toFixed(2)}€</span></div>`;
+        function agregarAlCarrito(nombre, precio) {
+            pedidoActual.push({ nombre, precio });
+            total += precio;
+            document.getElementById('total-display').innerText = total.toFixed(2) + "€";
         }
-        document.getElementById('gran-total').innerText = "TOTAL TURNO: " + totalCaja.toFixed(2) + "€";
-    }
 
-    function updP(id, data) {
-        if(data.estado === 'atendido' && !data.camarero) return alert("Debes identificarte primero seleccionando un camarero en el menú superior.");
-        db.ref('pedidos/' + id).update(data);
-    }
+        function confirmarPedido() {
+            if (pedidoActual.length === 0) {
+                alert("El carrito está vacío.");
+                return;
+            }
 
-    function renderEditor() {
-        const ed = document.getElementById('editor-carta');
-        ed.innerHTML = "";
-        categorias.forEach(cat => {
-            const items = carta.filter(i => i.cat === cat);
-            ed.innerHTML += `
-                <div style="background:white; margin-bottom:15px; border-radius:10px; padding:10px; border:1px solid #ddd;">
-                    <div style="display:flex; justify-content:space-between; border-bottom:2px solid #eee; padding-bottom:5px; margin-bottom:10px;"><b>${cat}</b> <button onclick="addP('${cat}')">Añadir</button></div>
-                    ${items.map(i => `
-                        <div style="display:flex; gap:5px; align-items:center; margin-bottom:5px;">
-                            <input type="text" value="${i.nombre}" style="flex:2" onchange="updC('${i.nombre}','nombre',this.value)">
-                            <input type="number" value="${i.price}" style="width:50px" onchange="updC('${i.nombre}','price',parseFloat(this.value))">
-                            <label style="font-size:0.6rem; font-weight:bold; color:var(--cocina);"><input type="checkbox" ${i.esCocina?'checked':''} onchange="updC('${i.nombre}','esCocina',this.checked)"> C</label>
-                        </div>`).join('')}
-                </div>`;
-        });
-    }
+            const confirmacion = confirm(`¿Enviar pedido a cocina por ${total.toFixed(2)}€?`);
+            
+            if (confirmacion) {
+                enviarPedidoAFirebase();
+            }
+        }
 
-    function addP(cat) { const n = prompt("Nombre del plato/bebida:"); if(n) { carta.push({nombre:n, price:1.5, cat:cat, esCocina:false}); renderEditor(); } }
-    function updC(oldN, f, v) { const it = carta.find(i => i.nombre === oldN); if(it) it[f] = v; }
-    function saveCarta() { db.ref('carta').set(carta).then(()=>alert("¡Carta actualizada con éxito!")); }
-    function limpiarTurno() { if(confirm("¿Estás seguro de cerrar el turno? Se borrarán los registros de cobro para empezar de cero.")) { db.ref('pedidos').once('value', s => { const d = s.val(); if(!d) return; Object.keys(d).forEach(k => { if(d[k].estado==='cobrado') db.ref('pedidos/'+k).remove(); }); }); } }
-
-    function accesoStaff() { if(prompt("CÓDIGO DE ACCESO:")==="887233"){ document.getElementById('view-client').style.display='none'; document.getElementById('staff-panel').style.display='block'; } }
-    
-    function switchTab(t) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        event.currentTarget.classList.add('active');
-        document.getElementById('tab-'+t).classList.add('active');
-    }
-</script>
+        function enviarPedidoAFirebase() {
+            const nuevoPedidoRef = database.ref('pedidos').push();
+            nuevoPedidoRef.set({
+                mesa: mesaDetectada,
+                productos: pedidoActual,
+                total: total,
+                estado: "pendiente",
+                hora: new Date().toLocaleTimeString()
+            })
+            .then(() => {
+                alert("¡Pedido enviado! En breve te lo serviremos.");
+                pedidoActual = [];
+                total = 0;
+                document.getElementById('total-display').innerText = "0.00€";
+            })
+            .catch((error) => {
+                alert("Error al enviar el pedido. Por favor, avisa al camarero.");
+                console.error(error);
+            });
+        }
+    </script>
 </body>
 </html>
