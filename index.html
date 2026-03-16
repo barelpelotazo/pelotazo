@@ -17,7 +17,7 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f4f7f6;
             margin: 0;
-            padding-bottom: 200px; 
+            padding-bottom: 220px; 
         }
         header {
             background-color: var(--azul-bar);
@@ -33,7 +33,7 @@
         }
         h1 { margin: 0; font-size: 1.8rem; letter-spacing: 2px; font-weight: 800; text-transform: uppercase; }
 
-        /* Estilo unificado para bloques */
+        /* Estilo unificado para bloques tipo pestaña */
         .bloque-estilo {
             background: white; 
             margin: 10px; 
@@ -41,14 +41,46 @@
             border-radius: 8px;
             border-left: 6px solid var(--azul-bar);
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .categoria-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 800;
+            color: var(--azul-bar);
+            text-transform: uppercase;
+            font-size: 0.9rem;
+        }
+
+        .flecha {
+            transition: transform 0.3s ease;
+            font-size: 1.2rem;
+        }
+
+        .productos-container {
+            display: none; /* Oculto por defecto */
+            margin-top: 10px;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+        }
+
+        .productos-container.open {
+            display: block;
+        }
+
+        .rotar {
+            transform: rotate(180deg);
         }
 
         .item-producto {
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
-            padding: 10px 0;
-            border-bottom: 1px solid #f0f0f0;
+            padding: 12px 0;
+            border-bottom: 1px solid #f9f9f9;
         }
         .item-producto:last-child { border-bottom: none; }
 
@@ -75,20 +107,6 @@
         .diseno-rodante { margin-top: 25px; font-size: 0.7rem; color: #bbb; text-transform: uppercase; letter-spacing: 1px; }
         .diseno-rodante a { color: #999; text-decoration: none; font-weight: bold; }
 
-        /* Estilo para el selector de categorías */
-        .selector-categorias {
-            margin: 0 10px 10px 10px;
-        }
-        select#filtro-cat {
-            width: 100%;
-            padding: 12px;
-            border-radius: 8px;
-            border: 2px solid var(--azul-bar);
-            font-weight: bold;
-            color: var(--azul-bar);
-            background: white;
-        }
-
         /* Panel Staff */
         #panel-staff { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f0f4f8; z-index: 2000; overflow-y: auto; padding: 15px; box-sizing: border-box; }
         .staff-header { display: flex; gap: 5px; margin-bottom: 20px; flex-wrap: wrap; }
@@ -107,18 +125,11 @@
         </header>
 
         <!-- Bloque de Mesa -->
-        <div id="info-mesa" class="bloque-estilo text-center font-bold" style="font-size: 0.9rem;">
+        <div id="info-mesa" class="bloque-estilo text-center font-bold" style="font-size: 0.85rem; cursor: default;">
             CARGANDO MESA...
         </div>
 
-        <!-- Selector de Categorías (Desplegable) -->
-        <div class="selector-categorias">
-            <select id="filtro-cat" onchange="irACategoria(this.value)">
-                <option value="">-- IR A CATEGORÍA --</option>
-            </select>
-        </div>
-
-        <!-- Contenedor de la carta -->
+        <!-- Contenedor de la carta con bloques expandibles -->
         <div id="contenedor-carta"></div>
 
         <footer>
@@ -191,7 +202,7 @@
                 info.innerHTML = `MESA Nº: <span class="text-blue-900 text-xl">${mesaDetectada}</span>`;
                 btn.classList.remove('btn-off');
             } else {
-                info.innerHTML = `<span class="text-red-600">⚠️ ESCANEA EL QR DE TU MESA PARA REALIZAR EL PEDIDO</span>`;
+                info.innerHTML = `<span class="text-red-600 uppercase">⚠️ Escanea el QR de tu mesa para realizar el pedido</span>`;
                 btn.classList.add('btn-off');
             }
         }
@@ -201,54 +212,67 @@
             cartaLocal = data ? Object.values(data) : [];
             const div = document.getElementById('contenedor-carta');
             const editor = document.getElementById('editor-lista');
-            const filtro = document.getElementById('filtro-cat');
             
             div.innerHTML = ""; editor.innerHTML = "";
-            filtro.innerHTML = '<option value="">-- IR A CATEGORÍA --</option>';
 
+            // Obtener categorías únicas
             const categorias = [...new Set(cartaLocal.map(p => p.cat || "PRODUCTOS"))];
 
-            categorias.forEach(cat => {
-                // Añadir al desplegable
-                let opt = document.createElement('option');
-                opt.value = "cat-" + cat.replace(/\s/g, '');
-                opt.innerText = cat;
-                filtro.appendChild(opt);
-
-                // Crear bloque visual
+            categorias.forEach((cat, catIdx) => {
+                const catID = "cat-" + catIdx;
+                
+                // Bloque Pestaña Categoría
                 let catBlock = document.createElement('div');
                 catBlock.className = "bloque-estilo";
-                catBlock.id = "cat-" + cat.replace(/\s/g, '');
-                catBlock.innerHTML = `<h3 class="font-bold text-blue-900 border-b mb-2 uppercase text-sm">${cat}</h3>`;
+                catBlock.onclick = () => toggleCat(catID);
                 
+                catBlock.innerHTML = `
+                    <div class="categoria-header">
+                        <span>${cat}</span>
+                        <span class="flecha" id="flecha-${catID}">▼</span>
+                    </div>
+                    <div class="productos-container" id="container-${catID}">
+                        <!-- Aquí se inyectan los productos -->
+                    </div>
+                `;
+                
+                const container = catBlock.querySelector(`#container-${catID}`);
                 const productosCat = cartaLocal.filter(p => (p.cat || "PRODUCTOS") === cat);
                 
                 productosCat.forEach((p) => {
-                    catBlock.innerHTML += `
-                        <div class="item-producto">
-                            <span style="font-weight:600; color: #001f3f;">${p.nombre}</span>
+                    container.innerHTML += `
+                        <div class="item-producto" onclick="event.stopPropagation()">
+                            <span style="font-weight:600; color: #333;">${p.nombre}</span>
                             <div>
                                 <span class="precio">${p.precio.toFixed(2)}€</span>
                                 <button class="btn-add" onclick="agregar('${p.nombre}', ${p.precio})">+</button>
                             </div>
                         </div>`;
                 });
+                
                 div.appendChild(catBlock);
             });
 
+            // Llenar editor de admin
             cartaLocal.forEach((p, index) => {
                 editor.innerHTML += `
                     <div class="flex gap-2 mb-2 bg-white p-2 rounded shadow-sm">
-                        <input type="text" value="${p.nombre}" class="flex-1 p-1 border rounded" onchange="actualizarDatoCarta(${index}, 'nombre', this.value)">
-                        <input type="number" step="0.05" value="${p.precio}" class="w-20 p-1 border rounded" onchange="actualizarDatoCarta(${index}, 'precio', this.value)">
+                        <input type="text" value="${p.nombre}" class="flex-1 p-1 border rounded text-xs" onchange="actualizarDatoCarta(${index}, 'nombre', this.value)">
+                        <input type="number" step="0.05" value="${p.precio}" class="w-20 p-1 border rounded text-xs" onchange="actualizarDatoCarta(${index}, 'precio', this.value)">
                     </div>`;
             });
         });
 
-        function irACategoria(id) {
-            if(!id) return;
-            const el = document.getElementById(id);
-            if(el) el.scrollIntoView({ behavior: 'smooth' });
+        // Función para abrir/cerrar categorías
+        function toggleCat(id) {
+            const container = document.getElementById('container-' + id);
+            const flecha = document.getElementById('flecha-' + id);
+            
+            // Cerrar otros si se desea (opcional)
+            // document.querySelectorAll('.productos-container').forEach(c => c.classList.remove('open'));
+
+            container.classList.toggle('open');
+            flecha.classList.toggle('rotar');
         }
 
         function agregar(nombre, precio) {
@@ -269,7 +293,7 @@
 
             db.ref('pedidos').push({
                 mesa: mesaDetectada,
-                camarero: "QR-Auto",
+                camarero: "Auto-Servicio",
                 items: carrito,
                 total: total,
                 hora: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
@@ -321,7 +345,7 @@
                             <span class="text-xl font-black">MESA ${p.mesa}</span>
                             <span class="text-gray-500 text-sm">${p.hora}</span>
                         </div>
-                        <div class="text-sm space-y-1">
+                        <div class="text-xs space-y-1">
                             ${p.items.map(i => `<div>• ${i.nombre} <span class="float-right font-bold">${i.precio.toFixed(2)}€</span></div>`).join('')}
                         </div>
                         <div class="mt-3 pt-2 border-t flex justify-between font-bold">
