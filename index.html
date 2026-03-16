@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bar El Pelotazo - Carta Digital</title>
+    <title>Bar El Pelotazo - Vista Previa</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Roboto+Condensed:wght@400;700&display=swap');
         
@@ -21,7 +19,7 @@
             background-color: #f1f5f9;
         }
 
-        .font-pizarra { font-family: 'Permanent+Marker', cursive; }
+        .font-pizarra { font-family: 'Permanent Marker', cursive; }
         
         .header-pizarra {
             background-color: var(--pizarra);
@@ -29,7 +27,6 @@
             position: relative;
         }
 
-        /* Estilo del logotipo original */
         .logo-container {
             padding: 40px 20px;
         }
@@ -93,15 +90,15 @@
             <span class="font-pizarra logo-pelotazo">PELOTAZO</span>
             
             <div id="status-mesa" class="mt-6 inline-block px-4 py-1 rounded border border-dashed border-white/30 text-[10px] uppercase tracking-[0.2em] text-white/80">
-                Escanea el QR de tu mesa
+                Selecciona una mesa para probar
             </div>
         </div>
     </header>
 
-    <!-- Indicador de Mesa -->
+    <!-- Selector de Mesa (Habilitado para la vista previa) -->
     <div class="max-w-md mx-auto -mt-5 px-4">
         <div class="bg-white p-3 rounded shadow-xl flex items-center justify-between border-l-4 border-red-600">
-            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Ubicación</span>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Simulador Mesa</span>
             <select id="numero-mesa" class="font-black text-xl text-red-600 border-none bg-transparent focus:ring-0">
                 <option value="">---</option>
                 <option value="1">MESA 1</option>
@@ -118,10 +115,8 @@
         </div>
     </div>
 
-    <!-- Carta -->
+    <!-- Menú -->
     <main class="max-w-md mx-auto p-4 mt-6 space-y-10">
-        
-        <!-- Sección 1 -->
         <section>
             <div class="categoria-titulo font-pizarra text-xl">PARA REFRESCAR</div>
             <div class="bg-white rounded-lg shadow-sm">
@@ -148,7 +143,6 @@
             </div>
         </section>
 
-        <!-- Sección 2 -->
         <section>
             <div class="categoria-titulo font-pizarra text-xl">RACIONES EL PELOTAZO</div>
             <div class="bg-white rounded-lg shadow-sm">
@@ -174,7 +168,6 @@
                 </div>
             </div>
         </section>
-
     </main>
 
     <!-- Barra de Pedido Inferior -->
@@ -191,41 +184,42 @@
     </footer>
 
     <script>
-        // Configuración Firebase (Usando tu proyecto)
-        const firebaseConfig = {
-            databaseURL: "https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app/"
+        // Simulador para que funcione en el Preview sin errores de Firebase
+        const firebaseSimulado = {
+            enviar: (data) => console.log("Simulación de envío:", data)
         };
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
 
-        // Variables de Estado
         let carrito = [];
         let total = 0;
+        let mesaSeleccionada = "";
 
-        // Lógica de Mesa Segura
-        const urlParams = new URLSearchParams(window.location.search);
-        const mesaParam = urlParams.get('mesa');
         const selectMesa = document.getElementById('numero-mesa');
         const botonEnviar = document.getElementById('enviar-pedido');
         const textoStatus = document.getElementById('status-mesa');
 
-        window.onload = () => {
-            if (mesaParam && mesaParam > 0 && mesaParam <= 10) {
-                // Modo Cliente en Mesa
-                selectMesa.value = mesaParam;
-                selectMesa.disabled = true;
-                textoStatus.innerText = "● CONECTADO - MESA " + mesaParam;
+        // Función para manejar el estado del botón según la mesa
+        function checkSeguridad() {
+            if (mesaSeleccionada) {
+                botonEnviar.disabled = false;
+                botonEnviar.classList.remove('disabled-btn');
+                botonEnviar.innerText = "Enviar a Cocina";
+                textoStatus.innerText = "● CONECTADO - MESA " + mesaSeleccionada;
                 textoStatus.style.color = "#4ade80";
             } else {
-                // Modo Lectura (Sin poder pedir)
                 botonEnviar.disabled = true;
                 botonEnviar.classList.add('disabled-btn');
-                botonEnviar.innerText = "ESCANEA QR MESA";
-                selectMesa.disabled = true;
-                textoStatus.innerText = "⚠️ SOLO LECTURA - ESCANEA QR";
+                botonEnviar.innerText = "ELIGE MESA";
+                textoStatus.innerText = "SELECCIONA MESA PARA PEDIR";
                 textoStatus.style.color = "#f87171";
             }
-        };
+        }
+
+        window.onload = checkSeguridad;
+
+        selectMesa.addEventListener('change', (e) => {
+            mesaSeleccionada = e.target.value;
+            checkSeguridad();
+        });
 
         function agregarAlCarrito(nombre, precio) {
             carrito.push({ nombre, precio });
@@ -234,30 +228,15 @@
         }
 
         function confirmarPedido() {
-            if (carrito.length === 0) return alert("¡Añade algo a la comanda!");
+            if (!mesaSeleccionada) return alert("Selecciona una mesa.");
+            if (carrito.length === 0) return alert("El carrito está vacío.");
             
-            const txt = `¿Confirmas el envío de la comanda de la Mesa ${mesaParam}?\nTotal: ${total.toFixed(2)}€`;
-            if (confirm(txt)) {
-                enviarPedido();
-            }
-        }
-
-        function enviarPedido() {
-            const ref = database.ref('pedidos').push();
-            ref.set({
-                mesa: mesaParam,
-                productos: carrito,
-                total: total,
-                estado: "pendiente",
-                hora: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-            })
-            .then(() => {
-                alert("¡Comanda enviada con éxito! Marchando...");
+            if (confirm(`¿Enviar comanda de Mesa ${mesaSeleccionada}? Total: ${total.toFixed(2)}€`)) {
+                alert("¡Pedido simulado correctamente!");
                 carrito = [];
                 total = 0;
                 document.getElementById('total-display').innerText = "0.00€";
-            })
-            .catch(() => alert("Error al conectar con cocina."));
+            }
         }
     </script>
 </body>
