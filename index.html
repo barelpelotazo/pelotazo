@@ -28,27 +28,6 @@
         .logo-header { max-width: 80px; margin: 0 auto 5px; display: block; }
         h1 { margin: 0; font-size: 1.5rem; letter-spacing: 1px; font-weight: 800; text-transform: uppercase; }
 
-        /* Aviso QR */
-        #aviso-qr {
-            background-color: #fff3cd;
-            color: #ff0000;
-            padding: 12px;
-            text-align: center;
-            font-weight: 900;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            border-bottom: 2px solid #ffeeba;
-        }
-        .triangulo-amarillo {
-            width: 0; height: 0; 
-            border-left: 10px solid transparent;
-            border-right: 10px solid transparent;
-            border-bottom: 18px solid #ffcc00;
-        }
-
         /* Estilo Cliente */
         .cat-btn {
             width: 100%; text-align: left; padding: 15px; background: white;
@@ -75,9 +54,6 @@
             width: 100%; background-color: #27ae60; color: white; border: none;
             padding: 16px; border-radius: 12px; font-weight: bold; text-transform: uppercase; font-size: 1.2rem;
         }
-        .footer-design { text-align: center; margin-top: 10px; font-size: 0.65rem; color: #888; border-top: 1px solid #eee; padding-top: 8px; }
-        .footer-design a { color: var(--azul-bar); font-weight: bold; text-decoration: none; border-bottom: 1px solid #ccc; }
-        .admin-link { cursor: pointer; color: #bbb; text-decoration: underline; display: block; font-size: 0.6rem; margin-top: 5px; }
 
         /* Panel STAFF */
         #panel-staff { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #edf2f7; z-index: 2000; overflow-y: auto; }
@@ -98,17 +74,11 @@
 
     <div id="vista-cliente">
         <header>
-            <img src="logo%20pelotazo%20png.png" alt="Logo" class="logo-header" onerror="this.style.display='none'">
             <h1>Bar El Pelotazo</h1>
         </header>
 
-        <div id="aviso-qr">
-            <div class="triangulo-amarillo"></div>
-            ESCANEA EL QR DE TU MESA PARA REALIZAR EL PEDIDO
-        </div>
-
         <div id="info-mesa" class="p-3 bg-white m-3 rounded shadow text-center border-b-4 border-blue-900">
-            <p class="text-gray-400 text-[10px] font-bold uppercase">Mesa Seleccionada</p>
+            <p class="text-gray-400 text-[10px] font-bold uppercase">Mesa</p>
             <p id="num-mesa-display" class="text-blue-900 text-4xl font-black">SIN MESA</p>
         </div>
 
@@ -117,10 +87,7 @@
         <footer>
             <div id="total-cuenta">0.00€</div>
             <button id="btn-pedido" onclick="enviarPedido()">ENVIAR A COMANDA</button>
-            <div class="footer-design">
-                Creación y diseño de <a href="https://rodante.es" target="_blank">rodante.es</a>
-                <span class="admin-link" onclick="abrirAdmin()">ENTRAR AL PANEL DE CONTROL</span>
-            </div>
+            <div class="text-center mt-2 text-[10px] text-gray-400" onclick="abrirAdmin()">PANEL DE CONTROL</div>
         </footer>
     </div>
 
@@ -131,41 +98,42 @@
             <button id="btn-sec-cocina" onclick="verSeccion('cocina')">Cocina</button>
             <button id="btn-sec-editar" onclick="verSeccion('editar')">La Carta</button>
             <button id="btn-sec-camareros" onclick="verSeccion('camareros')">Camareros</button>
-            <button id="btn-sec-caja" onclick="verSeccion('caja')">Caja/Total</button>
-            <button class="bg-red-600 text-white" onclick="cerrarAdmin()">Cerrar</button>
+            <button id="btn-sec-caja" onclick="verSeccion('caja')">Caja</button>
+            <button class="bg-red-600 text-white" onclick="cerrarAdmin()">X</button>
         </div>
 
+        <!-- SECCION COMANDAS -->
         <div id="sec-pedidos" class="p-4 admin-sec">
-            <h2 class="font-black text-blue-900 mb-4 border-b border-blue-200 uppercase">Comandas Activas</h2>
+            <h2 class="font-black text-blue-900 mb-4 border-b border-blue-200 uppercase">Comandas Barra</h2>
             <div id="lista-pedidos-admin" class="space-y-4"></div>
         </div>
 
+        <!-- SECCION COCINA -->
         <div id="sec-cocina" class="p-4 admin-sec" style="display:none">
             <h2 class="font-black text-orange-600 mb-4 border-b border-orange-200 uppercase">Monitor Cocina</h2>
             <div id="lista-cocina" class="space-y-4"></div>
         </div>
 
+        <!-- SECCION EDITAR CARTA -->
         <div id="sec-editar" class="p-4 admin-sec" style="display:none">
-            <h2 class="font-black text-gray-700 mb-4 border-b border-gray-300 uppercase">Administrar Carta</h2>
+            <h2 class="font-black text-gray-700 mb-4 border-b border-gray-300 uppercase">Editor Carta</h2>
             <div id="editor-productos"></div>
-            <div class="sticky bottom-4 mt-6">
-                <button class="w-full bg-blue-900 text-white p-5 rounded-xl font-black shadow-2xl border-2 border-white" onclick="guardarCarta()">💾 PUBLICAR CARTA ACTUALIZADA</button>
-            </div>
+            <button class="w-full bg-blue-900 text-white p-5 rounded-xl font-black mt-4" onclick="guardarCarta()">💾 GUARDAR CAMBIOS CARTA</button>
         </div>
 
+        <!-- SECCION CAMAREROS -->
         <div id="sec-camareros" class="p-4 admin-sec" style="display:none">
-            <h2 class="font-black text-purple-700 mb-4 border-b border-purple-200 uppercase text-center">Gestión de Camareros</h2>
-            <div id="lista-camareros-personal" class="grid grid-cols-1 gap-3">
-                <!-- Se genera por JS para que todos sean editables -->
-            </div>
+            <h2 class="font-black text-purple-700 mb-4 border-b border-purple-200 uppercase">Personal</h2>
+            <div id="lista-camareros-ui" class="space-y-3"></div>
         </div>
 
+        <!-- SECCION CAJA -->
         <div id="sec-caja" class="p-4 admin-sec text-center" style="display:none">
-            <h2 class="font-black text-green-700 mb-4 border-b border-green-200 uppercase">Resumen Económico</h2>
-            <div class="bg-green-600 text-white p-10 rounded-3xl shadow-2xl inline-block w-full">
-                <p class="text-sm font-bold uppercase opacity-80">Total Cobrado Hoy</p>
-                <div id="total-cobrado-acumulado" class="text-6xl font-black mt-2">0.00€</div>
+            <h2 class="font-black text-green-700 mb-4 border-b border-green-200 uppercase">Caja Hoy</h2>
+            <div class="bg-green-600 text-white p-8 rounded-2xl shadow-xl">
+                <div id="total-cobrado-acumulado" class="text-5xl font-black">0.00€</div>
             </div>
+            <button class="mt-6 text-red-500 font-bold text-xs" onclick="resetearCaja()">BORRAR CAJA (FIN DE DÍA)</button>
         </div>
     </div>
 
@@ -178,15 +146,11 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        const ADMIN_KEY = "V887233R"; 
         let carrito = [];
         let mesa = null;
         let carta = [];
-        const ADMIN_KEY = "V887233R"; 
-
-        const categoriasDefinidas = ["Tapas/Ración/Menú", "Café/repostería/Postres", "Bebidas/Refrescos", "Tapas del día", "Otros"];
-        
-        // Estado de camareros
-        let camareros = [
+        let listaCamareros = [
             {id: 1, nombre: "ANTONIO", activo: true},
             {id: 2, nombre: "MARIA", activo: true},
             {id: 3, nombre: "PEPE", activo: true},
@@ -199,10 +163,7 @@
         function init() {
             const params = new URLSearchParams(window.location.search);
             mesa = params.get('mesa');
-            if(mesa) {
-                document.getElementById('num-mesa-display').innerText = mesa;
-                document.getElementById('aviso-qr').style.display = 'none';
-            }
+            if(mesa) document.getElementById('num-mesa-display').innerText = mesa;
             
             if(localStorage.getItem('isStaff') === 'true') {
                 document.getElementById('panel-staff').style.display = 'block';
@@ -210,34 +171,51 @@
             }
 
             cargarDatos();
-            renderCamareros();
         }
 
         function cargarDatos() {
-            db.ref('carta').on('value', snap => { carta = snap.val() || []; renderCarta(); renderEditor(); });
-            db.ref('pedidos').on('value', snap => { renderAdminData(snap.val()); });
-            db.ref('caja_total').on('value', snap => { document.getElementById('total-cobrado-acumulado').innerText = (snap.val() || 0).toFixed(2) + "€"; });
+            // Cargar Carta
+            db.ref('carta').on('value', snap => { 
+                carta = snap.val() || []; 
+                renderCarta(); 
+                renderEditor(); 
+            });
+            // Cargar Pedidos
+            db.ref('pedidos').on('value', snap => { 
+                renderAdminData(snap.val()); 
+            });
+            // Cargar Caja
+            db.ref('caja_total').on('value', snap => { 
+                document.getElementById('total-cobrado-acumulado').innerText = (snap.val() || 0).toFixed(2) + "€"; 
+            });
+            // Cargar Estado Camareros
+            db.ref('camareros_estado').on('value', snap => {
+                if(snap.val()) listaCamareros = snap.val();
+                renderCamarerosUI();
+            });
         }
 
         function renderCarta() {
             const container = document.getElementById('carta-categorias');
             container.innerHTML = "";
-            categoriasDefinidas.forEach((cat, index) => {
+            const cats = ["Tapas/Ración/Menú", "Café/repostería/Postres", "Bebidas/Refrescos", "Tapas del día", "Otros"];
+            
+            cats.forEach((cat, index) => {
                 const items = carta.filter(p => p.categoria === cat && p.activo !== false);
                 if (items.length === 0) return;
                 const catId = `cat-${index}`;
                 container.innerHTML += `
                     <div class="mb-2">
                         <button class="cat-btn" onclick="toggleCat('${catId}')">${cat.toUpperCase()} <span>▼</span></button>
-                        <div id="${catId}" class="cat-content px-1">
+                        <div id="${catId}" class="cat-content">
                             ${items.map(p => `
                                 <div class="item-row">
                                     <div class="flex flex-col">
-                                        <span class="font-bold text-gray-800">${p.nombre}</span>
-                                        ${p.esCocina ? '<span class="text-[8px] text-orange-600 font-bold uppercase">Plato Cocina</span>' : ''}
+                                        <span class="font-bold">${p.nombre}</span>
+                                        ${p.esCocina ? '<span class="text-[8px] text-orange-600 font-bold">COCINA</span>' : ''}
                                     </div>
                                     <div class="flex items-center">
-                                        <span class="precio">${p.precio.toFixed(2)}€</span>
+                                        <span class="precio mr-2">${p.precio.toFixed(2)}€</span>
                                         <button class="btn-add" onclick="agregarAlCarrito('${p.nombre}', ${p.precio}, ${p.esCocina || false})">+</button>
                                     </div>
                                 </div>
@@ -255,41 +233,31 @@
         }
 
         function enviarPedido() {
-            if(!mesa) return alert("Escanea el QR de la mesa");
-            if(carrito.length === 0) return alert("Añade algún producto primero");
+            if(!mesa) return alert("Error: Mesa no detectada.");
+            if(carrito.length === 0) return alert("Añade algo primero.");
             
             const total = carrito.reduce((s, i) => s + i.precio, 0);
-            
-            // CORRECCIÓN: Ahora incluimos la llave también en el envío del cliente
             db.ref('pedidos').push({ 
-                mesa, 
-                items: carrito, 
-                total, 
+                mesa, items: carrito, total, 
                 hora: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
-                admin_auth: ADMIN_KEY 
+                admin_auth: ADMIN_KEY // Autorizamos el envío del cliente
             }).then(() => {
-                alert("✅ Comanda enviada correctamente.");
+                alert("✅ Enviado a Barra.");
                 carrito = []; 
                 document.getElementById('total-cuenta').innerText = "0.00€";
-            }).catch(e => {
-                alert("Error de conexión. Inténtalo de nuevo.");
             });
         }
 
+        // PANEL ADMIN
         function abrirAdmin() {
-            if(localStorage.getItem('isStaff') === 'true' || prompt("Clave de Staff:") === ADMIN_KEY) {
+            if(localStorage.getItem('isStaff') === 'true' || prompt("Clave:") === ADMIN_KEY) {
                 localStorage.setItem('isStaff', 'true');
                 document.getElementById('panel-staff').style.display = 'block';
                 verSeccion('pedidos');
-            } else {
-                alert("Clave incorrecta");
             }
         }
 
-        function cerrarAdmin() { 
-            localStorage.removeItem('isStaff');
-            document.getElementById('panel-staff').style.display = 'none'; 
-        }
+        function cerrarAdmin() { document.getElementById('panel-staff').style.display = 'none'; }
 
         function verSeccion(id) {
             document.querySelectorAll('.admin-sec').forEach(s => s.style.display = 'none');
@@ -303,101 +271,84 @@
             const listC = document.getElementById('lista-cocina');
             listP.innerHTML = ""; listC.innerHTML = "";
             
-            if(!data) {
-                listP.innerHTML = "<p class='text-center text-gray-400 py-10 italic'>No hay comandas activas</p>";
-                listC.innerHTML = "<p class='text-center text-gray-400 py-10 italic'>Nada pendiente en cocina</p>";
-                return;
-            }
+            if(!data) return;
 
             Object.keys(data).forEach(id => {
                 const p = data[id];
                 const itemsCocina = p.items.filter(i => i.esCocina);
                 
-                const htmlCard = `
-                    <div class="bg-white p-4 rounded-xl shadow-md border-l-8 border-blue-900">
-                        <div class="flex justify-between font-black mb-2">
-                            <span class="text-xl">MESA ${p.mesa}</span>
-                            <span class="text-gray-400 text-xs">${p.hora}</span>
-                        </div>
-                        <div class="space-y-1 mb-3">
-                            ${p.items.map(i => `<div class="flex justify-between border-b pb-1 text-sm font-semibold"><span>${i.nombre}</span> ${i.esCocina ? '<span class="text-orange-500">🔥</span>' : ''}</div>`).join('')}
-                        </div>
-                        <div class="flex justify-between items-center mt-4">
-                            <span class="text-2xl font-black text-blue-900">${p.total.toFixed(2)}€</span>
-                            <button class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold shadow active:bg-green-700" onclick="cobrarPedido('${id}', ${p.total})">COBRAR</button>
+                const card = `
+                    <div class="bg-white p-4 rounded-xl shadow border-l-8 ${itemsCocina.length > 0 ? 'border-orange-500' : 'border-blue-900'}">
+                        <div class="flex justify-between font-black"><span>MESA ${p.mesa}</span> <span class="text-xs text-gray-400">${p.hora}</span></div>
+                        <div class="text-sm my-2">${p.items.map(i => `<div>- ${i.nombre}</div>`).join('')}</div>
+                        <div class="flex justify-between items-center mt-3">
+                            <span class="font-black text-blue-900">${p.total.toFixed(2)}€</span>
+                            <button class="bg-green-600 text-white px-4 py-2 rounded font-bold" onclick="gestionarPedido('${id}', ${p.total}, 'barra')">COBRAR/LISTO</button>
                         </div>
                     </div>`;
                 
-                listP.innerHTML += htmlCard;
-                if(itemsCocina.length > 0) listC.innerHTML += htmlCard.replace('COBRAR', 'LISTO').replace('border-blue-900', 'border-orange-500');
+                listP.innerHTML += card;
+                if(itemsCocina.length > 0) listC.innerHTML += card.replace('COBRAR/LISTO', 'TERMINADO');
             });
         }
 
-        function cobrarPedido(id, monto) {
-            if(confirm("¿Cerrar mesa y sumar a caja?")) {
-                db.ref().update({
-                    ['pedidos/' + id]: null,
-                    ['caja_total']: firebase.database.ServerValue.increment(monto),
-                    admin_auth: ADMIN_KEY
-                });
+        // CORRECCIÓN CLAVE: Aquí es donde fallaba antes por falta de admin_auth
+        function gestionarPedido(id, monto, desde) {
+            const updates = {};
+            updates['/pedidos/' + id] = null; // Borrar pedido
+            if(desde === 'barra') {
+                updates['/caja_total'] = firebase.database.ServerValue.increment(monto); // Sumar a caja
+            }
+            updates['/admin_auth'] = ADMIN_KEY; // ¡LA LLAVE MAESTRA!
+
+            db.ref().update(updates).then(() => {
+                console.log("Pedido gestionado con éxito");
+            }).catch(e => alert("Error de permisos en Firebase"));
+        }
+
+        function resetearCaja() {
+            if(confirm("¿Seguro que quieres poner la caja a 0?")) {
+                db.ref().update({ caja_total: 0, admin_auth: ADMIN_KEY });
             }
         }
 
-        function renderCamareros() {
-            const div = document.getElementById('lista-camareros-personal');
-            div.innerHTML = camareros.map((c, idx) => `
-                <div class="p-4 bg-white rounded-xl shadow flex justify-between items-center border-l-4 ${c.activo ? 'border-green-500' : 'border-gray-300'}">
-                    <div>
-                        <p class="font-black text-blue-900">CAMARERO ${c.id}</p>
-                        <p class="text-sm text-gray-500">${c.nombre}</p>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="text-[10px] font-bold ${c.activo ? 'text-green-600' : 'text-gray-400'} uppercase">${c.activo ? 'Activo' : 'Libre'}</span>
-                        <label class="switch">
-                            <input type="checkbox" ${c.activo ? 'checked' : ''} onchange="toggleCamarero(${idx})">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
+        function renderCamarerosUI() {
+            const div = document.getElementById('lista-camareros-ui');
+            div.innerHTML = listaCamareros.map((c, idx) => `
+                <div class="bg-white p-4 rounded shadow flex justify-between items-center border-l-4 ${c.activo ? 'border-green-500' : 'border-gray-200'}">
+                    <span class="font-bold">${c.nombre}</span>
+                    <label class="switch">
+                        <input type="checkbox" ${c.activo ? 'checked' : ''} onchange="toggleCamareroFirebase(${idx})">
+                        <span class="slider"></span>
+                    </label>
                 </div>
             `).join('');
         }
 
-        function toggleCamarero(idx) {
-            camareros[idx].activo = !camareros[idx].activo;
-            renderCamareros();
+        function toggleCamareroFirebase(idx) {
+            listaCamareros[idx].activo = !listaCamareros[idx].activo;
+            db.ref().update({
+                camareros_estado: listaCamareros,
+                admin_auth: ADMIN_KEY
+            });
         }
 
         function renderEditor() {
             const div = document.getElementById('editor-productos');
-            div.innerHTML = "";
-            categoriasDefinidas.forEach(cat => {
-                const items = carta.filter(p => p.categoria === cat);
-                div.innerHTML += `
-                    <div class="mb-4 bg-white p-3 rounded border">
-                        <div class="flex justify-between mb-2"><b>${cat}</b> <button class="bg-blue-100 text-blue-900 px-2 py-1 rounded text-[10px] font-bold" onclick="nuevoItem('${cat}')">+ AÑADIR</button></div>
-                        ${items.map(p => {
-                            const i = carta.indexOf(p);
-                            return `
-                            <div class="flex flex-col gap-1 p-2 border-b text-xs">
-                                <input type="text" value="${p.nombre}" class="border p-1 rounded font-bold" onchange="updItem(${i}, 'nombre', this.value)">
-                                <div class="flex gap-2 items-center">
-                                    <input type="number" step="0.1" value="${p.precio}" class="w-16 border p-1 rounded text-center" onchange="updItem(${i}, 'precio', this.value)">€
-                                    <label class="ml-auto text-[8px] flex flex-col items-center">COCINA <input type="checkbox" ${p.esCocina ? 'checked' : ''} onchange="updItem(${i}, 'esCocina', this.checked)"></label>
-                                    <label class="switch"><input type="checkbox" ${p.activo !== false ? 'checked' : ''} onchange="updItem(${i}, 'activo', this.checked)"><span class="slider"></span></label>
-                                    <button class="bg-red-50 text-red-500 p-2 rounded font-bold ml-1" onclick="delItem(${i})">✕</button>
-                                </div>
-                            </div>`;
-                        }).join('')}
-                    </div>`;
-            });
+            div.innerHTML = carta.map((p, i) => `
+                <div class="bg-white p-2 border-b flex gap-2 items-center text-xs">
+                    <input type="text" value="${p.nombre}" class="flex-1 border p-1" onchange="updItem(${i}, 'nombre', this.value)">
+                    <input type="number" value="${p.precio}" class="w-12 border p-1" onchange="updItem(${i}, 'precio', this.value)">
+                    <input type="checkbox" ${p.esCocina ? 'checked' : ''} onchange="updItem(${i}, 'esCocina', this.checked)">🍳
+                    <button class="text-red-500" onclick="delItem(${i})">X</button>
+                </div>
+            `).join('');
         }
 
         function updItem(i, f, v) { if(f === 'precio') v = parseFloat(v); carta[i][f] = v; }
-        function nuevoItem(cat) { carta.push({nombre: "Nuevo Producto", precio: 0, categoria: cat, activo: true, esCocina: false}); renderEditor(); }
-        function delItem(i) { if(confirm("¿Borrar?")) { carta.splice(i, 1); renderEditor(); } }
-        
+        function delItem(i) { carta.splice(i, 1); renderEditor(); }
         function guardarCarta() { 
-            db.ref().update({ carta: carta, admin_auth: ADMIN_KEY }).then(() => alert("CARTA GUARDADA")); 
+            db.ref().update({ carta: carta, admin_auth: ADMIN_KEY }).then(() => alert("CARTA ACTUALIZADA")); 
         }
 
         window.onload = init;
