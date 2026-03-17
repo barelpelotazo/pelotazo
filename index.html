@@ -46,7 +46,7 @@
         </header>
 
         <div id="lista-categorias" class="p-4 max-w-lg mx-auto">
-            <p class="text-center py-10 text-gray-400">Cargando la carta...</p>
+            <p class="text-center py-10 text-gray-400 font-bold uppercase text-xs">Cargando carta...</p>
         </div>
 
         <footer>
@@ -85,7 +85,7 @@
     </div>
 
     <script>
-        // ESTA ES LA CLAVE QUE ABRE EL CERROJO DE FIREBASE
+        // ESTA CLAVE DEBE SER LA MISMA QUE EN LAS REGLAS DE FIREBASE
         const ADMIN_KEY = "V887233R"; 
 
         const firebaseConfig = {
@@ -103,11 +103,16 @@
 
         function init() {
             document.getElementById('mesa-display').innerText = "Mesa: " + mesa;
+            
+            // Cargar carta desde Firebase
             db.ref('carta').on('value', snap => {
                 const data = snap.val();
+                // Convertimos el objeto de Firebase en un Array para trabajar mejor
                 cartaLocal = data ? Object.values(data) : [];
                 renderCartaCliente();
             });
+
+            // Escuchar pedidos
             db.ref('pedidos').on('value', snap => {
                 window.pedidosNuevos = snap.val();
                 if(document.getElementById('admin-panel').style.display === 'block') renderPedidosAdmin();
@@ -134,16 +139,30 @@
         }
 
         function enviarPedido() {
-            if(carrito.length === 0) return;
+            if(carrito.length === 0) return alert("Añade productos primero");
             db.ref('pedidos').push({
-                mesa, items: carrito,
+                mesa, 
+                items: carrito,
                 total: carrito.reduce((acc, i) => acc + i.precio, 0),
                 hora: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
                 timestamp: Date.now()
-            }).then(() => { alert("Pedido enviado!"); carrito = []; document.getElementById('total-val').innerText = "0.00€"; });
+            }).then(() => { 
+                alert("✅ ¡Pedido enviado a cocina!"); 
+                carrito = []; 
+                document.getElementById('total-val').innerText = "0.00€"; 
+            });
         }
 
-        function accesoAdmin() { if(prompt("Clave:") === ADMIN_KEY) { document.getElementById('admin-panel').style.display = 'block'; tab('pedidos'); } }
+        function accesoAdmin() {
+            const pass = prompt("Introduce clave de gestión:");
+            if(pass === ADMIN_KEY) {
+                document.getElementById('admin-panel').style.display = 'block';
+                tab('pedidos');
+            } else if(pass !== null) {
+                alert("Clave incorrecta");
+            }
+        }
+
         function cerrarAdmin() { document.getElementById('admin-panel').style.display = 'none'; }
 
         function tab(t) {
@@ -158,10 +177,10 @@
             const cont = document.getElementById('admin-content');
             cont.innerHTML = "";
             const data = window.pedidosNuevos;
-            if(!data) return cont.innerHTML = "<p class='text-center mt-20 text-gray-400 font-bold'>SIN PEDIDOS</p>";
+            if(!data) return cont.innerHTML = "<p class='text-center mt-20 text-gray-400 font-bold uppercase text-xs tracking-widest'>Sin pedidos nuevos</p>";
             Object.keys(data).reverse().forEach(id => {
                 const p = data[id];
-                cont.innerHTML += `<div class="bg-white p-4 rounded-xl border-l-8 border-red-600 mb-4 shadow-sm"><div class="flex justify-between font-black text-blue-900 border-b pb-2 mb-2 uppercase text-[10px]"><span>Mesa ${p.mesa}</span><span>${p.hora}</span></div><div class="space-y-1 text-sm font-medium">${p.items.map(i => `<div>• ${i.nombre}</div>`).join('')}</div><div class="mt-3 text-right font-black text-red-600">${p.total.toFixed(2)}€</div><button onclick="db.ref('pedidos/${id}').remove()" class="w-full mt-3 bg-gray-100 text-gray-400 py-2 rounded font-bold text-[9px] uppercase">Archivar</button></div>`;
+                cont.innerHTML += `<div class="bg-white p-4 rounded-xl border-l-8 border-red-600 mb-4 shadow-sm"><div class="flex justify-between font-black text-blue-900 border-b pb-2 mb-2 uppercase text-[10px]"><span>Mesa ${p.mesa}</span><span>${p.hora}</span></div><div class="space-y-1 text-sm font-medium">${p.items.map(i => `<div>• ${i.nombre}</div>`).join('')}</div><div class="mt-3 text-right font-black text-red-600">${p.total.toFixed(2)}€</div><button onclick="db.ref('pedidos/${id}').remove()" class="w-full mt-3 bg-gray-100 text-gray-400 py-2 rounded font-bold text-[9px] uppercase tracking-widest">Archivar</button></div>`;
             });
         }
 
@@ -169,29 +188,36 @@
             const cont = document.getElementById('admin-content');
             cont.innerHTML = "";
             CATEGORIAS.forEach(cat => {
-                cont.innerHTML += `<div class="mb-6"><div class="flex justify-between items-center mb-2"><h3 class="font-black text-blue-900 uppercase text-[10px]">${cat}</h3><button onclick="nuevoP('${cat}')" class="bg-blue-900 text-white px-3 py-1 rounded text-[10px] font-bold">+ NUEVO</button></div><div id="edit-cat-${cat}">${cartaLocal.filter(p => p.categoria === cat).map((p, i) => {
+                cont.innerHTML += `<div class="mb-6"><div class="flex justify-between items-center mb-2"><h3 class="font-black text-blue-900 uppercase text-[10px] tracking-widest">${cat}</h3><button onclick="nuevoP('${cat}')" class="bg-blue-900 text-white px-3 py-1 rounded text-[10px] font-bold">+ AÑADIR</button></div><div id="edit-cat-${cat}">${cartaLocal.filter(p => p.categoria === cat).map((p, i) => {
                     const gIdx = cartaLocal.indexOf(p);
-                    return `<div class="bg-white p-4 rounded-xl mb-2 border"><input type="text" onchange="cartaLocal[${gIdx}].nombre=this.value" value="${p.nombre}" class="w-full font-bold border-b mb-2 outline-none"><div class="flex justify-between items-center"><input type="number" step="0.01" onchange="cartaLocal[${gIdx}].precio=parseFloat(this.value)" value="${p.precio}" class="w-20 font-black border p-1 rounded"> <button onclick="cartaLocal.splice(${gIdx},1);renderEditorCarta()" class="text-red-500 text-[9px] font-bold">BORRAR</button></div></div>`;
+                    return `<div class="bg-white p-4 rounded-xl mb-2 border shadow-sm"><input type="text" oninput="cartaLocal[${gIdx}].nombre=this.value" value="${p.nombre}" class="w-full font-bold border-b mb-2 outline-none p-1 text-sm"><div class="flex justify-between items-center"><div class="flex items-center bg-gray-50 px-2 rounded"><span class="text-xs font-bold text-gray-400 mr-1">€</span><input type="number" step="0.01" oninput="cartaLocal[${gIdx}].precio=parseFloat(this.value)||0" value="${p.precio}" class="w-20 font-black bg-transparent outline-none p-1"></div><button onclick="cartaLocal.splice(${gIdx},1);renderEditorCarta()" class="text-red-500 text-[9px] font-black uppercase tracking-tighter">Eliminar</button></div></div>`;
                 }).join('')}</div></div>`;
             });
         }
 
-        function nuevoP(cat) { cartaLocal.push({ nombre: "Nuevo", precio: 0, categoria: cat, activo: true }); renderEditorCarta(); }
+        function nuevoP(cat) { 
+            cartaLocal.push({ nombre: "Nuevo Producto", precio: 0, categoria: cat, activo: true }); 
+            renderEditorCarta(); 
+        }
 
-        // --- AQUÍ HE AÑADIDO EL CÓDIGO QUE ME PEDISTE ---
+        // FUNCIÓN DEFINITIVA PARA GUARDAR
         function publicarCambios() {
-            // Preparamos el paquete con la carta y la llave de seguridad
+            if(!confirm("¿Quieres actualizar la carta en la web?")) return;
+
+            // Creamos el objeto exactamente como lo piden las reglas de seguridad
             const updateData = {
                 carta: cartaLocal,
-                admin_auth: ADMIN_KEY 
+                admin_auth: ADMIN_KEY // Esta es la llave necesaria
             };
 
-            // Enviamos el paquete a la raíz de la base de datos
+            // Ejecutamos la actualización en la raíz del proyecto
             db.ref().update(updateData)
-                .then(() => alert("✅ Web actualizada correctamente"))
-                .catch(e => {
-                    console.error(e);
-                    alert("❌ Error de permisos. Revisa las reglas en la consola de Firebase.");
+                .then(() => {
+                    alert("✅ CARTA ACTUALIZADA CORRECTAMENTE");
+                })
+                .catch(error => {
+                    console.error("Error al guardar:", error);
+                    alert("❌ ERROR: No tienes permiso para guardar. Asegúrate de que las REGLAS en Firebase sean correctas.");
                 });
         }
 
