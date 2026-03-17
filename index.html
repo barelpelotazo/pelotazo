@@ -3,130 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bar El Pelotazo - Sistema Pro</title>
-    <!-- Firebase SDK Legacy (Más estable para HTML directo) -->
+    <title>Bar El Pelotazo - Gestión de Pedidos</title>
+    <!-- Firebase SDK Legacy -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --azul: #001f3f; --rojo: #e11d48; }
-        body { background-color: #f8fafc; font-family: 'sans-serif'; padding-bottom: 180px; }
-        .header-pelotazo { background-color: var(--azul); border-bottom: 4px solid var(--rojo); }
-        .categoria-btn { background-color: var(--azul); transition: all 0.3s; }
-        .categoria-btn:active { transform: scale(0.98); }
-        .producto-card { transition: transform 0.2s; border: 1px solid #e2e8f0; }
-        .producto-card:active { transform: scale(0.98); }
-        .admin-panel { border: 2px solid #22c55e; }
-        .comanda-card { border-left: 8px solid var(--rojo); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
-        /* Animación para nuevos pedidos */
-        .nuevo-pedido { animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { background-color: #fff; } 50% { background-color: #fef3c7; } 100% { background-color: #fff; } }
+        :root {
+            --azul-bar: #001f3f;
+            --rojo-vivo: #ff0000;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding-bottom: 240px; 
+        }
+        header {
+            background-color: var(--azul-bar);
+            color: white;
+            padding: 20px 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .logo-header {
+            max-width: 90px;
+            margin: 0 auto 10px;
+            display: block;
+        }
+        h1 { margin: 0; font-size: 1.8rem; letter-spacing: 2px; font-weight: 800; text-transform: uppercase; }
+
+        .cat-btn {
+            width: 100%; text-align: left; padding: 15px; background: white;
+            margin-bottom: 5px; border-radius: 8px; font-weight: bold;
+            color: var(--azul-bar); border-left: 5px solid var(--azul-bar);
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .cat-content { display: none; margin-bottom: 10px; }
+        .cat-content.active { display: block; }
+
+        .item-row {
+            background: white; margin: 5px 10px; padding: 12px; border-radius: 6px;
+            display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee;
+        }
+        .precio { font-weight: bold; color: #333; margin-right: 15px; }
+        .btn-add { background-color: var(--azul-bar); color: white; border: none; width: 35px; height: 35px; border-radius: 5px; font-size: 1.2rem; cursor: pointer; }
+
+        footer {
+            position: fixed; bottom: 0; width: 100%; background: #fff;
+            padding: 15px; border-top: 3px solid var(--azul-bar);
+            box-sizing: border-box; z-index: 100; box-shadow: 0 -5px 10px rgba(0,0,0,0.1);
+        }
+        #total-cuenta { font-size: 3rem; font-weight: 900; color: var(--rojo-vivo); text-align: center; margin-bottom: 10px; line-height: 1; }
+        #btn-pedido {
+            width: 100%; background-color: #27ae60; color: white; border: none;
+            padding: 18px; border-radius: 10px; font-weight: bold; text-transform: uppercase; cursor: pointer;
+            font-size: 1.1rem;
+        }
+        .btn-off { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
+
+        .admin-link { text-align: center; margin-top: 15px; font-size: 0.8rem; color: #777; border-top: 1px solid #eee; padding-top: 10px; }
+        .admin-link span { cursor: pointer; font-weight: bold; text-decoration: underline; color: var(--azul-bar); }
+        .rodante-txt { margin-top: 20px; font-size: 0.65rem; color: #ccc; letter-spacing: 1px; }
+
+        #panel-staff { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f0f4f8; z-index: 2000; overflow-y: auto; padding: 15px; }
+        
+        .switch { position: relative; display: inline-block; width: 34px; height: 20px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #27ae60; }
+        input:checked + .slider:before { transform: translateX(14px); }
     </style>
 </head>
 <body>
 
-    <!-- CABECERA -->
-    <header class="header-pelotazo text-white p-6 flex flex-col items-center shadow-2xl">
-        <div onclick="intentarAdmin()" class="cursor-pointer">
-            <img src="logo%20pelotazo%20png.png" alt="Logo" class="w-24 h-24 rounded-full border-2 border-white bg-white p-1 shadow-lg">
-        </div>
-        <h1 class="mt-4 text-3xl font-black italic tracking-tighter uppercase">BAR EL PELOTAZO</h1>
-        <div id="mesa-tag" class="mt-4 bg-white text-[#001f3f] px-8 py-2 rounded shadow-xl border-l-8 border-[#001f3f]">
-            <span class="font-bold uppercase text-xs block text-center">Mesa</span>
-            <span id="num-mesa-display" class="text-3xl font-black block text-center">--</span>
-        </div>
-    </header>
+    <div id="vista-cliente">
+        <header>
+            <img src="logo%20pelotazo%20png.png" alt="Logo" class="logo-header">
+            <h1>Bar El Pelotazo</h1>
+        </header>
 
-    <main class="max-w-md mx-auto p-4 space-y-4">
-        
-        <!-- PANEL DE ADMINISTRACIÓN (OCULTO POR DEFECTO) -->
-        <div id="panel-admin" class="hidden space-y-6">
-            <div class="bg-white p-4 rounded-2xl shadow-xl admin-panel">
-                <h2 class="font-black text-green-700 mb-4 flex items-center gap-2"><i class="fas fa-plus-circle"></i> NUEVO ARTÍCULO</h2>
-                <div class="space-y-3">
-                    <input type="text" id="new-nombre" placeholder="Nombre del plato" class="w-full p-3 border rounded-xl">
-                    <div class="flex gap-2">
-                        <input type="number" id="new-precio" placeholder="Precio" class="w-1/2 p-3 border rounded-xl">
-                        <select id="new-cat" class="w-1/2 p-3 border rounded-xl bg-white">
-                            <option>Raciones</option>
-                            <option>Bebidas</option>
-                            <option>Tapas</option>
-                            <option>Bocadillos</option>
-                        </select>
-                    </div>
-                    <label class="flex items-center gap-2 p-3 bg-gray-50 rounded-xl cursor-pointer font-bold text-sm">
-                        <input type="checkbox" id="new-cocina" class="w-5 h-5"> ¿ENVIAR A COCINA?
-                    </label>
-                    <button onclick="crearProducto()" class="w-full bg-green-600 text-white p-4 rounded-xl font-bold shadow-lg">GUARDAR EN CARTA</button>
+        <!-- Información de la Mesa -->
+        <div id="info-mesa" class="p-4 bg-white m-3 rounded shadow border-l-8 border-blue-900 text-center">
+            <p class="text-gray-500">Cargando mesa...</p>
+        </div>
+
+        <div id="carta-categorias" class="px-2 mt-4">
+            <!-- Contenido dinámico -->
+        </div>
+
+        <footer>
+            <div id="total-cuenta">0.00€</div>
+            <button id="btn-pedido" onclick="enviarPedido()">PEDIR AHORA</button>
+            
+            <div class="admin-link">
+                <span onclick="abrirAdmin()">⚙️ Panel Control</span>
+                <div class="rodante-txt">
+                    DISEÑO <a href="http://rodante.es" target="_blank" style="color:#aaa; font-weight:bold;">RODANTE.ES</a>
                 </div>
             </div>
+        </footer>
+    </div>
 
-            <div class="bg-[#001f3f] p-4 rounded-2xl shadow-xl">
-                <h2 class="font-black text-white mb-4 flex items-center gap-2"><i class="fas fa-bell"></i> COMANDAS RECIBIDAS</h2>
-                <div id="lista-pedidos" class="space-y-4">
-                    <!-- Pedidos en vivo -->
-                </div>
-            </div>
-            <hr class="border-2 border-dashed">
-            <h2 class="font-black text-center text-gray-400">EDITAR CARTA ACTUAL</h2>
+    <!-- PANEL DE ADMINISTRACIÓN -->
+    <div id="panel-staff">
+        <div class="flex gap-2 mb-4 sticky top-0 bg-gray-100 p-2 z-50 rounded shadow">
+            <button class="flex-1 bg-blue-900 text-white p-3 rounded text-xs font-bold uppercase" onclick="verSeccion('pedidos')">Comandas</button>
+            <button class="flex-1 bg-orange-600 text-white p-3 rounded text-xs font-bold uppercase" onclick="verSeccion('cocina')">Cocina</button>
+            <button class="flex-1 bg-gray-600 text-white p-3 rounded text-xs font-bold uppercase" onclick="verSeccion('editar')">Carta</button>
+            <button class="bg-red-600 text-white p-3 rounded text-xs font-bold" onclick="location.reload()">✕</button>
         </div>
 
-        <!-- CATEGORÍAS (PESTAÑAS DESPLEGABLES) -->
-        <div id="contenedor-menu" class="space-y-3">
-            <!-- RACIONES -->
-            <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
-                <button onclick="toggleCat('Raciones')" class="categoria-btn w-full flex justify-between items-center p-4 text-white font-bold uppercase text-xs tracking-widest">
-                    <span>Raciones</span>
-                    <i id="icon-Raciones" class="fas fa-chevron-down"></i>
-                </button>
-                <div id="cat-Raciones" class="hidden p-2 space-y-2"></div>
-            </div>
+        <div id="sec-pedidos">
+            <h2 class="font-bold border-b-2 border-blue-900 pb-2 mb-4 text-blue-900 uppercase text-sm">Comandas barra/salon</h2>
+            <div id="lista-pedidos-admin"></div>
+            <div id="caja-hoy" class="mt-6 p-4 bg-green-100 rounded text-center font-bold text-green-800 text-2xl border-2 border-green-300">Caja: 0.00€</div>
+        </div>
 
-            <!-- BEBIDAS -->
-            <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
-                <button onclick="toggleCat('Bebidas')" class="categoria-btn w-full flex justify-between items-center p-4 text-white font-bold uppercase text-xs tracking-widest">
-                    <span>Bebidas</span>
-                    <i id="icon-Bebidas" class="fas fa-chevron-down"></i>
-                </button>
-                <div id="cat-Bebidas" class="hidden p-2 space-y-2"></div>
-            </div>
+        <div id="sec-cocina" style="display:none">
+            <h2 class="font-bold border-b-2 border-orange-600 pb-2 mb-4 text-orange-600 uppercase text-sm">Solo elaboración cocina</h2>
+            <div id="lista-cocina"></div>
+        </div>
 
-            <!-- TAPAS -->
-            <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
-                <button onclick="toggleCat('Tapas')" class="categoria-btn w-full flex justify-between items-center p-4 text-white font-bold uppercase text-xs tracking-widest">
-                    <span>Tapas</span>
-                    <i id="icon-Tapas" class="fas fa-chevron-down"></i>
-                </button>
-                <div id="cat-Tapas" class="hidden p-2 space-y-2"></div>
-            </div>
-
-            <!-- BOCADILLOS -->
-            <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
-                <button onclick="toggleCat('Bocadillos')" class="categoria-btn w-full flex justify-between items-center p-4 text-white font-bold uppercase text-xs tracking-widest">
-                    <span>Bocadillos</span>
-                    <i id="icon-Bocadillos" class="fas fa-chevron-down"></i>
-                </button>
-                <div id="cat-Bocadillos" class="hidden p-2 space-y-2"></div>
+        <div id="sec-editar" style="display:none">
+            <div id="editor-productos"></div>
+            <div class="sticky bottom-4">
+                <button class="w-full bg-blue-900 text-white p-5 rounded-xl font-bold shadow-2xl border-2 border-white" onclick="guardarCarta()">💾 ACTUALIZAR CARTA</button>
             </div>
         </div>
-    </main>
-
-    <!-- FOOTER CLIENTE -->
-    <footer id="footer-cliente" class="fixed bottom-0 w-full bg-white p-6 shadow-[0_-10px_30px_rgba(0,0,0,0.15)] z-50 border-t-2 border-gray-100">
-        <div class="max-w-md mx-auto">
-            <div class="flex justify-between items-end mb-4">
-                <span class="text-gray-400 font-bold text-xs uppercase tracking-widest">Total Comanda</span>
-                <span id="total-vocal" class="text-5xl font-black text-red-600 tracking-tighter">0.00<small class="text-xl">€</small></span>
-            </div>
-            <button onclick="lanzarPedido()" class="w-full bg-[#27ae60] text-white py-5 rounded-2xl font-black text-xl shadow-lg active:scale-95 transition-all">
-                REALIZAR PEDIDO
-            </button>
-        </div>
-    </footer>
+    </div>
 
     <script>
-        // CONFIGURACIÓN
+        // FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyAxI0dtf4RdxNDYlmk_dVYhF5NyZOg8B2w",
             databaseURL: "https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app",
@@ -136,173 +146,217 @@
         const db = firebase.database();
 
         let carrito = [];
-        let productosData = {};
-        let isAdmin = false;
-        let clickCount = 0;
-        let numMesa = new URLSearchParams(window.location.search).get('mesa') || "";
-        const CLAVE_MAESTRA = "V887233R";
+        let mesa = null;
+        let carta = [];
+        
+        const categorias = [
+            "Tapas/Ración/Menú",
+            "Café/repostería/Postres",
+            "Bebidas/Refrescos",
+            "Tapas del día",
+            "Otros"
+        ];
 
-        // INICIO
-        window.onload = () => {
-            if(numMesa) document.getElementById('num-mesa-display').innerText = numMesa.toUpperCase();
-            
-            // Cargar Productos
-            db.ref('productos').on('value', snap => {
-                productosData = snap.val() || {};
-                renderMenu();
-            });
+        const categoriasCocina = ["Tapas/Ración/Menú", "Tapas del día", "Otros"];
 
-            // Sonido de aviso para pedidos (solo si es admin)
-            db.ref('pedidos').limitToLast(1).on('child_added', snap => {
-                if(isAdmin) {
-                    reproducirCampana();
-                }
-                actualizarComandas();
-            });
-        };
-
-        function reproducirCampana() {
-            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-            audio.play().catch(e => console.log("Sonido bloqueado"));
-        }
-
-        // RENDERIZAR MENÚ
-        function renderMenu() {
-            const cats = ["Raciones", "Bebidas", "Tapas", "Bocadillos"];
-            cats.forEach(c => document.getElementById(`cat-${c}`).innerHTML = "");
-
-            Object.entries(productosData).forEach(([id, p]) => {
-                const container = document.getElementById(`cat-${p.categoria}`);
-                if(!container) return;
-
-                const card = document.createElement('div');
-                card.className = `producto-card p-4 rounded-xl flex justify-between items-center ${!p.activo ? 'bg-gray-100 opacity-50' : 'bg-white'}`;
-                
-                // Si el cliente no es admin y el producto está inactivo, no se muestra
-                if(!isAdmin && !p.activo) return;
-
-                card.innerHTML = `
-                    <div class="flex-1">
-                        <div class="flex items-center gap-2">
-                            <span class="font-black uppercase text-sm">${p.nombre}</span>
-                            ${p.esCocina ? '<i class="fas fa-utensils text-orange-500 text-xs"></i>' : ''}
-                        </div>
-                        <span class="text-red-600 font-black text-lg">${p.precio.toFixed(2)}€</span>
-                    </div>
-                    <div class="flex gap-1">
-                        ${isAdmin ? `
-                            <button onclick="toggleActivo('${id}', ${p.activo})" class="p-2 ${p.activo ? 'text-blue-600' : 'text-gray-400'}"><i class="fas ${p.activo ? 'fa-eye' : 'fa-eye-slash'}"></i></button>
-                            <button onclick="toggleCocina('${id}', ${p.esCocina})" class="p-2 ${p.esCocina ? 'text-orange-600' : 'text-gray-300'}"><i class="fas fa-utensils"></i></button>
-                            <button onclick="borrarProd('${id}')" class="p-2 text-red-600"><i class="fas fa-trash"></i></button>
-                        ` : `
-                            <button onclick="addCarrito('${id}')" class="bg-[#001f3f] text-white w-12 h-12 rounded-xl flex items-center justify-center shadow-lg">
-                                <i class="fas fa-plus"></i>
-                            </button>
-                        `}
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        // FUNCIONES CARRITO
-        function addCarrito(id) {
-            const p = productosData[id];
-            carrito.push(p);
-            const total = carrito.reduce((acc, item) => acc + item.precio, 0);
-            document.getElementById('total-vocal').innerHTML = `${total.toFixed(2)}<small class="text-xl">€</small>`;
-        }
-
-        function lanzarPedido() {
-            if(!numMesa) return alert("Por favor, escanea el QR de tu mesa");
-            if(carrito.length === 0) return alert("Añade algún artículo");
-
-            db.ref('pedidos').push({
-                mesa: numMesa,
-                items: carrito,
-                total: carrito.reduce((a,b) => a+b.precio, 0),
-                timestamp: Date.now()
-            }).then(() => {
-                alert("¡Pedido enviado! Suena la campana en barra.");
-                carrito = [];
-                document.getElementById('total-vocal').innerHTML = `0.00<small class="text-xl">€</small>`;
-            });
-        }
-
-        // FUNCIONES ADMIN
-        function intentarAdmin() {
-            clickCount++;
-            if(clickCount === 3) {
-                const pass = prompt("ACCESO GERENCIA - CLAVE:");
-                if(pass === CLAVE_MAESTRA) {
-                    isAdmin = true;
-                    document.getElementById('panel-admin').classList.remove('hidden');
-                    document.getElementById('footer-cliente').classList.add('hidden');
-                    renderMenu();
-                    actualizarComandas();
-                }
-                clickCount = 0;
+        function init() {
+            const params = new URLSearchParams(window.location.search);
+            mesa = params.get('mesa');
+            const info = document.getElementById('info-mesa');
+            if(mesa) {
+                info.innerHTML = `<p class="text-xs text-gray-500 font-bold">MESA</p><p class="text-blue-900 text-3xl font-black">${mesa}</p>`;
+            } else {
+                info.innerHTML = `<p class="text-red-600 font-bold">⚠️ ESCANEA EL QR DE TU MESA</p><p class="text-xs text-gray-400 mt-1">Usa el código de tu mesa para pedir.</p>`;
+                document.getElementById('btn-pedido').classList.add('btn-off');
             }
-            setTimeout(() => clickCount = 0, 3000);
+            cargarCarta();
         }
 
-        function toggleCat(cat) {
-            const div = document.getElementById(`cat-${cat}`);
-            const icon = document.getElementById(`icon-${cat}`);
-            div.classList.toggle('hidden');
-            icon.classList.toggle('fa-chevron-down');
-            icon.classList.toggle('fa-chevron-up');
-        }
-
-        function crearProducto() {
-            const nombre = document.getElementById('new-nombre').value;
-            const precio = parseFloat(document.getElementById('new-precio').value);
-            const categoria = document.getElementById('new-cat').value;
-            const esCocina = document.getElementById('new-cocina').checked;
-
-            if(!nombre || !precio) return alert("Rellena nombre y precio");
-
-            db.ref('productos').push({
-                nombre, precio, categoria, esCocina, activo: true, admin_key: CLAVE_MAESTRA
+        function cargarCarta() {
+            db.ref('carta').on('value', snap => {
+                carta = snap.val() || [];
+                renderCarta();
+                renderEditor();
             });
-            
-            document.getElementById('new-nombre').value = "";
-            document.getElementById('new-precio').value = "";
         }
 
-        function borrarProd(id) { if(confirm("¿Borrar?")) db.ref('productos').child(id).remove(); }
-        function toggleActivo(id, val) { db.ref(`productos/${id}`).update({activo: !val}); }
-        function toggleCocina(id, val) { db.ref(`productos/${id}`).update({esCocina: !val}); }
+        function renderCarta() {
+            const container = document.getElementById('carta-categorias');
+            container.innerHTML = "";
 
-        function actualizarComandas() {
-            if(!isAdmin) return;
-            db.ref('pedidos').limitToLast(10).once('value', snap => {
-                const peds = snap.val() || {};
-                const cont = document.getElementById('lista-pedidos');
-                cont.innerHTML = "";
-                
-                Object.values(peds).reverse().forEach(p => {
-                    const div = document.createElement('div');
-                    div.className = "bg-white text-black p-4 rounded-xl comanda-card";
-                    div.innerHTML = `
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="font-black bg-yellow-400 px-3 py-1 rounded text-lg uppercase">MESA ${p.mesa}</span>
-                            <span class="text-xs font-bold text-gray-400">${new Date(p.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
-                        </div>
-                        <div class="space-y-1 border-y border-dashed py-2 my-2 text-sm">
-                            ${p.items.map(it => `
-                                <div class="flex justify-between">
-                                    <span>• ${it.nombre} ${it.esCocina ? '<span class="text-[9px] font-black text-orange-600">[COCINA]</span>' : ''}</span>
-                                    <span class="font-bold">${it.precio.toFixed(2)}€</span>
+            categorias.forEach((cat, index) => {
+                const itemsActivos = carta.filter(p => p.categoria === cat && p.activo !== false);
+                if (itemsActivos.length === 0) return;
+
+                const catId = `cat-${index}`;
+                container.innerHTML += `
+                    <div class="mb-2">
+                        <button class="cat-btn" onclick="toggleCat('${catId}')">
+                            ${cat.toUpperCase()} <span>▼</span>
+                        </button>
+                        <div id="${catId}" class="cat-content">
+                            ${itemsActivos.map(p => `
+                                <div class="item-row">
+                                    <span class="font-semibold text-gray-800">${p.nombre}</span>
+                                    <div>
+                                        <span class="precio">${p.precio.toFixed(2)}€</span>
+                                        <button class="btn-add" onclick="agregar('${p.nombre}', ${p.precio}, '${p.categoria}')">+</button>
+                                    </div>
                                 </div>
                             `).join('')}
                         </div>
-                        <div class="text-right font-black text-red-600 text-xl">TOTAL: ${p.total.toFixed(2)}€</div>
-                    `;
-                    cont.appendChild(div);
-                });
+                    </div>
+                `;
             });
         }
+
+        function toggleCat(id) {
+            const content = document.getElementById(id);
+            const isAlreadyOpen = content.classList.contains('active');
+            document.querySelectorAll('.cat-content').forEach(c => c.classList.remove('active'));
+            if (!isAlreadyOpen) content.classList.add('active');
+        }
+
+        function agregar(nombre, precio, categoria) {
+            carrito.push({nombre, precio, categoria});
+            const total = carrito.reduce((s, i) => s + i.precio, 0);
+            document.getElementById('total-cuenta').innerText = total.toFixed(2) + "€";
+        }
+
+        function enviarPedido() {
+            if(!mesa) return alert("Escanea el QR.");
+            if(carrito.length === 0) return alert("Carrito vacío.");
+            
+            const total = carrito.reduce((s, i) => s + i.precio, 0);
+            db.ref('pedidos').push({
+                mesa, items: carrito, total, 
+                hora: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+                timestamp: Date.now()
+            }).then(() => {
+                alert("✅ Pedido enviado.");
+                carrito = [];
+                document.getElementById('total-cuenta').innerText = "0.00€";
+            });
+        }
+
+        function abrirAdmin() {
+            if(prompt("Clave:") === "887233") document.getElementById('panel-staff').style.display = 'block';
+        }
+
+        function verSeccion(id) {
+            document.getElementById('sec-pedidos').style.display = id === 'pedidos' ? 'block' : 'none';
+            document.getElementById('sec-cocina').style.display = id === 'cocina' ? 'block' : 'none';
+            document.getElementById('sec-editar').style.display = id === 'editar' ? 'block' : 'none';
+        }
+
+        db.ref('pedidos').on('value', snap => {
+            const data = snap.val();
+            const listP = document.getElementById('lista-pedidos-admin');
+            const listC = document.getElementById('lista-cocina');
+            let caja = 0;
+            listP.innerHTML = ""; listC.innerHTML = "";
+            if(!data) return;
+
+            Object.keys(data).forEach(id => {
+                const p = data[id];
+                caja += p.total;
+                
+                const htmlBarra = `
+                    <div class="bg-white p-4 rounded-lg shadow-sm mb-4 border-l-8 border-blue-900 text-black">
+                        <div class="flex justify-between items-center font-bold">
+                            <span class="text-lg">MESA ${p.mesa}</span>
+                            <span class="text-xs bg-gray-200 px-2 py-1 rounded">${p.hora}</span>
+                        </div>
+                        <div class="text-sm my-3 font-medium text-gray-700">
+                            ${p.items.map(i => `<div class="py-1 border-b border-gray-50">• ${i.nombre}</div>`).join('')}
+                        </div>
+                        <div class="flex justify-between items-center mt-3 pt-2 border-t font-black">
+                            <span class="text-blue-900">${p.total.toFixed(2)}€</span>
+                            <button class="bg-green-600 text-white px-4 py-2 rounded text-xs uppercase" onclick="finalizar('${id}')">✓ Cobrado</button>
+                        </div>
+                    </div>`;
+                listP.innerHTML += htmlBarra;
+
+                const itemsCocina = p.items.filter(i => categoriasCocina.includes(i.categoria));
+                if(itemsCocina.length > 0) {
+                    listC.innerHTML += `
+                        <div class="bg-white p-4 rounded-lg shadow-sm mb-4 border-l-8 border-orange-600 text-black">
+                            <div class="flex justify-between items-center font-bold">
+                                <span class="text-lg">MESA ${p.mesa}</span>
+                                <span class="text-xs bg-orange-100 px-2 py-1 rounded">${p.hora}</span>
+                            </div>
+                            <div class="text-sm mt-3 font-bold text-orange-900">
+                                ${itemsCocina.map(i => `<div class="py-2 border-b border-orange-50">✔️ ${i.nombre}</div>`).join('')}
+                            </div>
+                        </div>`;
+                }
+            });
+            document.getElementById('caja-hoy').innerText = "Caja: " + caja.toFixed(2) + "€";
+        });
+
+        function finalizar(id) { if(confirm("¿Marcar como cobrado?")) db.ref('pedidos/' + id).remove(); }
+
+        function renderEditor() {
+            const div = document.getElementById('editor-productos');
+            div.innerHTML = "";
+
+            categorias.forEach(cat => {
+                const itemsDeCat = carta.filter(p => p.categoria === cat);
+                div.innerHTML += `
+                    <div class="mb-6 bg-white p-4 rounded-lg shadow border-t-4 border-blue-900 text-black">
+                        <div class="flex justify-between items-center mb-4">
+                            <b class="text-blue-900 uppercase text-xs">${cat}</b>
+                            <button class="bg-blue-900 text-white px-3 py-1 rounded text-xs font-bold" onclick="nuevoItem('${cat}')">+ ADD</button>
+                        </div>
+                        <div class="space-y-3">
+                            ${itemsDeCat.map((p) => {
+                                const idx = carta.indexOf(p);
+                                const isVisible = p.activo !== false;
+                                return `
+                                <div class="p-2 bg-gray-50 rounded border ${!isVisible ? 'opacity-40' : ''}">
+                                    <div class="flex gap-2 mb-2">
+                                        <input type="text" value="${p.nombre}" class="flex-1 p-1 text-sm border rounded" onchange="updItem(${idx}, 'nombre', this.value)">
+                                        <input type="number" step="0.1" value="${p.precio}" class="w-20 p-1 text-sm border rounded text-right" onchange="updItem(${idx}, 'precio', this.value)">
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <label class="switch">
+                                            <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="updItem(${idx}, 'activo', this.checked)">
+                                            <span class="slider"></span>
+                                        </label>
+                                        <button class="text-red-500 text-[10px] font-bold" onclick="delItem(${idx})">BORRAR</button>
+                                    </div>
+                                </div>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function updItem(i, campo, val) { 
+            if(campo === 'precio') val = parseFloat(val);
+            carta[i][campo] = val; 
+            renderEditor();
+        }
+        
+        function nuevoItem(cat) { 
+            carta.push({nombre: "Nuevo Item", precio: 0, categoria: cat, activo: true}); 
+            renderEditor(); 
+        }
+
+        function delItem(i) { 
+            if(confirm("¿Eliminar definitivamente de la carta?")) { carta.splice(i, 1); renderEditor(); } 
+        }
+
+        function guardarCarta() { 
+            db.ref('carta').set(carta).then(() => {
+                alert("¡Carta actualizada en todos los dispositivos!");
+                renderCarta(); 
+            }); 
+        }
+
+        window.onload = init;
     </script>
 </body>
 </html>
+
