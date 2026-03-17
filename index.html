@@ -102,7 +102,6 @@
             <h1>Bar El Pelotazo</h1>
         </header>
 
-        <!-- Pestaña de aviso QR -->
         <div id="aviso-qr">
             <div class="triangulo-amarillo"></div>
             ESCANEA EL QR DE TU MESA PARA REALIZAR EL PEDIDO
@@ -155,15 +154,9 @@
         </div>
 
         <div id="sec-camareros" class="p-4 admin-sec" style="display:none">
-            <h2 class="font-black text-purple-700 mb-4 border-b border-purple-200 uppercase text-center">Gestión de Camareros (7)</h2>
-            <div class="grid grid-cols-1 gap-3">
-                <div class="p-3 bg-white rounded shadow flex justify-between"><span>Camarero 1: ANTONIO</span><span class="text-green-500 font-bold">Activo</span></div>
-                <div class="p-3 bg-white rounded shadow flex justify-between"><span>Camarero 2: MARIA</span><span class="text-green-500 font-bold">Activo</span></div>
-                <div class="p-3 bg-white rounded shadow flex justify-between text-gray-400"><span>Camarero 3: PEPE</span><span>Libre</span></div>
-                <div class="p-3 bg-white rounded shadow flex justify-between text-gray-400"><span>Camarero 4: JUAN</span><span>Libre</span></div>
-                <div class="p-3 bg-white rounded shadow flex justify-between text-gray-400"><span>Camarero 5: LUCIA</span><span>Libre</span></div>
-                <div class="p-3 bg-white rounded shadow flex justify-between text-gray-400"><span>Camarero 6: LUIS</span><span>Libre</span></div>
-                <div class="p-3 bg-white rounded shadow flex justify-between text-gray-400"><span>Camarero 7: CARMEN</span><span>Libre</span></div>
+            <h2 class="font-black text-purple-700 mb-4 border-b border-purple-200 uppercase text-center">Gestión de Camareros</h2>
+            <div id="lista-camareros-personal" class="grid grid-cols-1 gap-3">
+                <!-- Se genera por JS para que todos sean editables -->
             </div>
         </div>
 
@@ -191,6 +184,17 @@
         const ADMIN_KEY = "V887233R"; 
 
         const categoriasDefinidas = ["Tapas/Ración/Menú", "Café/repostería/Postres", "Bebidas/Refrescos", "Tapas del día", "Otros"];
+        
+        // Estado de camareros
+        let camareros = [
+            {id: 1, nombre: "ANTONIO", activo: true},
+            {id: 2, nombre: "MARIA", activo: true},
+            {id: 3, nombre: "PEPE", activo: true},
+            {id: 4, nombre: "JUAN", activo: true},
+            {id: 5, nombre: "LUCIA", activo: true},
+            {id: 6, nombre: "LUIS", activo: true},
+            {id: 7, nombre: "CARMEN", activo: true}
+        ];
 
         function init() {
             const params = new URLSearchParams(window.location.search);
@@ -200,13 +204,13 @@
                 document.getElementById('aviso-qr').style.display = 'none';
             }
             
-            // Verificación de persistencia de sesión
             if(localStorage.getItem('isStaff') === 'true') {
                 document.getElementById('panel-staff').style.display = 'block';
                 verSeccion('pedidos');
             }
 
             cargarDatos();
+            renderCamareros();
         }
 
         function cargarDatos() {
@@ -256,20 +260,19 @@
             
             const total = carrito.reduce((s, i) => s + i.precio, 0);
             
-            // Enviamos el pedido incluyendo la llave para saltar las reglas de seguridad
+            // CORRECCIÓN: Ahora incluimos la llave también en el envío del cliente
             db.ref('pedidos').push({ 
                 mesa, 
                 items: carrito, 
                 total, 
                 hora: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
-                admin_auth: ADMIN_KEY // Llave para que Firebase nos deje escribir
+                admin_auth: ADMIN_KEY 
             }).then(() => {
-                alert("✅ Comanda enviada a barra correctamente.");
+                alert("✅ Comanda enviada correctamente.");
                 carrito = []; 
                 document.getElementById('total-cuenta').innerText = "0.00€";
             }).catch(e => {
-                console.error(e);
-                alert("Error al enviar. Inténtalo de nuevo.");
+                alert("Error de conexión. Inténtalo de nuevo.");
             });
         }
 
@@ -321,27 +324,47 @@
                         </div>
                         <div class="flex justify-between items-center mt-4">
                             <span class="text-2xl font-black text-blue-900">${p.total.toFixed(2)}€</span>
-                            <button class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold shadow active:bg-green-700" onclick="cobrarPedido('${id}', ${p.total})">COBRAR Y CERRAR</button>
+                            <button class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold shadow active:bg-green-700" onclick="cobrarPedido('${id}', ${p.total})">COBRAR</button>
                         </div>
                     </div>`;
                 
                 listP.innerHTML += htmlCard;
-
-                if(itemsCocina.length > 0) {
-                    const htmlCocina = htmlCard.replace('COBRAR Y CERRAR', 'CANTAR OIDO').replace('border-blue-900', 'border-orange-500');
-                    listC.innerHTML += htmlCocina;
-                }
+                if(itemsCocina.length > 0) listC.innerHTML += htmlCard.replace('COBRAR', 'LISTO').replace('border-blue-900', 'border-orange-500');
             });
         }
 
         function cobrarPedido(id, monto) {
-            if(confirm("¿Confirmar cobro de mesa?")) {
+            if(confirm("¿Cerrar mesa y sumar a caja?")) {
                 db.ref().update({
                     ['pedidos/' + id]: null,
                     ['caja_total']: firebase.database.ServerValue.increment(monto),
                     admin_auth: ADMIN_KEY
                 });
             }
+        }
+
+        function renderCamareros() {
+            const div = document.getElementById('lista-camareros-personal');
+            div.innerHTML = camareros.map((c, idx) => `
+                <div class="p-4 bg-white rounded-xl shadow flex justify-between items-center border-l-4 ${c.activo ? 'border-green-500' : 'border-gray-300'}">
+                    <div>
+                        <p class="font-black text-blue-900">CAMARERO ${c.id}</p>
+                        <p class="text-sm text-gray-500">${c.nombre}</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-[10px] font-bold ${c.activo ? 'text-green-600' : 'text-gray-400'} uppercase">${c.activo ? 'Activo' : 'Libre'}</span>
+                        <label class="switch">
+                            <input type="checkbox" ${c.activo ? 'checked' : ''} onchange="toggleCamarero(${idx})">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleCamarero(idx) {
+            camareros[idx].activo = !camareros[idx].activo;
+            renderCamareros();
         }
 
         function renderEditor() {
@@ -371,13 +394,10 @@
 
         function updItem(i, f, v) { if(f === 'precio') v = parseFloat(v); carta[i][f] = v; }
         function nuevoItem(cat) { carta.push({nombre: "Nuevo Producto", precio: 0, categoria: cat, activo: true, esCocina: false}); renderEditor(); }
-        function delItem(i) { if(confirm("¿Borrar definitivamente?")) { carta.splice(i, 1); renderEditor(); } }
+        function delItem(i) { if(confirm("¿Borrar?")) { carta.splice(i, 1); renderEditor(); } }
         
         function guardarCarta() { 
-            db.ref().update({
-                carta: carta,
-                admin_auth: ADMIN_KEY
-            }).then(() => alert("CARTA ACTUALIZADA CON ÉXITO")); 
+            db.ref().update({ carta: carta, admin_auth: ADMIN_KEY }).then(() => alert("CARTA GUARDADA")); 
         }
 
         window.onload = init;
