@@ -25,7 +25,6 @@
             padding: 20px 10px;
             text-align: center;
         }
-        /* Estilo Botones Categoría (Pestañas) */
         .cat-btn {
             width: 100%; text-align: left; padding: 18px; background: white;
             margin-bottom: 10px; border-radius: 8px; font-weight: 900;
@@ -48,12 +47,10 @@
         }
         #total-cuenta { font-size: 3.2rem; font-weight: 900; color: var(--rojo-vivo); text-align: center; margin-bottom: 10px; }
         
-        /* PANEL STAFF */
         #panel-staff { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #eef2f7; z-index: 2000; overflow-y: auto; padding-bottom: 100px; }
         .tab-admin { flex: 1; padding: 12px 5px; text-align: center; font-size: 10px; font-weight: 900; text-transform: uppercase; background: #f1f5f9; border-radius: 4px; border-bottom: 3px solid transparent; color: #64748b; }
         .tab-admin.active { background: white; border-bottom-color: var(--azul-bar); color: var(--azul-bar); }
 
-        /* Badges Cocina/Barra */
         .badge-cocina { background: #fee2e2; color: #b91c1c; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: bold; }
         .badge-barra { background: #dcfce7; color: #15803d; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: bold; }
     </style>
@@ -62,7 +59,6 @@
 
     <div id="vista-cliente">
         <header>
-            <img src="logo%20pelotazo%20png.png" alt="Logo" class="max-w-[80px] mx-auto mb-2 block">
             <h1 class="text-xl font-black uppercase tracking-widest">Bar El Pelotazo</h1>
         </header>
 
@@ -77,24 +73,17 @@
             </div>
         </div>
 
-        <!-- Categorías Dinámicas -->
-        <div id="carta-categorias" class="px-3 mt-2">
-            <!-- Se llena solo con categorías que tengan productos activos -->
-        </div>
+        <div id="carta-categorias" class="px-3 mt-2"></div>
 
         <footer>
             <div id="total-cuenta">0.00€</div>
             <button onclick="enviarPedido()" id="btn-pedido" class="w-full bg-green-600 text-white p-5 rounded-xl font-black uppercase text-lg shadow-lg">PEDIR AHORA</button>
-            <div class="text-center mt-3 text-[10px] text-gray-500 border-t pt-2">
-                Creación y diseño de <a href="https://rodante.es" target="_blank" class="font-bold text-blue-900 underline">rodante.es</a>
-            </div>
             <div class="text-center mt-2">
                 <span onclick="abrirAdmin()" class="text-[9px] text-gray-300 cursor-pointer italic">Acceso Administración</span>
             </div>
         </footer>
     </div>
 
-    <!-- PANEL STAFF -->
     <div id="panel-staff">
         <div class="bg-blue-950 text-white p-4 flex justify-between items-center sticky top-0 z-50">
             <h2 class="font-black uppercase text-sm">Administración</h2>
@@ -110,12 +99,10 @@
         </nav>
 
         <div class="p-4">
-            <!-- Comandas -->
             <div id="sec-pedidos">
                 <div id="lista-pedidos-admin" class="space-y-4"></div>
             </div>
 
-            <!-- Caja -->
             <div id="sec-dia" style="display:none">
                 <div class="bg-white p-8 rounded-xl shadow-lg text-center border-l-8 border-green-500">
                     <p class="text-xs font-bold text-gray-400 uppercase">Ventas de hoy</p>
@@ -123,12 +110,11 @@
                 </div>
             </div>
 
-            <!-- Editor Carta -->
             <div id="sec-editar" style="display:none">
                 <div class="mb-4 bg-white p-4 rounded shadow-sm border">
                     <p class="text-[10px] font-bold text-gray-400 uppercase mb-2">Añadir Categoría Nueva</p>
                     <div class="flex gap-2">
-                        <input type="text" id="nueva-cat-nombre" placeholder="Ej: Cocktails" class="flex-1 p-2 border rounded text-sm">
+                        <input type="text" id="nueva-cat-nombre" placeholder="Ej: Especiales" class="flex-1 p-2 border rounded text-sm">
                         <button onclick="crearCategoria()" class="bg-blue-900 text-white px-4 rounded font-bold text-xs">AÑADIR</button>
                     </div>
                 </div>
@@ -143,7 +129,6 @@
     </div>
 
     <script>
-        // Configuración Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyAxI0dtf4RdxNDYlmk_dVYhF5NyZOg8B2w",
             databaseURL: "https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app",
@@ -155,7 +140,8 @@
         let carrito = [];
         let mesa = null;
         let carta = [];
-        let categorias = [];
+        // Categorías solicitadas por el usuario
+        let categorias = ["Tapas/Ración/Menú", "Café/repostería/Postres", "Bebidas/Refrescos", "Tapas del día", "Otros"];
         let filtroAdmin = 'Comandas';
         const CLAVE = "V887233R";
 
@@ -173,13 +159,14 @@
         }
 
         function cargarDatos() {
-            // Escuchar categorías
             db.ref('categorias').on('value', snap => {
-                categorias = snap.val() || ["Tapas/Ración/Menú", "Café/repostería/Postres", "Bebidas/Refrescos", "Tapas del día", "Otros"];
+                const data = snap.val();
+                if(data && Array.isArray(data)) {
+                    categorias = data;
+                }
                 renderCarta();
                 renderEditor();
             });
-            // Escuchar productos
             db.ref('carta').on('value', snap => {
                 carta = snap.val() || [];
                 renderCarta();
@@ -192,10 +179,7 @@
             container.innerHTML = "";
 
             categorias.forEach((cat, idx) => {
-                // Filtrar productos que pertenecen a esta categoría Y que están activos
                 const items = carta.filter(p => p && p.categoria === cat && p.activo !== false);
-                
-                // REGLA: Si no hay productos activos, la categoría no se muestra
                 if (items.length === 0) return;
 
                 const cid = `cat-view-${idx}`;
@@ -245,15 +229,14 @@
                 hora: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
                 timestamp: Date.now()
             }).then(() => {
-                alert("✅ ¡Pedido enviado con éxito!");
+                alert("✅ ¡Pedido enviado!");
                 carrito = [];
                 actualizarTotal();
             });
         }
 
-        // --- ADMIN ---
         function abrirAdmin() {
-            if(prompt("Clave de Administrador:") === CLAVE) {
+            if(prompt("Clave:") === CLAVE) {
                 document.getElementById('panel-staff').style.display = 'block';
                 irA('pedidos', 'Comandas');
             }
@@ -312,10 +295,7 @@
                                     </div>
                                 `).join('')}
                             </div>
-                            <div class="flex justify-between items-center">
-                                <span class="font-black text-red-600">${Number(p.total).toFixed(2)}€</span>
-                                <button onclick="marcarListo('${id}')" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold text-xs">LISTO</button>
-                            </div>
+                            <button onclick="marcarListo('${id}')" class="w-full bg-green-600 text-white py-2 rounded font-bold text-xs uppercase">Completado</button>
                         </div>`;
                 });
                 document.getElementById('caja-hoy').innerText = cajaTotal.toFixed(2) + "€";
@@ -324,7 +304,6 @@
 
         function marcarListo(id) { db.ref('pedidos/'+id).remove(); }
 
-        // --- EDITOR ---
         function renderEditor() {
             const list = document.getElementById('editor-categorias-lista');
             list.innerHTML = "";
@@ -348,14 +327,14 @@
                                     <input type="text" value="${p.nombre}" onchange="editItem(${i}, 'nombre', this.value)" class="w-full p-2 border rounded font-bold" placeholder="Nombre">
                                     <div class="flex gap-2 items-center">
                                         <input type="number" step="0.1" value="${p.precio}" onchange="editItem(${i}, 'precio', this.value)" class="w-20 p-2 border rounded font-black text-blue-900">
-                                        <select onchange="editItem(${i}, 'destino', this.value)" class="flex-1 p-2 border rounded font-bold ${p.destino==='Cocina'?'text-red-600':'text-green-600'}">
-                                            <option value="Barra" ${p.destino==='Barra'?'selected':''}>AVISAR A BARRA</option>
-                                            <option value="Cocina" ${p.destino==='Cocina'?'selected':''}>AVISAR A COCINA</option>
+                                        <select onchange="editItem(${i}, 'destino', this.value)" class="flex-1 p-2 border rounded font-bold">
+                                            <option value="Barra" ${p.destino==='Barra'?'selected':''}>Barra</option>
+                                            <option value="Cocina" ${p.destino==='Cocina'?'selected':''}>Cocina</option>
                                         </select>
                                         <button onclick="eliminarItem(${i})" class="text-red-600 px-2">🗑️</button>
                                     </div>
                                     <label class="flex items-center gap-2 text-[10px] font-bold">
-                                        <input type="checkbox" ${p.activo!==false?'checked':''} onchange="editItem(${i}, 'activo', this.checked)"> VISIBLE EN CARTA WEB
+                                        <input type="checkbox" ${p.activo!==false?'checked':''} onchange="editItem(${i}, 'activo', this.checked)"> Visible en Web
                                     </label>
                                 </div>`;
                             }).join('')}
@@ -379,7 +358,7 @@
             renderEditor(); 
         }
         function borrarCat(i) {
-            if(confirm("¿Seguro que quieres borrar esta categoría y todos sus productos?")) {
+            if(confirm("¿Borrar categoría y sus productos?")) {
                 const cat = categorias[i];
                 categorias.splice(i, 1);
                 carta = carta.filter(p => p.categoria !== cat);
@@ -388,7 +367,7 @@
         }
 
         function nuevoProducto(cat) {
-            carta.push({nombre: "Nuevo Plato", precio: 0, categoria: cat, activo: true, destino: "Barra"});
+            carta.push({nombre: "Nuevo Producto", precio: 0, categoria: cat, activo: true, destino: "Barra"});
             renderEditor();
         }
         function editItem(idx, campo, val) {
@@ -403,7 +382,7 @@
         function publicarCarta() {
             db.ref('categorias').set(categorias);
             db.ref('carta').set(carta.filter(p => p != null)).then(() => {
-                alert("✅ ¡CARTA PUBLICADA! Los cambios ya son visibles para los clientes.");
+                alert("🚀 Carta actualizada correctamente.");
                 renderCarta();
             });
         }
@@ -412,3 +391,4 @@
     </script>
 </body>
 </html>
+
