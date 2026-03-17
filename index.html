@@ -85,7 +85,7 @@
     </div>
 
     <script>
-        // ESTA CLAVE DEBE SER LA MISMA QUE EN LAS REGLAS DE FIREBASE
+        // CONFIGURACIÓN CENTRALIZADA
         const ADMIN_KEY = "V887233R"; 
 
         const firebaseConfig = {
@@ -104,21 +104,21 @@
         function init() {
             document.getElementById('mesa-display').innerText = "Mesa: " + mesa;
             
-            // Cargar carta desde Firebase
+            // Cargar carta
             db.ref('carta').on('value', snap => {
                 const data = snap.val();
-                // Convertimos el objeto de Firebase en un Array para trabajar mejor
                 cartaLocal = data ? Object.values(data) : [];
                 renderCartaCliente();
             });
 
-            // Escuchar pedidos
+            // Cargar pedidos
             db.ref('pedidos').on('value', snap => {
                 window.pedidosNuevos = snap.val();
                 if(document.getElementById('admin-panel').style.display === 'block') renderPedidosAdmin();
             });
         }
 
+        // --- FUNCIONES DE CLIENTE ---
         function renderCartaCliente() {
             const container = document.getElementById('lista-categorias');
             container.innerHTML = "";
@@ -147,19 +147,18 @@
                 hora: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
                 timestamp: Date.now()
             }).then(() => { 
-                alert("✅ ¡Pedido enviado a cocina!"); 
+                alert("✅ ¡Pedido enviado!"); 
                 carrito = []; 
                 document.getElementById('total-val').innerText = "0.00€"; 
             });
         }
 
+        // --- FUNCIONES DE ADMINISTRACIÓN ---
         function accesoAdmin() {
-            const pass = prompt("Introduce clave de gestión:");
+            const pass = prompt("Introduce clave:");
             if(pass === ADMIN_KEY) {
                 document.getElementById('admin-panel').style.display = 'block';
                 tab('pedidos');
-            } else if(pass !== null) {
-                alert("Clave incorrecta");
             }
         }
 
@@ -200,25 +199,16 @@
             renderEditorCarta(); 
         }
 
-        // FUNCIÓN DEFINITIVA PARA GUARDAR
+        // GUARDADO CON LLAVE DE SEGURIDAD (ADMIN_AUTH)
         function publicarCambios() {
-            if(!confirm("¿Quieres actualizar la carta en la web?")) return;
-
-            // Creamos el objeto exactamente como lo piden las reglas de seguridad
+            if(!confirm("¿Actualizar carta en la web?")) return;
             const updateData = {
                 carta: cartaLocal,
-                admin_auth: ADMIN_KEY // Esta es la llave necesaria
+                admin_auth: ADMIN_KEY 
             };
-
-            // Ejecutamos la actualización en la raíz del proyecto
             db.ref().update(updateData)
-                .then(() => {
-                    alert("✅ CARTA ACTUALIZADA CORRECTAMENTE");
-                })
-                .catch(error => {
-                    console.error("Error al guardar:", error);
-                    alert("❌ ERROR: No tienes permiso para guardar. Asegúrate de que las REGLAS en Firebase sean correctas.");
-                });
+                .then(() => alert("✅ CARTA ACTUALIZADA CORRECTAMENTE"))
+                .catch(error => alert("❌ ERROR: No tienes permiso. Revisa las reglas en Firebase."));
         }
 
         window.onload = init;
