@@ -28,6 +28,27 @@
         .logo-header { max-width: 80px; margin: 0 auto 5px; display: block; }
         h1 { margin: 0; font-size: 1.5rem; letter-spacing: 1px; font-weight: 800; text-transform: uppercase; }
 
+        /* Aviso QR */
+        #aviso-qr {
+            background-color: #fff3cd;
+            color: #ff0000;
+            padding: 12px;
+            text-align: center;
+            font-weight: 900;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            border-bottom: 2px solid #ffeeba;
+        }
+        .triangulo-amarillo {
+            width: 0; height: 0; 
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 18px solid #ffcc00;
+        }
+
         /* Estilo Cliente */
         .cat-btn {
             width: 100%; text-align: left; padding: 15px; background: white;
@@ -57,7 +78,7 @@
         .footer-design { text-align: center; margin-top: 10px; font-size: 0.6rem; color: #aaa; border-top: 1px solid #eee; padding-top: 5px; }
         .admin-link { cursor: pointer; color: #888; text-decoration: underline; display: block; font-size: 0.7rem; margin-top: 3px; }
 
-        /* Panel STAFF Mejorado */
+        /* Panel STAFF */
         #panel-staff { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #edf2f7; z-index: 2000; overflow-y: auto; }
         .nav-admin { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 10px; background: #fff; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .nav-admin button { font-size: 0.65rem; padding: 10px 5px; font-weight: bold; border-radius: 5px; text-transform: uppercase; border: 1px solid #ddd; }
@@ -80,9 +101,15 @@
             <h1>Bar El Pelotazo</h1>
         </header>
 
+        <!-- Pestaña de aviso QR -->
+        <div id="aviso-qr">
+            <div class="triangulo-amarillo"></div>
+            ESCANEA EL QR DE TU MESA PARA REALIZAR EL PEDIDO
+        </div>
+
         <div id="info-mesa" class="p-3 bg-white m-3 rounded shadow text-center border-b-4 border-blue-900">
-            <p class="text-gray-400 text-[10px] font-bold uppercase">Mesa</p>
-            <p id="num-mesa-display" class="text-blue-900 text-4xl font-black">--</p>
+            <p class="text-gray-400 text-[10px] font-bold uppercase">Mesa Seleccionada</p>
+            <p id="num-mesa-display" class="text-blue-900 text-4xl font-black">SIN MESA</p>
         </div>
 
         <div id="carta-categorias" class="px-2 mt-2 pb-10"></div>
@@ -97,7 +124,7 @@
         </footer>
     </div>
 
-    <!-- PANEL DE ADMINISTRACIÓN ORGANIZADO -->
+    <!-- PANEL DE ADMINISTRACIÓN -->
     <div id="panel-staff">
         <div class="nav-admin">
             <button id="btn-sec-pedidos" onclick="verSeccion('pedidos')">Comandas</button>
@@ -108,19 +135,16 @@
             <button class="bg-red-600 text-white" onclick="cerrarAdmin()">Cerrar</button>
         </div>
 
-        <!-- SECCIÓN COMANDAS (TODAS) -->
         <div id="sec-pedidos" class="p-4 admin-sec">
-            <h2 class="font-black text-blue-900 mb-4 border-b border-blue-200">TODAS LAS COMANDAS</h2>
-            <div id="lista-pedidos-admin"></div>
+            <h2 class="font-black text-blue-900 mb-4 border-b border-blue-200">TODAS LAS COMANDAS ACTIVAS</h2>
+            <div id="lista-pedidos-admin" class="space-y-4"></div>
         </div>
 
-        <!-- SECCIÓN COCINA (SOLO LO MARCADO) -->
         <div id="sec-cocina" class="p-4 admin-sec" style="display:none">
             <h2 class="font-black text-orange-600 mb-4 border-b border-orange-200 uppercase">Monitor Cocina</h2>
-            <div id="lista-cocina"></div>
+            <div id="lista-cocina" class="space-y-4"></div>
         </div>
 
-        <!-- SECCIÓN EDITAR CARTA -->
         <div id="sec-editar" class="p-4 admin-sec" style="display:none">
             <h2 class="font-black text-gray-700 mb-4 border-b border-gray-300">ADMINISTRAR CARTA</h2>
             <div id="editor-productos"></div>
@@ -129,28 +153,25 @@
             </div>
         </div>
 
-        <!-- SECCIÓN CAMAREROS -->
         <div id="sec-camareros" class="p-4 admin-sec" style="display:none">
             <h2 class="font-black text-purple-700 mb-4 border-b border-purple-200 uppercase text-center">Gestión de Camareros (7)</h2>
             <div class="grid grid-cols-1 gap-3">
                 <div class="p-3 bg-white rounded shadow flex justify-between"><span>Camarero 1: ANTONIO</span><span class="text-green-500 font-bold">Activo</span></div>
                 <div class="p-3 bg-white rounded shadow flex justify-between"><span>Camarero 2: MARIA</span><span class="text-green-500 font-bold">Activo</span></div>
-                <div class="p-3 bg-white rounded shadow flex justify-between"><span>Camarero 3: PEPE</span><span class="text-gray-400">Libre</span></div>
-                <div class="p-3 bg-white rounded shadow flex justify-between"><span>Camarero 4: JUAN</span><span class="text-gray-400">Libre</span></div>
-                <div class="p-3 bg-white rounded shadow flex justify-between"><span>Camarero 5: LUCIA</span><span class="text-gray-400">Libre</span></div>
-                <div class="p-3 bg-white rounded shadow flex justify-between"><span>Camarero 6: LUIS</span><span class="text-gray-400">Libre</span></div>
-                <div class="p-3 bg-white rounded shadow flex justify-between"><span>Camarero 7: CARMEN</span><span class="text-gray-400">Libre</span></div>
+                <div class="p-3 bg-white rounded shadow flex justify-between text-gray-400"><span>Camarero 3: PEPE</span><span>Libre</span></div>
+                <div class="p-3 bg-white rounded shadow flex justify-between text-gray-400"><span>Camarero 4: JUAN</span><span>Libre</span></div>
+                <div class="p-3 bg-white rounded shadow flex justify-between text-gray-400"><span>Camarero 5: LUCIA</span><span>Libre</span></div>
+                <div class="p-3 bg-white rounded shadow flex justify-between text-gray-400"><span>Camarero 6: LUIS</span><span>Libre</span></div>
+                <div class="p-3 bg-white rounded shadow flex justify-between text-gray-400"><span>Camarero 7: CARMEN</span><span>Libre</span></div>
             </div>
         </div>
 
-        <!-- SECCIÓN CAJA / TOTAL COBRADO -->
         <div id="sec-caja" class="p-4 admin-sec text-center" style="display:none">
             <h2 class="font-black text-green-700 mb-4 border-b border-green-200 uppercase">Resumen Económico</h2>
             <div class="bg-green-600 text-white p-10 rounded-3xl shadow-2xl inline-block w-full">
                 <p class="text-sm font-bold uppercase opacity-80">Total Cobrado Hoy</p>
                 <div id="total-cobrado-acumulado" class="text-6xl font-black mt-2">0.00€</div>
             </div>
-            <p class="mt-4 text-xs text-gray-500">Este total se calcula sumando todos los pedidos eliminados del sistema (cobrados).</p>
         </div>
     </div>
 
@@ -173,7 +194,10 @@
         function init() {
             const params = new URLSearchParams(window.location.search);
             mesa = params.get('mesa');
-            if(mesa) document.getElementById('num-mesa-display').innerText = mesa;
+            if(mesa) {
+                document.getElementById('num-mesa-display').innerText = mesa;
+                document.getElementById('aviso-qr').style.display = 'none';
+            }
             cargarDatos();
         }
 
@@ -223,13 +247,12 @@
             if(carrito.length === 0) return;
             const total = carrito.reduce((s, i) => s + i.precio, 0);
             db.ref('pedidos').push({ mesa, items: carrito, total, hora: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) });
-            alert("✅ Comanda enviada.");
+            alert("✅ Comanda enviada a barra.");
             carrito = []; document.getElementById('total-cuenta').innerText = "0.00€";
         }
 
-        // PANEL ADMINISTRACIÓN
         function abrirAdmin() {
-            if(prompt("Clave:") === ADMIN_KEY) {
+            if(prompt("Clave de Staff:") === ADMIN_KEY) {
                 document.getElementById('panel-staff').style.display = 'block';
                 verSeccion('pedidos');
             }
@@ -247,31 +270,43 @@
             const listP = document.getElementById('lista-pedidos-admin');
             const listC = document.getElementById('lista-cocina');
             listP.innerHTML = ""; listC.innerHTML = "";
-            if(!data) return;
+            
+            if(!data) {
+                listP.innerHTML = "<p class='text-center text-gray-400 py-10'>No hay comandas activas</p>";
+                listC.innerHTML = "<p class='text-center text-gray-400 py-10'>Nada pendiente en cocina</p>";
+                return;
+            }
 
             Object.keys(data).forEach(id => {
                 const p = data[id];
                 const itemsCocina = p.items.filter(i => i.esCocina);
                 
-                const html = `
-                    <div class="bg-white p-3 rounded shadow mb-3 border-l-4 border-blue-900">
-                        <div class="flex justify-between font-black text-sm"><span>MESA ${p.mesa}</span><span>${p.hora}</span></div>
-                        <div class="text-xs my-2">${p.items.map(i => `<div>- ${i.nombre} ${i.esCocina ? '🔥' : ''}</div>`).join('')}</div>
-                        <div class="flex justify-between items-center pt-2 border-t">
-                            <span class="font-bold text-blue-900">${p.total.toFixed(2)}€</span>
-                            <button class="bg-green-600 text-white px-3 py-1 rounded text-[10px] font-bold" onclick="cobrarPedido('${id}', ${p.total})">COBRAR</button>
+                const htmlCard = `
+                    <div class="bg-white p-4 rounded-xl shadow-md border-l-8 border-blue-900">
+                        <div class="flex justify-between font-black mb-2">
+                            <span class="text-xl">MESA ${p.mesa}</span>
+                            <span class="text-gray-400">${p.hora}</span>
+                        </div>
+                        <div class="space-y-1 mb-3">
+                            ${p.items.map(i => `<div class="flex justify-between border-b pb-1 text-sm font-semibold"><span>${i.nombre}</span> ${i.esCocina ? '<span class="text-orange-500">🔥</span>' : ''}</div>`).join('')}
+                        </div>
+                        <div class="flex justify-between items-center mt-4">
+                            <span class="text-2xl font-black text-blue-900">${p.total.toFixed(2)}€</span>
+                            <button class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold shadow" onclick="cobrarPedido('${id}', ${p.total})">COBRAR Y CERRAR</button>
                         </div>
                     </div>`;
-                listP.innerHTML += html;
+                
+                listP.innerHTML += htmlCard;
 
                 if(itemsCocina.length > 0) {
-                    listC.innerHTML += html.replace('COBRAR', 'PLATO LISTO').replace('border-blue-900', 'border-orange-500');
+                    const htmlCocina = htmlCard.replace('COBRAR Y CERRAR', 'ENTREGADO').replace('border-blue-900', 'border-orange-500');
+                    listC.innerHTML += htmlCocina;
                 }
             });
         }
 
         function cobrarPedido(id, monto) {
-            if(confirm("¿Confirmar cobro?")) {
+            if(confirm("¿Confirmar cobro de mesa?")) {
                 db.ref('caja_total').transaction(current => (current || 0) + monto);
                 db.ref('pedidos/' + id).remove();
             }
@@ -292,9 +327,9 @@
                                 <input type="text" value="${p.nombre}" class="border p-1 rounded font-bold" onchange="updItem(${i}, 'nombre', this.value)">
                                 <div class="flex gap-2 items-center">
                                     <input type="number" step="0.1" value="${p.precio}" class="w-16 border p-1 rounded text-center" onchange="updItem(${i}, 'precio', this.value)">€
-                                    <label class="ml-auto">Cocin: <input type="checkbox" ${p.esCocina ? 'checked' : ''} onchange="updItem(${i}, 'esCocina', this.checked)"></label>
+                                    <label class="ml-auto text-[10px]">Cocina: <input type="checkbox" ${p.esCocina ? 'checked' : ''} onchange="updItem(${i}, 'esCocina', this.checked)"></label>
                                     <label class="switch"><input type="checkbox" ${p.activo !== false ? 'checked' : ''} onchange="updItem(${i}, 'activo', this.checked)"><span class="slider"></span></label>
-                                    <button class="text-red-500" onclick="delItem(${i})">✕</button>
+                                    <button class="text-red-500 font-bold ml-2" onclick="delItem(${i})">✕</button>
                                 </div>
                             </div>`;
                         }).join('')}
@@ -304,8 +339,8 @@
 
         function updItem(i, f, v) { if(f === 'precio') v = parseFloat(v); carta[i][f] = v; }
         function nuevoItem(cat) { carta.push({nombre: "Nuevo", precio: 0, categoria: cat, activo: true, esCocina: false}); renderEditor(); }
-        function delItem(i) { if(confirm("¿Borrar?")) { carta.splice(i, 1); renderEditor(); } }
-        function guardarCarta() { db.ref('carta').set(carta).then(() => alert("CARTA PUBLICADA")); }
+        function delItem(i) { if(confirm("¿Borrar definitivamente?")) { carta.splice(i, 1); renderEditor(); } }
+        function guardarCarta() { db.ref('carta').set(carta).then(() => alert("CARTA ACTUALIZADA CON ÉXITO")); }
 
         window.onload = init;
     </script>
