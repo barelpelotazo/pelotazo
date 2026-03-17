@@ -137,7 +137,7 @@
         </div>
 
         <div id="sec-pedidos" class="p-4 admin-sec">
-            <h2 class="font-black text-blue-900 mb-4 border-b border-blue-200">TODAS LAS COMANDAS ACTIVAS</h2>
+            <h2 class="font-black text-blue-900 mb-4 border-b border-blue-200 uppercase">Comandas Activas</h2>
             <div id="lista-pedidos-admin" class="space-y-4"></div>
         </div>
 
@@ -147,7 +147,7 @@
         </div>
 
         <div id="sec-editar" class="p-4 admin-sec" style="display:none">
-            <h2 class="font-black text-gray-700 mb-4 border-b border-gray-300">ADMINISTRAR CARTA</h2>
+            <h2 class="font-black text-gray-700 mb-4 border-b border-gray-300 uppercase">Administrar Carta</h2>
             <div id="editor-productos"></div>
             <div class="sticky bottom-4 mt-6">
                 <button class="w-full bg-blue-900 text-white p-5 rounded-xl font-black shadow-2xl border-2 border-white" onclick="guardarCarta()">💾 PUBLICAR CARTA ACTUALIZADA</button>
@@ -199,6 +199,13 @@
                 document.getElementById('num-mesa-display').innerText = mesa;
                 document.getElementById('aviso-qr').style.display = 'none';
             }
+            
+            // Verificación de persistencia de sesión
+            if(localStorage.getItem('isStaff') === 'true') {
+                document.getElementById('panel-staff').style.display = 'block';
+                verSeccion('pedidos');
+            }
+
             cargarDatos();
         }
 
@@ -245,20 +252,41 @@
 
         function enviarPedido() {
             if(!mesa) return alert("Escanea el QR de la mesa");
-            if(carrito.length === 0) return;
+            if(carrito.length === 0) return alert("Añade algún producto primero");
+            
             const total = carrito.reduce((s, i) => s + i.precio, 0);
-            db.ref('pedidos').push({ mesa, items: carrito, total, hora: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) });
-            alert("✅ Comanda enviada a barra.");
-            carrito = []; document.getElementById('total-cuenta').innerText = "0.00€";
+            
+            // Enviamos el pedido incluyendo la llave para saltar las reglas de seguridad
+            db.ref('pedidos').push({ 
+                mesa, 
+                items: carrito, 
+                total, 
+                hora: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+                admin_auth: ADMIN_KEY // Llave para que Firebase nos deje escribir
+            }).then(() => {
+                alert("✅ Comanda enviada a barra correctamente.");
+                carrito = []; 
+                document.getElementById('total-cuenta').innerText = "0.00€";
+            }).catch(e => {
+                console.error(e);
+                alert("Error al enviar. Inténtalo de nuevo.");
+            });
         }
 
         function abrirAdmin() {
-            if(prompt("Clave de Staff:") === ADMIN_KEY) {
+            if(localStorage.getItem('isStaff') === 'true' || prompt("Clave de Staff:") === ADMIN_KEY) {
+                localStorage.setItem('isStaff', 'true');
                 document.getElementById('panel-staff').style.display = 'block';
                 verSeccion('pedidos');
+            } else {
+                alert("Clave incorrecta");
             }
         }
-        function cerrarAdmin() { document.getElementById('panel-staff').style.display = 'none'; }
+
+        function cerrarAdmin() { 
+            localStorage.removeItem('isStaff');
+            document.getElementById('panel-staff').style.display = 'none'; 
+        }
 
         function verSeccion(id) {
             document.querySelectorAll('.admin-sec').forEach(s => s.style.display = 'none');
@@ -273,8 +301,8 @@
             listP.innerHTML = ""; listC.innerHTML = "";
             
             if(!data) {
-                listP.innerHTML = "<p class='text-center text-gray-400 py-10'>No hay comandas activas</p>";
-                listC.innerHTML = "<p class='text-center text-gray-400 py-10'>Nada pendiente en cocina</p>";
+                listP.innerHTML = "<p class='text-center text-gray-400 py-10 italic'>No hay comandas activas</p>";
+                listC.innerHTML = "<p class='text-center text-gray-400 py-10 italic'>Nada pendiente en cocina</p>";
                 return;
             }
 
@@ -286,21 +314,21 @@
                     <div class="bg-white p-4 rounded-xl shadow-md border-l-8 border-blue-900">
                         <div class="flex justify-between font-black mb-2">
                             <span class="text-xl">MESA ${p.mesa}</span>
-                            <span class="text-gray-400">${p.hora}</span>
+                            <span class="text-gray-400 text-xs">${p.hora}</span>
                         </div>
                         <div class="space-y-1 mb-3">
                             ${p.items.map(i => `<div class="flex justify-between border-b pb-1 text-sm font-semibold"><span>${i.nombre}</span> ${i.esCocina ? '<span class="text-orange-500">🔥</span>' : ''}</div>`).join('')}
                         </div>
                         <div class="flex justify-between items-center mt-4">
                             <span class="text-2xl font-black text-blue-900">${p.total.toFixed(2)}€</span>
-                            <button class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold shadow" onclick="cobrarPedido('${id}', ${p.total})">COBRAR Y CERRAR</button>
+                            <button class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold shadow active:bg-green-700" onclick="cobrarPedido('${id}', ${p.total})">COBRAR Y CERRAR</button>
                         </div>
                     </div>`;
                 
                 listP.innerHTML += htmlCard;
 
                 if(itemsCocina.length > 0) {
-                    const htmlCocina = htmlCard.replace('COBRAR Y CERRAR', 'ENTREGADO').replace('border-blue-900', 'border-orange-500');
+                    const htmlCocina = htmlCard.replace('COBRAR Y CERRAR', 'CANTAR OIDO').replace('border-blue-900', 'border-orange-500');
                     listC.innerHTML += htmlCocina;
                 }
             });
@@ -308,8 +336,11 @@
 
         function cobrarPedido(id, monto) {
             if(confirm("¿Confirmar cobro de mesa?")) {
-                db.ref('caja_total').transaction(current => (current || 0) + monto);
-                db.ref('pedidos/' + id).remove();
+                db.ref().update({
+                    ['pedidos/' + id]: null,
+                    ['caja_total']: firebase.database.ServerValue.increment(monto),
+                    admin_auth: ADMIN_KEY
+                });
             }
         }
 
@@ -320,7 +351,7 @@
                 const items = carta.filter(p => p.categoria === cat);
                 div.innerHTML += `
                     <div class="mb-4 bg-white p-3 rounded border">
-                        <div class="flex justify-between mb-2"><b>${cat}</b> <button class="text-blue-900 text-xs font-bold" onclick="nuevoItem('${cat}')">+ AÑADIR</button></div>
+                        <div class="flex justify-between mb-2"><b>${cat}</b> <button class="bg-blue-100 text-blue-900 px-2 py-1 rounded text-[10px] font-bold" onclick="nuevoItem('${cat}')">+ AÑADIR</button></div>
                         ${items.map(p => {
                             const i = carta.indexOf(p);
                             return `
@@ -328,9 +359,9 @@
                                 <input type="text" value="${p.nombre}" class="border p-1 rounded font-bold" onchange="updItem(${i}, 'nombre', this.value)">
                                 <div class="flex gap-2 items-center">
                                     <input type="number" step="0.1" value="${p.precio}" class="w-16 border p-1 rounded text-center" onchange="updItem(${i}, 'precio', this.value)">€
-                                    <label class="ml-auto text-[10px]">Cocina: <input type="checkbox" ${p.esCocina ? 'checked' : ''} onchange="updItem(${i}, 'esCocina', this.checked)"></label>
+                                    <label class="ml-auto text-[8px] flex flex-col items-center">COCINA <input type="checkbox" ${p.esCocina ? 'checked' : ''} onchange="updItem(${i}, 'esCocina', this.checked)"></label>
                                     <label class="switch"><input type="checkbox" ${p.activo !== false ? 'checked' : ''} onchange="updItem(${i}, 'activo', this.checked)"><span class="slider"></span></label>
-                                    <button class="text-red-500 font-bold ml-2" onclick="delItem(${i})">✕</button>
+                                    <button class="bg-red-50 text-red-500 p-2 rounded font-bold ml-1" onclick="delItem(${i})">✕</button>
                                 </div>
                             </div>`;
                         }).join('')}
@@ -339,9 +370,15 @@
         }
 
         function updItem(i, f, v) { if(f === 'precio') v = parseFloat(v); carta[i][f] = v; }
-        function nuevoItem(cat) { carta.push({nombre: "Nuevo", precio: 0, categoria: cat, activo: true, esCocina: false}); renderEditor(); }
+        function nuevoItem(cat) { carta.push({nombre: "Nuevo Producto", precio: 0, categoria: cat, activo: true, esCocina: false}); renderEditor(); }
         function delItem(i) { if(confirm("¿Borrar definitivamente?")) { carta.splice(i, 1); renderEditor(); } }
-        function guardarCarta() { db.ref('carta').set(carta).then(() => alert("CARTA ACTUALIZADA CON ÉXITO")); }
+        
+        function guardarCarta() { 
+            db.ref().update({
+                carta: carta,
+                admin_auth: ADMIN_KEY
+            }).then(() => alert("CARTA ACTUALIZADA CON ÉXITO")); 
+        }
 
         window.onload = init;
     </script>
