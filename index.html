@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bar El Pelotazo - Sistema de Pedidos</title>
-    <!-- Firebase SDK Legacy (Más estable para este proyecto) -->
+    <!-- Firebase SDK Legacy -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <!-- Tailwind para el diseño -->
@@ -13,15 +13,12 @@
         :root { --azul: #001f3f; --rojo: #e11d48; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: #f8fafc; margin: 0; padding-bottom: 180px; }
         
-        /* Cabecera */
         .header-bar { background: var(--azul); color: white; padding: 25px 15px; text-align: center; border-bottom: 5px solid var(--rojo); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .logo-text { font-size: 2.2rem; font-weight: 900; letter-spacing: -1px; text-transform: uppercase; font-style: italic; }
         
-        /* Categorías */
         .cat-card { background: white; margin-bottom: 12px; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
         .cat-header { background: var(--azul); color: white; padding: 15px; width: 100%; display: flex; justify-content: space-between; align-items: center; font-weight: 800; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px; }
         
-        /* Items */
         .item-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #f1f5f9; }
         .item-name { font-weight: 700; color: #1e293b; font-size: 1rem; }
         .item-price { color: var(--rojo); font-weight: 900; font-size: 1.1rem; }
@@ -29,15 +26,12 @@
         .btn-plus { background: var(--azul); color: white; width: 42px; height: 42px; border-radius: 10px; font-size: 1.5rem; font-weight: bold; transition: transform 0.1s; }
         .btn-plus:active { transform: scale(0.9); }
 
-        /* Footer Cliente */
         footer { position: fixed; bottom: 0; width: 100%; background: white; padding: 20px; border-top: 2px solid #e2e8f0; z-index: 50; box-shadow: 0 -10px 25px rgba(0,0,0,0.1); }
         #total-box { text-align: center; margin-bottom: 10px; }
         .total-monto { font-size: 3.5rem; font-weight: 900; color: var(--rojo); line-height: 1; }
         
-        /* Admin */
         #admin-panel { display: none; position: fixed; inset: 0; background: #f1f5f9; z-index: 1000; overflow-y: auto; padding-bottom: 100px; }
         .admin-nav { background: var(--azul); color: white; padding: 15px; position: sticky; top: 0; z-index: 1010; display: flex; justify-content: space-between; align-items: center; }
-        .edit-card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #cbd5e1; }
         
         .btn-pub { position: fixed; bottom: 20px; left: 20px; right: 20px; background: #16a34a; color: white; padding: 20px; border-radius: 15px; font-weight: 900; text-transform: uppercase; box-shadow: 0 10px 20px rgba(22,163,74,0.3); z-index: 1100; border: 3px solid white; }
     </style>
@@ -48,24 +42,25 @@
     <div id="app-cliente">
         <header class="header-bar">
             <div class="logo-text">EL PELOTAZO</div>
-            <div id="mesa-display" class="mt-2 inline-block bg-white text-[#001f3f] px-4 py-1 rounded-full font-black text-sm shadow-inner uppercase">Cargando mesa...</div>
+            <div id="mesa-display" class="mt-2 inline-block bg-white text-[#001f3f] px-4 py-1 rounded-full font-black text-sm shadow-inner uppercase">Mesa: ...</div>
         </header>
 
-        <div id="lista-categorias" class="p-4">
-            <!-- Los productos se cargan aquí -->
-            <p class="text-center py-10 text-gray-400">Cargando carta...</p>
+        <div id="lista-categorias" class="p-4 max-w-lg mx-auto">
+            <p class="text-center py-10 text-gray-400">Cargando la carta...</p>
         </div>
 
         <footer>
-            <div id="total-box">
-                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Total Pedido</span>
-                <span class="total-monto" id="total-val">0.00€</span>
-            </div>
-            <button onclick="enviarPedido()" class="w-full bg-[#16a34a] text-white py-4 rounded-2xl font-black text-lg shadow-lg active:scale-95 transition-transform uppercase">
-                Confirmar y Pedir
-            </button>
-            <div class="text-center mt-3">
-                <button onclick="accesoAdmin()" class="text-[10px] text-gray-300 font-bold uppercase tracking-tighter">Acceso Staff</button>
+            <div class="max-w-lg mx-auto">
+                <div id="total-box">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Total Pedido</span>
+                    <span class="total-monto" id="total-val">0.00€</span>
+                </div>
+                <button onclick="enviarPedido()" class="w-full bg-[#16a34a] text-white py-4 rounded-2xl font-black text-lg shadow-lg active:scale-95 transition-transform uppercase">
+                    Confirmar y Pedir
+                </button>
+                <div class="text-center mt-3">
+                    <button onclick="accesoAdmin()" class="text-[10px] text-gray-300 font-bold uppercase tracking-tighter">Acceso Staff</button>
+                </div>
             </div>
         </footer>
     </div>
@@ -78,13 +73,11 @@
         </div>
 
         <div class="flex bg-white border-b sticky top-[52px] z-[1010]">
-            <button id="btn-tab-pedidos" onclick="tab('pedidos')" class="flex-1 p-4 font-black text-[10px] uppercase border-b-4 border-blue-900">Comandas</button>
+            <button id="btn-tab-pedidos" onclick="tab('pedidos')" class="flex-1 p-4 font-black text-[10px] uppercase border-b-4 border-blue-900 text-blue-900">Comandas</button>
             <button id="btn-tab-carta" onclick="tab('carta')" class="flex-1 p-4 font-black text-[10px] uppercase text-gray-400">Editar Carta</button>
         </div>
 
-        <div id="admin-content" class="p-4">
-            <!-- Aquí se cargan o los pedidos o el editor -->
-        </div>
+        <div id="admin-content" class="p-4 max-w-lg mx-auto"></div>
 
         <button id="btn-guardar-carta" style="display:none" onclick="publicarCambios()" class="btn-pub">
             🚀 Publicar Cambios en la Web
@@ -92,7 +85,9 @@
     </div>
 
     <script>
-        // CONFIGURACIÓN
+        // ESTA ES LA CLAVE QUE ABRE EL CERROJO DE FIREBASE
+        const ADMIN_KEY = "V887233R"; 
+
         const firebaseConfig = {
             apiKey: "AIzaSyAxI0dtf4RdxNDYlmk_dVYhF5NyZOg8B2w",
             databaseURL: "https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app",
@@ -108,198 +103,99 @@
 
         function init() {
             document.getElementById('mesa-display').innerText = "Mesa: " + mesa;
-            
-            // 1. Cargar Carta
             db.ref('carta').on('value', snap => {
                 const data = snap.val();
                 cartaLocal = data ? Object.values(data) : [];
                 renderCartaCliente();
             });
-
-            // 2. Escuchar Pedidos (Para el Admin)
             db.ref('pedidos').on('value', snap => {
                 window.pedidosNuevos = snap.val();
-                if(document.getElementById('admin-panel').style.display === 'block') {
-                    renderPedidosAdmin();
-                }
+                if(document.getElementById('admin-panel').style.display === 'block') renderPedidosAdmin();
             });
         }
 
-        // --- FUNCIONES CLIENTE ---
         function renderCartaCliente() {
             const container = document.getElementById('lista-categorias');
             container.innerHTML = "";
-
             CATEGORIAS.forEach(cat => {
                 const prods = cartaLocal.filter(p => p.categoria === cat && p.activo !== false);
                 if(prods.length === 0) return;
-
-                let html = `
-                    <div class="cat-card">
-                        <div class="cat-header"><span>${cat}</span> <span>▼</span></div>
-                        <div class="bg-white">
-                `;
-
+                let html = `<div class="cat-card"><div class="cat-header"><span>${cat}</span></div>`;
                 prods.forEach(p => {
-                    html += `
-                        <div class="item-row">
-                            <div>
-                                <div class="item-name">${p.nombre}</div>
-                                <div class="item-price">${p.precio.toFixed(2)}€</div>
-                            </div>
-                            <button onclick="agregar('${p.nombre}', ${p.precio})" class="btn-plus">+</button>
-                        </div>
-                    `;
+                    html += `<div class="item-row"><div><div class="item-name">${p.nombre}</div><div class="item-price">${parseFloat(p.precio).toFixed(2)}€</div></div><button onclick="agregar('${p.nombre}', ${p.precio})" class="btn-plus">+</button></div>`;
                 });
-
-                html += `</div></div>`;
-                container.innerHTML += html;
+                container.innerHTML += html + `</div>`;
             });
         }
 
         function agregar(nombre, precio) {
-            carrito.push({nombre, precio});
-            const total = carrito.reduce((acc, i) => acc + i.precio, 0);
-            document.getElementById('total-val').innerText = total.toFixed(2) + "€";
+            carrito.push({nombre, precio: parseFloat(precio)});
+            document.getElementById('total-val').innerText = carrito.reduce((acc, i) => acc + i.precio, 0).toFixed(2) + "€";
         }
 
         function enviarPedido() {
-            if(carrito.length === 0) return alert("El carrito está vacío");
-            
+            if(carrito.length === 0) return;
             db.ref('pedidos').push({
-                mesa: mesa,
-                items: carrito,
+                mesa, items: carrito,
                 total: carrito.reduce((acc, i) => acc + i.precio, 0),
                 hora: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
                 timestamp: Date.now()
-            }).then(() => {
-                alert("✅ ¡Pedido enviado! Enseguida te lo servimos.");
-                carrito = [];
-                document.getElementById('total-val').innerText = "0.00€";
-            });
+            }).then(() => { alert("Pedido enviado!"); carrito = []; document.getElementById('total-val').innerText = "0.00€"; });
         }
 
-        // --- FUNCIONES ADMIN ---
-        function accesoAdmin() {
-            const pass = prompt("Introduce clave de gestión:");
-            if(pass === "V887233R") {
-                document.getElementById('admin-panel').style.display = 'block';
-                tab('pedidos');
-            }
-        }
-
+        function accesoAdmin() { if(prompt("Clave:") === ADMIN_KEY) { document.getElementById('admin-panel').style.display = 'block'; tab('pedidos'); } }
         function cerrarAdmin() { document.getElementById('admin-panel').style.display = 'none'; }
 
         function tab(t) {
-            const cont = document.getElementById('admin-content');
-            const btnP = document.getElementById('btn-tab-pedidos');
-            const btnC = document.getElementById('btn-tab-carta');
-            const btnG = document.getElementById('btn-guardar-carta');
-
-            if(t === 'pedidos') {
-                btnP.className = "flex-1 p-4 font-black text-[10px] uppercase border-b-4 border-blue-900";
-                btnC.className = "flex-1 p-4 font-black text-[10px] uppercase text-gray-400";
-                btnG.style.display = "none";
-                renderPedidosAdmin();
-            } else {
-                btnC.className = "flex-1 p-4 font-black text-[10px] uppercase border-b-4 border-blue-900";
-                btnP.className = "flex-1 p-4 font-black text-[10px] uppercase text-gray-400";
-                btnG.style.display = "block";
-                renderEditorCarta();
-            }
+            const isP = t === 'pedidos';
+            document.getElementById('btn-tab-pedidos').className = isP ? "flex-1 p-4 font-black text-[10px] border-b-4 border-blue-900 text-blue-900" : "flex-1 p-4 font-black text-[10px] text-gray-400";
+            document.getElementById('btn-tab-carta').className = !isP ? "flex-1 p-4 font-black text-[10px] border-b-4 border-blue-900 text-blue-900" : "flex-1 p-4 font-black text-[10px] text-gray-400";
+            document.getElementById('btn-guardar-carta').style.display = isP ? "none" : "block";
+            isP ? renderPedidosAdmin() : renderEditorCarta();
         }
 
         function renderPedidosAdmin() {
             const cont = document.getElementById('admin-content');
-            const data = window.pedidosNuevos;
             cont.innerHTML = "";
-            
-            if(!data) { cont.innerHTML = "<p class='text-center py-20 text-gray-400 font-bold uppercase text-xs'>No hay pedidos pendientes</p>"; return; }
-
+            const data = window.pedidosNuevos;
+            if(!data) return cont.innerHTML = "<p class='text-center mt-20 text-gray-400 font-bold'>SIN PEDIDOS</p>";
             Object.keys(data).reverse().forEach(id => {
                 const p = data[id];
-                cont.innerHTML += `
-                    <div class="bg-white p-4 rounded-xl border-l-8 border-red-600 mb-4 shadow-sm">
-                        <div class="flex justify-between font-black text-blue-900 border-b pb-2 mb-2 uppercase text-sm">
-                            <span>Mesa ${p.mesa}</span>
-                            <span>${p.hora}</span>
-                        </div>
-                        <div class="space-y-1 text-sm font-medium">
-                            ${p.items.map(i => `<div>• ${i.nombre}</div>`).join('')}
-                        </div>
-                        <div class="mt-3 text-right font-black text-red-600">${p.total.toFixed(2)}€</div>
-                        <button onclick="archivarPedido('${id}')" class="w-full mt-3 bg-gray-100 text-gray-500 py-2 rounded font-bold text-[10px] uppercase tracking-widest">Archivar</button>
-                    </div>
-                `;
+                cont.innerHTML += `<div class="bg-white p-4 rounded-xl border-l-8 border-red-600 mb-4 shadow-sm"><div class="flex justify-between font-black text-blue-900 border-b pb-2 mb-2 uppercase text-[10px]"><span>Mesa ${p.mesa}</span><span>${p.hora}</span></div><div class="space-y-1 text-sm font-medium">${p.items.map(i => `<div>• ${i.nombre}</div>`).join('')}</div><div class="mt-3 text-right font-black text-red-600">${p.total.toFixed(2)}€</div><button onclick="db.ref('pedidos/${id}').remove()" class="w-full mt-3 bg-gray-100 text-gray-400 py-2 rounded font-bold text-[9px] uppercase">Archivar</button></div>`;
             });
         }
 
         function renderEditorCarta() {
             const cont = document.getElementById('admin-content');
             cont.innerHTML = "";
-
             CATEGORIAS.forEach(cat => {
-                cont.innerHTML += `
-                    <div class="mb-6">
-                        <div class="flex justify-between items-center mb-2">
-                            <h3 class="font-black text-blue-900 uppercase text-[10px] tracking-widest">${cat}</h3>
-                            <button onclick="nuevoProducto('${cat}')" class="bg-blue-900 text-white px-3 py-1 rounded text-[10px] font-bold">+ NUEVO</button>
-                        </div>
-                        <div id="edit-cat-${cat}">
-                            ${cartaLocal.filter(p => p.categoria === cat).map((p, i) => {
-                                const globalIdx = cartaLocal.indexOf(p);
-                                return `
-                                    <div class="edit-card">
-                                        <input type="text" onchange="upd(${globalIdx}, 'nombre', this.value)" value="${p.nombre}" class="w-full font-bold p-1 border-b mb-2 outline-none">
-                                        <div class="flex justify-between items-center">
-                                            <div class="bg-gray-100 px-3 py-1 rounded-lg flex items-center">
-                                                <span class="text-xs font-bold mr-1">€</span>
-                                                <input type="number" step="0.01" onchange="upd(${globalIdx}, 'precio', this.value)" value="${p.precio}" class="bg-transparent w-16 font-black outline-none">
-                                            </div>
-                                            <div class="flex gap-4">
-                                                <label class="flex items-center text-[9px] font-black uppercase text-gray-400">
-                                                    <input type="checkbox" onchange="upd(${globalIdx}, 'activo', this.checked)" ${p.activo !== false ? 'checked' : ''} class="mr-1"> Visible
-                                                </label>
-                                                <button onclick="eliminarProducto(${globalIdx})" class="text-red-500 font-bold text-[9px] uppercase">Borrar</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `;
-                            }).join('')}
-                        </div>
-                    </div>
-                `;
+                cont.innerHTML += `<div class="mb-6"><div class="flex justify-between items-center mb-2"><h3 class="font-black text-blue-900 uppercase text-[10px]">${cat}</h3><button onclick="nuevoP('${cat}')" class="bg-blue-900 text-white px-3 py-1 rounded text-[10px] font-bold">+ NUEVO</button></div><div id="edit-cat-${cat}">${cartaLocal.filter(p => p.categoria === cat).map((p, i) => {
+                    const gIdx = cartaLocal.indexOf(p);
+                    return `<div class="bg-white p-4 rounded-xl mb-2 border"><input type="text" onchange="cartaLocal[${gIdx}].nombre=this.value" value="${p.nombre}" class="w-full font-bold border-b mb-2 outline-none"><div class="flex justify-between items-center"><input type="number" step="0.01" onchange="cartaLocal[${gIdx}].precio=parseFloat(this.value)" value="${p.precio}" class="w-20 font-black border p-1 rounded"> <button onclick="cartaLocal.splice(${gIdx},1);renderEditorCarta()" class="text-red-500 text-[9px] font-bold">BORRAR</button></div></div>`;
+                }).join('')}</div></div>`;
             });
         }
 
-        // --- LOGICA DE EDICIÓN ---
-        function upd(idx, campo, val) {
-            if(campo === 'precio') val = parseFloat(val) || 0;
-            cartaLocal[idx][campo] = val;
-        }
+        function nuevoP(cat) { cartaLocal.push({ nombre: "Nuevo", precio: 0, categoria: cat, activo: true }); renderEditorCarta(); }
 
-        function nuevoProducto(cat) {
-            cartaLocal.push({ nombre: "Nuevo Producto", precio: 0, categoria: cat, activo: true });
-            renderEditorCarta();
-        }
-
-        function eliminarProducto(idx) {
-            if(confirm("¿Seguro que quieres borrarlo?")) {
-                cartaLocal.splice(idx, 1);
-                renderEditorCarta();
-            }
-        }
-
+        // --- AQUÍ HE AÑADIDO EL CÓDIGO QUE ME PEDISTE ---
         function publicarCambios() {
-            db.ref('carta').set(cartaLocal)
-                .then(() => alert("✨ CARTA ACTUALIZADA EN TODAS LAS MESAS"))
-                .catch(e => alert("Error: " + e.message));
-        }
+            // Preparamos el paquete con la carta y la llave de seguridad
+            const updateData = {
+                carta: cartaLocal,
+                admin_auth: ADMIN_KEY 
+            };
 
-        function archivarPedido(id) { db.ref('pedidos/' + id).remove(); }
+            // Enviamos el paquete a la raíz de la base de datos
+            db.ref().update(updateData)
+                .then(() => alert("✅ Web actualizada correctamente"))
+                .catch(e => {
+                    console.error(e);
+                    alert("❌ Error de permisos. Revisa las reglas en la consola de Firebase.");
+                });
+        }
 
         window.onload = init;
     </script>
 </body>
 </html>
-
