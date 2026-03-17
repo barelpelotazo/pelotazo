@@ -75,8 +75,9 @@
             width: 100%; background-color: #27ae60; color: white; border: none;
             padding: 16px; border-radius: 12px; font-weight: bold; text-transform: uppercase; font-size: 1.2rem;
         }
-        .footer-design { text-align: center; margin-top: 10px; font-size: 0.6rem; color: #aaa; border-top: 1px solid #eee; padding-top: 5px; }
-        .admin-link { cursor: pointer; color: #888; text-decoration: underline; display: block; font-size: 0.7rem; margin-top: 3px; }
+        .footer-design { text-align: center; margin-top: 10px; font-size: 0.65rem; color: #888; border-top: 1px solid #eee; padding-top: 8px; }
+        .footer-design a { color: var(--azul-bar); font-weight: bold; text-decoration: none; border-bottom: 1px solid #ccc; }
+        .admin-link { cursor: pointer; color: #bbb; text-decoration: underline; display: block; font-size: 0.6rem; margin-top: 5px; }
 
         /* Panel STAFF */
         #panel-staff { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #edf2f7; z-index: 2000; overflow-y: auto; }
@@ -118,7 +119,7 @@
             <div id="total-cuenta">0.00€</div>
             <button id="btn-pedido" onclick="enviarPedido()">ENVIAR A COMANDA</button>
             <div class="footer-design">
-                PELOTAZO S.L. &copy; 2024 - Sistema de Gestión Inteligente
+                Creación y diseño de <a href="https://rodante.es" target="_blank">rodante.es</a>
                 <span class="admin-link" onclick="abrirAdmin()">ENTRAR AL PANEL DE CONTROL</span>
             </div>
         </footer>
