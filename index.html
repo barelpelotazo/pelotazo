@@ -3,111 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bar El Pelotazo - Gestión de Pedidos</title>
-    <!-- Firebase SDK Legacy -->
+    <title>Bar El Pelotazo - Sistema de Pedidos</title>
+    <!-- Firebase SDK Legacy (Más estable para este proyecto) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <!-- Tailwind para el diseño -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root {
-            --azul-bar: #001f3f;
-            --rojo-vivo: #ff0000;
-        }
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background-color: #f4f7f6;
-            margin: 0;
-            padding-bottom: 240px; 
-        }
-        header {
-            background-color: var(--azul-bar);
-            color: white;
-            padding: 20px 10px;
-            text-align: center;
-        }
-        .cat-btn {
-            width: 100%; text-align: left; padding: 18px; background: white;
-            margin-bottom: 10px; border-radius: 8px; font-weight: 900;
-            color: var(--azul-bar); border-left: 8px solid var(--azul-bar);
-            display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            text-transform: uppercase;
-        }
-        .cat-content { display: none; margin-bottom: 20px; }
-        .item-row {
-            background: white; margin: 4px 0; padding: 14px; border-radius: 6px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .btn-add { background-color: var(--azul-bar); color: white; border: none; width: 38px; height: 38px; border-radius: 8px; font-weight: bold; font-size: 1.5rem; }
-
-        footer {
-            position: fixed; bottom: 0; width: 100%; background: #fff;
-            padding: 15px; border-top: 3px solid var(--azul-bar);
-            z-index: 100; box-shadow: 0 -5px 10px rgba(0,0,0,0.1);
-        }
-        #total-cuenta { font-size: 3.2rem; font-weight: 900; color: var(--rojo-vivo); text-align: center; }
+        :root { --azul: #001f3f; --rojo: #e11d48; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: #f8fafc; margin: 0; padding-bottom: 180px; }
         
-        #panel-staff { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f1f5f9; z-index: 2000; overflow-y: auto; }
-        .tab-admin { flex: 1; padding: 15px 5px; text-align: center; font-size: 11px; font-weight: 900; text-transform: uppercase; background: #e2e8f0; color: #64748b; }
-        .tab-admin.active { background: white; color: var(--azul-bar); border-bottom: 3px solid var(--azul-bar); }
+        /* Cabecera */
+        .header-bar { background: var(--azul); color: white; padding: 25px 15px; text-align: center; border-bottom: 5px solid var(--rojo); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .logo-text { font-size: 2.2rem; font-weight: 900; letter-spacing: -1px; text-transform: uppercase; font-style: italic; }
+        
+        /* Categorías */
+        .cat-card { background: white; margin-bottom: 12px; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+        .cat-header { background: var(--azul); color: white; padding: 15px; width: 100%; display: flex; justify-content: space-between; align-items: center; font-weight: 800; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px; }
+        
+        /* Items */
+        .item-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #f1f5f9; }
+        .item-name { font-weight: 700; color: #1e293b; font-size: 1rem; }
+        .item-price { color: var(--rojo); font-weight: 900; font-size: 1.1rem; }
+        
+        .btn-plus { background: var(--azul); color: white; width: 42px; height: 42px; border-radius: 10px; font-size: 1.5rem; font-weight: bold; transition: transform 0.1s; }
+        .btn-plus:active { transform: scale(0.9); }
 
-        .item-edit-card { background: white; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 10px; }
+        /* Footer Cliente */
+        footer { position: fixed; bottom: 0; width: 100%; background: white; padding: 20px; border-top: 2px solid #e2e8f0; z-index: 50; box-shadow: 0 -10px 25px rgba(0,0,0,0.1); }
+        #total-box { text-align: center; margin-bottom: 10px; }
+        .total-monto { font-size: 3.5rem; font-weight: 900; color: var(--rojo); line-height: 1; }
+        
+        /* Admin */
+        #admin-panel { display: none; position: fixed; inset: 0; background: #f1f5f9; z-index: 1000; overflow-y: auto; padding-bottom: 100px; }
+        .admin-nav { background: var(--azul); color: white; padding: 15px; position: sticky; top: 0; z-index: 1010; display: flex; justify-content: space-between; align-items: center; }
+        .edit-card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #cbd5e1; }
+        
+        .btn-pub { position: fixed; bottom: 20px; left: 20px; right: 20px; background: #16a34a; color: white; padding: 20px; border-radius: 15px; font-weight: 900; text-transform: uppercase; box-shadow: 0 10px 20px rgba(22,163,74,0.3); z-index: 1100; border: 3px solid white; }
     </style>
 </head>
 <body>
 
-    <!-- VISTA CLIENTE -->
-    <div id="vista-cliente">
-        <header>
-            <h1 class="text-xl font-black uppercase tracking-widest">Bar El Pelotazo</h1>
-            <p id="mesa-val" class="text-xs mt-1 opacity-80">Selecciona tu mesa</p>
+    <!-- VISTA DEL CLIENTE -->
+    <div id="app-cliente">
+        <header class="header-bar">
+            <div class="logo-text">EL PELOTAZO</div>
+            <div id="mesa-display" class="mt-2 inline-block bg-white text-[#001f3f] px-4 py-1 rounded-full font-black text-sm shadow-inner uppercase">Cargando mesa...</div>
         </header>
 
-        <div id="carta-categorias" class="p-4">
-            <!-- Cargando... -->
+        <div id="lista-categorias" class="p-4">
+            <!-- Los productos se cargan aquí -->
+            <p class="text-center py-10 text-gray-400">Cargando carta...</p>
         </div>
 
         <footer>
-            <div id="total-cuenta">0.00€</div>
-            <button onclick="enviarPedido()" class="w-full bg-green-600 text-white p-4 rounded-xl font-black uppercase text-lg shadow-lg mt-2">REALIZAR PEDIDO</button>
+            <div id="total-box">
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Total Pedido</span>
+                <span class="total-monto" id="total-val">0.00€</span>
+            </div>
+            <button onclick="enviarPedido()" class="w-full bg-[#16a34a] text-white py-4 rounded-2xl font-black text-lg shadow-lg active:scale-95 transition-transform uppercase">
+                Confirmar y Pedir
+            </button>
             <div class="text-center mt-3">
-                <span onclick="abrirAdmin()" class="text-[10px] text-gray-400 cursor-pointer">Panel de Control</span>
+                <button onclick="accesoAdmin()" class="text-[10px] text-gray-300 font-bold uppercase tracking-tighter">Acceso Staff</button>
             </div>
         </footer>
     </div>
 
     <!-- PANEL DE ADMINISTRACIÓN -->
-    <div id="panel-staff">
-        <div class="bg-blue-900 text-white p-4 flex justify-between items-center sticky top-0 z-[2100]">
-            <h2 class="font-black uppercase text-sm">Administración</h2>
-            <button class="bg-red-500 px-4 py-1 rounded font-bold text-xs" onclick="location.reload()">CERRAR</button>
+    <div id="admin-panel">
+        <div class="admin-nav">
+            <span class="font-black text-xs tracking-widest uppercase">Gestión de Carta</span>
+            <button onclick="cerrarAdmin()" class="bg-red-500 px-4 py-1 rounded-lg text-[10px] font-bold">SALIR</button>
         </div>
-        
-        <nav class="flex sticky top-[52px] z-[2100] shadow-md">
-            <button class="tab-admin active" id="tab-p" onclick="cambiarTab('pedidos')">Comandas</button>
-            <button class="tab-admin" id="tab-e" onclick="cambiarTab('editar')">Gestionar Carta</button>
-        </nav>
 
-        <div class="p-4 pb-32">
-            <div id="sec-pedidos">
-                <div id="lista-pedidos" class="space-y-4 text-center py-10 opacity-50">Cargando comandas...</div>
-            </div>
-
-            <div id="sec-editar" style="display:none">
-                <div id="editor-lista" class="space-y-8">
-                    <!-- Aquí se generan las categorías y productos -->
-                </div>
-                
-                <div class="fixed bottom-6 left-4 right-4 z-[2200]">
-                    <button onclick="guardarTodo()" class="w-full bg-green-600 text-white p-5 rounded-2xl font-black uppercase shadow-2xl border-4 border-white">
-                        🚀 PUBLICAR CAMBIOS EN LA WEB
-                    </button>
-                </div>
-            </div>
+        <div class="flex bg-white border-b sticky top-[52px] z-[1010]">
+            <button id="btn-tab-pedidos" onclick="tab('pedidos')" class="flex-1 p-4 font-black text-[10px] uppercase border-b-4 border-blue-900">Comandas</button>
+            <button id="btn-tab-carta" onclick="tab('carta')" class="flex-1 p-4 font-black text-[10px] uppercase text-gray-400">Editar Carta</button>
         </div>
+
+        <div id="admin-content" class="p-4">
+            <!-- Aquí se cargan o los pedidos o el editor -->
+        </div>
+
+        <button id="btn-guardar-carta" style="display:none" onclick="publicarCambios()" class="btn-pub">
+            🚀 Publicar Cambios en la Web
+        </button>
     </div>
 
     <script>
+        // CONFIGURACIÓN
         const firebaseConfig = {
             apiKey: "AIzaSyAxI0dtf4RdxNDYlmk_dVYhF5NyZOg8B2w",
             databaseURL: "https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app",
@@ -116,101 +101,170 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        let cartaLocal = [];
         let carrito = [];
-        let mesa = new URLSearchParams(window.location.search).get('mesa') || "SIN MESA";
-        let cartaOriginal = [];
-        const categoriasFijas = ["Tapas/Ración/Menú", "Café/repostería/Postres", "Bebidas/Refrescos", "Tapas del día", "Otros"];
+        let mesa = new URLSearchParams(window.location.search).get('mesa') || "BARRA";
+        const CATEGORIAS = ["Bebidas", "Tapas", "Raciones", "Postres/Varios"];
 
         function init() {
-            document.getElementById('mesa-val').innerText = "MESA: " + mesa;
+            document.getElementById('mesa-display').innerText = "Mesa: " + mesa;
             
-            // Escuchar la carta en tiempo real
+            // 1. Cargar Carta
             db.ref('carta').on('value', snap => {
-                cartaOriginal = snap.val() || [];
-                renderCarta();
-                renderEditor();
+                const data = snap.val();
+                cartaLocal = data ? Object.values(data) : [];
+                renderCartaCliente();
             });
 
-            // Escuchar pedidos
+            // 2. Escuchar Pedidos (Para el Admin)
             db.ref('pedidos').on('value', snap => {
-                const data = snap.val();
-                const div = document.getElementById('lista-pedidos');
-                div.innerHTML = "";
-                if(!data) { div.innerHTML = "No hay pedidos pendientes"; return; }
-                
-                Object.keys(data).reverse().forEach(id => {
-                    const p = data[id];
-                    div.innerHTML += `
-                        <div class="bg-white p-4 rounded-xl shadow border-l-8 border-blue-900 text-left">
-                            <div class="flex justify-between font-black text-blue-900 border-b pb-2 mb-2">
-                                <span>MESA ${p.mesa}</span>
-                                <span>${p.hora}</span>
-                            </div>
-                            <div class="text-sm space-y-1">
-                                ${p.items.map(i => `<div>• ${i.nombre}</div>`).join('')}
-                            </div>
-                            <button onclick="eliminarPedido('${id}')" class="w-full mt-4 bg-gray-100 text-gray-500 py-2 rounded font-bold text-[10px]">ARCHIVAR</button>
-                        </div>
-                    `;
-                });
+                window.pedidosNuevos = snap.val();
+                if(document.getElementById('admin-panel').style.display === 'block') {
+                    renderPedidosAdmin();
+                }
             });
         }
 
-        function renderCarta() {
-            const container = document.getElementById('carta-categorias');
+        // --- FUNCIONES CLIENTE ---
+        function renderCartaCliente() {
+            const container = document.getElementById('lista-categorias');
             container.innerHTML = "";
-            categoriasFijas.forEach((cat, idx) => {
-                const productos = cartaOriginal.filter(p => p && p.categoria === cat && p.activo !== false);
-                if(productos.length === 0) return;
 
-                container.innerHTML += `
-                    <div class="mb-4">
-                        <button class="cat-btn" onclick="toggleCat('v-${idx}')">${cat} <span>▼</span></button>
-                        <div id="v-${idx}" class="cat-content">
-                            ${productos.map(p => `
-                                <div class="item-row shadow-sm border">
-                                    <span class="font-bold">${p.nombre}</span>
-                                    <div class="flex items-center gap-4">
-                                        <span class="font-black text-blue-900">${parseFloat(p.precio).toFixed(2)}€</span>
-                                        <button onclick="add('${p.nombre}', ${p.precio})" class="btn-add">+</button>
-                                    </div>
-                                </div>
-                            `).join('')}
+            CATEGORIAS.forEach(cat => {
+                const prods = cartaLocal.filter(p => p.categoria === cat && p.activo !== false);
+                if(prods.length === 0) return;
+
+                let html = `
+                    <div class="cat-card">
+                        <div class="cat-header"><span>${cat}</span> <span>▼</span></div>
+                        <div class="bg-white">
+                `;
+
+                prods.forEach(p => {
+                    html += `
+                        <div class="item-row">
+                            <div>
+                                <div class="item-name">${p.nombre}</div>
+                                <div class="item-price">${p.precio.toFixed(2)}€</div>
+                            </div>
+                            <button onclick="agregar('${p.nombre}', ${p.precio})" class="btn-plus">+</button>
                         </div>
+                    `;
+                });
+
+                html += `</div></div>`;
+                container.innerHTML += html;
+            });
+        }
+
+        function agregar(nombre, precio) {
+            carrito.push({nombre, precio});
+            const total = carrito.reduce((acc, i) => acc + i.precio, 0);
+            document.getElementById('total-val').innerText = total.toFixed(2) + "€";
+        }
+
+        function enviarPedido() {
+            if(carrito.length === 0) return alert("El carrito está vacío");
+            
+            db.ref('pedidos').push({
+                mesa: mesa,
+                items: carrito,
+                total: carrito.reduce((acc, i) => acc + i.precio, 0),
+                hora: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                timestamp: Date.now()
+            }).then(() => {
+                alert("✅ ¡Pedido enviado! Enseguida te lo servimos.");
+                carrito = [];
+                document.getElementById('total-val').innerText = "0.00€";
+            });
+        }
+
+        // --- FUNCIONES ADMIN ---
+        function accesoAdmin() {
+            const pass = prompt("Introduce clave de gestión:");
+            if(pass === "V887233R") {
+                document.getElementById('admin-panel').style.display = 'block';
+                tab('pedidos');
+            }
+        }
+
+        function cerrarAdmin() { document.getElementById('admin-panel').style.display = 'none'; }
+
+        function tab(t) {
+            const cont = document.getElementById('admin-content');
+            const btnP = document.getElementById('btn-tab-pedidos');
+            const btnC = document.getElementById('btn-tab-carta');
+            const btnG = document.getElementById('btn-guardar-carta');
+
+            if(t === 'pedidos') {
+                btnP.className = "flex-1 p-4 font-black text-[10px] uppercase border-b-4 border-blue-900";
+                btnC.className = "flex-1 p-4 font-black text-[10px] uppercase text-gray-400";
+                btnG.style.display = "none";
+                renderPedidosAdmin();
+            } else {
+                btnC.className = "flex-1 p-4 font-black text-[10px] uppercase border-b-4 border-blue-900";
+                btnP.className = "flex-1 p-4 font-black text-[10px] uppercase text-gray-400";
+                btnG.style.display = "block";
+                renderEditorCarta();
+            }
+        }
+
+        function renderPedidosAdmin() {
+            const cont = document.getElementById('admin-content');
+            const data = window.pedidosNuevos;
+            cont.innerHTML = "";
+            
+            if(!data) { cont.innerHTML = "<p class='text-center py-20 text-gray-400 font-bold uppercase text-xs'>No hay pedidos pendientes</p>"; return; }
+
+            Object.keys(data).reverse().forEach(id => {
+                const p = data[id];
+                cont.innerHTML += `
+                    <div class="bg-white p-4 rounded-xl border-l-8 border-red-600 mb-4 shadow-sm">
+                        <div class="flex justify-between font-black text-blue-900 border-b pb-2 mb-2 uppercase text-sm">
+                            <span>Mesa ${p.mesa}</span>
+                            <span>${p.hora}</span>
+                        </div>
+                        <div class="space-y-1 text-sm font-medium">
+                            ${p.items.map(i => `<div>• ${i.nombre}</div>`).join('')}
+                        </div>
+                        <div class="mt-3 text-right font-black text-red-600">${p.total.toFixed(2)}€</div>
+                        <button onclick="archivarPedido('${id}')" class="w-full mt-3 bg-gray-100 text-gray-500 py-2 rounded font-bold text-[10px] uppercase tracking-widest">Archivar</button>
                     </div>
                 `;
             });
         }
 
-        function renderEditor() {
-            const container = document.getElementById('editor-lista');
-            container.innerHTML = "";
+        function renderEditorCarta() {
+            const cont = document.getElementById('admin-content');
+            cont.innerHTML = "";
 
-            categoriasFijas.forEach((cat, cIdx) => {
-                const productos = cartaOriginal.filter(p => p && p.categoria === cat);
-                container.innerHTML += `
-                    <div class="bg-white rounded-xl shadow-lg overflow-hidden border">
-                        <div class="bg-blue-900 p-3 flex justify-between items-center">
-                            <h3 class="text-white font-black text-xs uppercase">${cat}</h3>
-                            <button onclick="nuevoProd('${cat}')" class="bg-green-500 text-white px-3 py-1 rounded text-[10px] font-black">+ AÑADIR</button>
+            CATEGORIAS.forEach(cat => {
+                cont.innerHTML += `
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-black text-blue-900 uppercase text-[10px] tracking-widest">${cat}</h3>
+                            <button onclick="nuevoProducto('${cat}')" class="bg-blue-900 text-white px-3 py-1 rounded text-[10px] font-bold">+ NUEVO</button>
                         </div>
-                        <div class="p-3 space-y-3" id="cat-edit-${cIdx}">
-                            ${productos.map(p => {
-                                const realIdx = cartaOriginal.indexOf(p);
+                        <div id="edit-cat-${cat}">
+                            ${cartaLocal.filter(p => p.categoria === cat).map((p, i) => {
+                                const globalIdx = cartaLocal.indexOf(p);
                                 return `
-                                <div class="item-edit-card" data-idx="${realIdx}">
-                                    <input type="text" value="${p.nombre}" class="edit-nombre w-full p-2 border rounded font-bold mb-2" placeholder="Nombre">
-                                    <div class="flex gap-2">
-                                        <div class="flex-1 bg-gray-50 p-2 rounded border flex items-center">
-                                            <span class="mr-1 font-bold">€</span>
-                                            <input type="number" step="0.01" value="${p.precio}" class="edit-precio bg-transparent w-full font-black outline-none">
+                                    <div class="edit-card">
+                                        <input type="text" onchange="upd(${globalIdx}, 'nombre', this.value)" value="${p.nombre}" class="w-full font-bold p-1 border-b mb-2 outline-none">
+                                        <div class="flex justify-between items-center">
+                                            <div class="bg-gray-100 px-3 py-1 rounded-lg flex items-center">
+                                                <span class="text-xs font-bold mr-1">€</span>
+                                                <input type="number" step="0.01" onchange="upd(${globalIdx}, 'precio', this.value)" value="${p.precio}" class="bg-transparent w-16 font-black outline-none">
+                                            </div>
+                                            <div class="flex gap-4">
+                                                <label class="flex items-center text-[9px] font-black uppercase text-gray-400">
+                                                    <input type="checkbox" onchange="upd(${globalIdx}, 'activo', this.checked)" ${p.activo !== false ? 'checked' : ''} class="mr-1"> Visible
+                                                </label>
+                                                <button onclick="eliminarProducto(${globalIdx})" class="text-red-500 font-bold text-[9px] uppercase">Borrar</button>
+                                            </div>
                                         </div>
-                                        <button onclick="borrarProd(${realIdx})" class="bg-red-50 text-red-500 px-3 rounded font-bold text-[10px]">BORRAR</button>
                                     </div>
-                                    <label class="flex items-center gap-2 mt-2 text-[10px] font-bold text-gray-500">
-                                        <input type="checkbox" class="edit-activo" ${p.activo !== false ? 'checked' : ''}> VISIBLE EN LA WEB
-                                    </label>
-                                </div>`;
+                                `;
                             }).join('')}
                         </div>
                     </div>
@@ -218,78 +272,31 @@
             });
         }
 
-        function add(n, p) {
-            carrito.push({nombre: n, precio: parseFloat(p)});
-            const total = carrito.reduce((acc, i) => acc + i.precio, 0);
-            document.getElementById('total-cuenta').innerText = total.toFixed(2) + "€";
+        // --- LOGICA DE EDICIÓN ---
+        function upd(idx, campo, val) {
+            if(campo === 'precio') val = parseFloat(val) || 0;
+            cartaLocal[idx][campo] = val;
         }
 
-        function enviarPedido() {
-            if(carrito.length === 0) return alert("Selecciona algo primero");
-            db.ref('pedidos').push({
-                mesa, items: carrito,
-                hora: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
-                timestamp: Date.now()
-            }).then(() => {
-                alert("✅ Pedido enviado a barra.");
-                carrito = [];
-                document.getElementById('total-cuenta').innerText = "0.00€";
-            });
+        function nuevoProducto(cat) {
+            cartaLocal.push({ nombre: "Nuevo Producto", precio: 0, categoria: cat, activo: true });
+            renderEditorCarta();
         }
 
-        function guardarTodo() {
-            // Recolectar todos los datos actuales de los inputs antes de guardar
-            const cards = document.querySelectorAll('.item-edit-card');
-            let nuevaCarta = [];
-
-            cards.forEach(card => {
-                nuevaCarta.push({
-                    nombre: card.querySelector('.edit-nombre').value,
-                    precio: parseFloat(card.querySelector('.edit-precio').value) || 0,
-                    activo: card.querySelector('.edit-activo').checked,
-                    categoria: cartaOriginal[card.dataset.idx].categoria
-                });
-            });
-
-            // Guardar en Firebase
-            db.ref('carta').set(nuevaCarta).then(() => {
-                alert("✨ ¡HECHO! La carta se ha actualizado correctamente.");
-            }).catch(err => {
-                alert("Error de permisos: Asegúrate de que la base de datos esté en modo prueba o pública.");
-            });
-        }
-
-        function nuevoProd(cat) {
-            cartaOriginal.push({nombre: "Nuevo Producto", precio: 0, categoria: cat, activo: true});
-            renderEditor();
-        }
-
-        function borrarProd(idx) {
-            if(confirm("¿Borrar este producto?")) {
-                cartaOriginal.splice(idx, 1);
-                renderEditor();
+        function eliminarProducto(idx) {
+            if(confirm("¿Seguro que quieres borrarlo?")) {
+                cartaLocal.splice(idx, 1);
+                renderEditorCarta();
             }
         }
 
-        function cambiarTab(t) {
-            document.getElementById('sec-pedidos').style.display = t === 'pedidos' ? 'block' : 'none';
-            document.getElementById('sec-editar').style.display = t === 'editar' ? 'block' : 'none';
-            document.getElementById('tab-p').classList.toggle('active', t === 'pedidos');
-            document.getElementById('tab-e').classList.toggle('active', t === 'editar');
+        function publicarCambios() {
+            db.ref('carta').set(cartaLocal)
+                .then(() => alert("✨ CARTA ACTUALIZADA EN TODAS LAS MESAS"))
+                .catch(e => alert("Error: " + e.message));
         }
 
-        function toggleCat(id) {
-            const el = document.getElementById(id);
-            el.style.display = el.style.display === 'block' ? 'none' : 'block';
-        }
-
-        function abrirAdmin() {
-            if(prompt("Clave:") === "V887233R") {
-                document.getElementById('panel-staff').style.display = 'block';
-            }
-        }
-
-        function eliminarPedido(id) { db.ref('pedidos/' + id).remove(); }
+        function archivarPedido(id) { db.ref('pedidos/' + id).remove(); }
 
         window.onload = init;
     </script>
