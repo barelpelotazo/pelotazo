@@ -1,357 +1,90 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bar El Pelotazo - Sistema Central</title>
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        :root {
-            --azul-bar: #001f3f;
-            --rojo-vivo: #ff0000;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            margin: 0;
-            padding-bottom: 260px; 
-        }
-        header {
-            background-color: var(--azul-bar);
-            color: white;
-            padding: 20px 10px;
-            text-align: center;
-        }
-        .logo-header { max-width: 80px; margin: 0 auto 5px; display: block; }
-        h1 { margin: 0; font-size: 1.5rem; letter-spacing: 1px; font-weight: 800; text-transform: uppercase; }
-
-        /* Estilo Cliente */
-        .cat-btn {
-            width: 100%; text-align: left; padding: 15px; background: white;
-            margin-bottom: 5px; border-radius: 8px; font-weight: bold;
-            color: var(--azul-bar); border-left: 6px solid var(--azul-bar);
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .cat-content { display: none; }
-        .cat-content.active { display: block; }
-        .item-row {
-            background: white; margin: 4px 10px; padding: 12px; border-radius: 6px;
-            display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee;
-        }
-        .btn-add { background-color: var(--azul-bar); color: white; width: 35px; height: 35px; border-radius: 6px; font-size: 1.2rem; }
-
-        /* Footer Cliente */
-        footer {
-            position: fixed; bottom: 0; width: 100%; background: #fff;
-            padding: 15px; border-top: 4px solid var(--azul-bar);
-            box-sizing: border-box; z-index: 100;
-        }
-        #total-cuenta { font-size: 3.5rem; font-weight: 900; color: var(--rojo-vivo); text-align: center; line-height: 1; margin-bottom: 8px; }
-        #btn-pedido {
-            width: 100%; background-color: #27ae60; color: white; border: none;
-            padding: 16px; border-radius: 12px; font-weight: bold; text-transform: uppercase; font-size: 1.2rem;
-        }
-
-        /* Panel STAFF */
-        #panel-staff { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #edf2f7; z-index: 2000; overflow-y: auto; }
-        .nav-admin { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 10px; background: #fff; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .nav-admin button { font-size: 0.65rem; padding: 10px 5px; font-weight: bold; border-radius: 5px; text-transform: uppercase; border: 1px solid #ddd; }
-        .active-nav { background: var(--azul-bar) !important; color: white !important; }
-
-        /* Switches */
-        .switch { position: relative; display: inline-block; width: 34px; height: 20px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px; }
-        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: #27ae60; }
-        input:checked + .slider:before { transform: translateX(14px); }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bar El Pelotazo</title>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-gray-100">
 
-    <div id="vista-cliente">
-        <header>
-            <h1>Bar El Pelotazo</h1>
-        </header>
+<div class="p-4 text-center bg-blue-900 text-white font-black">BAR EL PELOTAZO</div>
 
-        <div id="info-mesa" class="p-3 bg-white m-3 rounded shadow text-center border-b-4 border-blue-900">
-            <p class="text-gray-400 text-[10px] font-bold uppercase">Mesa</p>
-            <p id="num-mesa-display" class="text-blue-900 text-4xl font-black">SIN MESA</p>
-        </div>
+<div class="p-3 text-center">
+Mesa: <span id="mesa">--</span>
+</div>
 
-        <div id="carta-categorias" class="px-2 mt-2 pb-10"></div>
+<div id="carta" class="p-2"></div>
 
-        <footer>
-            <div id="total-cuenta">0.00€</div>
-            <button id="btn-pedido" onclick="enviarPedido()">ENVIAR A COMANDA</button>
-            <div class="text-center mt-2 text-[10px] text-gray-400" onclick="abrirAdmin()">PANEL DE CONTROL</div>
-        </footer>
-    </div>
+<div class="fixed bottom-0 w-full bg-white p-4 border-t">
+<div id="total" class="text-3xl font-black text-center">0.00€</div>
+<button onclick="enviarPedido()" class="w-full bg-green-600 text-white p-3 rounded mt-2">ENVIAR PEDIDO</button>
+</div>
 
-    <!-- PANEL DE ADMINISTRACIÓN -->
-    <div id="panel-staff">
-        <div class="nav-admin">
-            <button id="btn-sec-pedidos" onclick="verSeccion('pedidos')">Comandas</button>
-            <button id="btn-sec-cocina" onclick="verSeccion('cocina')">Cocina</button>
-            <button id="btn-sec-editar" onclick="verSeccion('editar')">La Carta</button>
-            <button id="btn-sec-camareros" onclick="verSeccion('camareros')">Camareros</button>
-            <button id="btn-sec-caja" onclick="verSeccion('caja')">Caja</button>
-            <button class="bg-red-600 text-white" onclick="cerrarAdmin()">X</button>
-        </div>
+<script>
+const firebaseConfig = {
+ apiKey: "TU_API_KEY",
+ databaseURL: "TU_DATABASE_URL",
+ projectId: "TU_PROJECT_ID"
+};
 
-        <!-- SECCION COMANDAS -->
-        <div id="sec-pedidos" class="p-4 admin-sec">
-            <h2 class="font-black text-blue-900 mb-4 border-b border-blue-200 uppercase">Comandas Barra</h2>
-            <div id="lista-pedidos-admin" class="space-y-4"></div>
-        </div>
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-        <!-- SECCION COCINA -->
-        <div id="sec-cocina" class="p-4 admin-sec" style="display:none">
-            <h2 class="font-black text-orange-600 mb-4 border-b border-orange-200 uppercase">Monitor Cocina</h2>
-            <div id="lista-cocina" class="space-y-4"></div>
-        </div>
+let carrito = [];
+let mesa = new URLSearchParams(window.location.search).get("mesa");
+document.getElementById("mesa").innerText = mesa || "--";
 
-        <!-- SECCION EDITAR CARTA -->
-        <div id="sec-editar" class="p-4 admin-sec" style="display:none">
-            <h2 class="font-black text-gray-700 mb-4 border-b border-gray-300 uppercase">Editor Carta</h2>
-            <div id="editor-productos"></div>
-            <button class="w-full bg-blue-900 text-white p-5 rounded-xl font-black mt-4" onclick="guardarCarta()">💾 GUARDAR CAMBIOS CARTA</button>
-        </div>
+// Cargar carta
+db.ref("carta").on("value", snap => {
+ const data = snap.val() || [];
+ renderCarta(data);
+});
 
-        <!-- SECCION CAMAREROS -->
-        <div id="sec-camareros" class="p-4 admin-sec" style="display:none">
-            <h2 class="font-black text-purple-700 mb-4 border-b border-purple-200 uppercase">Personal</h2>
-            <div id="lista-camareros-ui" class="space-y-3"></div>
-        </div>
+function renderCarta(data) {
+ const div = document.getElementById("carta");
+ div.innerHTML = "";
+ data.filter(p=>p.activo!==false).forEach(p => {
+ div.innerHTML += `
+ <div class="bg-white p-3 m-2 rounded flex justify-between">
+   <div>
+     <b>${p.nombre}</b><br>
+     ${p.precio.toFixed(2)}€
+   </div>
+   <button onclick="add('${p.nombre}', ${p.precio})" class="bg-blue-900 text-white px-3 rounded">+</button>
+ </div>`;
+ });
+}
 
-        <!-- SECCION CAJA -->
-        <div id="sec-caja" class="p-4 admin-sec text-center" style="display:none">
-            <h2 class="font-black text-green-700 mb-4 border-b border-green-200 uppercase">Caja Hoy</h2>
-            <div class="bg-green-600 text-white p-8 rounded-2xl shadow-xl">
-                <div id="total-cobrado-acumulado" class="text-5xl font-black">0.00€</div>
-            </div>
-            <button class="mt-6 text-red-500 font-bold text-xs" onclick="resetearCaja()">BORRAR CAJA (FIN DE DÍA)</button>
-        </div>
-    </div>
+function add(nombre, precio) {
+ carrito.push({nombre, precio});
+ updateTotal();
+}
 
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyAxI0dtf4RdxNDYlmk_dVYhF5NyZOg8B2w",
-            databaseURL: "https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "bar-el-pelotazo-16c19"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+function updateTotal() {
+ const total = carrito.reduce((a,b)=>a+b.precio,0);
+ document.getElementById("total").innerText = total.toFixed(2)+"€";
+}
 
-        const ADMIN_KEY = "V887233R"; 
-        let carrito = [];
-        let mesa = null;
-        let carta = [];
-        let listaCamareros = [
-            {id: 1, nombre: "ANTONIO", activo: true},
-            {id: 2, nombre: "MARIA", activo: true},
-            {id: 3, nombre: "PEPE", activo: true},
-            {id: 4, nombre: "JUAN", activo: true},
-            {id: 5, nombre: "LUCIA", activo: true},
-            {id: 6, nombre: "LUIS", activo: true},
-            {id: 7, nombre: "CARMEN", activo: true}
-        ];
+function enviarPedido() {
+ if(!mesa) return alert("Escanea QR de mesa");
+ if(carrito.length==0) return alert("Sin productos");
 
-        function init() {
-            const params = new URLSearchParams(window.location.search);
-            mesa = params.get('mesa');
-            if(mesa) document.getElementById('num-mesa-display').innerText = mesa;
-            
-            if(localStorage.getItem('isStaff') === 'true') {
-                document.getElementById('panel-staff').style.display = 'block';
-                verSeccion('pedidos');
-            }
+ db.ref("pedidos").push({
+   mesa,
+   items: carrito,
+   total: carrito.reduce((a,b)=>a+b.precio,0),
+   estado: "pendiente",
+   hora: new Date().toLocaleTimeString()
+ });
 
-            cargarDatos();
-        }
+ carrito=[];
+ updateTotal();
+ alert("Pedido enviado");
+}
+</script>
 
-        function cargarDatos() {
-            // Cargar Carta
-            db.ref('carta').on('value', snap => { 
-                carta = snap.val() || []; 
-                renderCarta(); 
-                renderEditor(); 
-            });
-            // Cargar Pedidos
-            db.ref('pedidos').on('value', snap => { 
-                renderAdminData(snap.val()); 
-            });
-            // Cargar Caja
-            db.ref('caja_total').on('value', snap => { 
-                document.getElementById('total-cobrado-acumulado').innerText = (snap.val() || 0).toFixed(2) + "€"; 
-            });
-            // Cargar Estado Camareros
-            db.ref('camareros_estado').on('value', snap => {
-                if(snap.val()) listaCamareros = snap.val();
-                renderCamarerosUI();
-            });
-        }
-
-        function renderCarta() {
-            const container = document.getElementById('carta-categorias');
-            container.innerHTML = "";
-            const cats = ["Tapas/Ración/Menú", "Café/repostería/Postres", "Bebidas/Refrescos", "Tapas del día", "Otros"];
-            
-            cats.forEach((cat, index) => {
-                const items = carta.filter(p => p.categoria === cat && p.activo !== false);
-                if (items.length === 0) return;
-                const catId = `cat-${index}`;
-                container.innerHTML += `
-                    <div class="mb-2">
-                        <button class="cat-btn" onclick="toggleCat('${catId}')">${cat.toUpperCase()} <span>▼</span></button>
-                        <div id="${catId}" class="cat-content">
-                            ${items.map(p => `
-                                <div class="item-row">
-                                    <div class="flex flex-col">
-                                        <span class="font-bold">${p.nombre}</span>
-                                        ${p.esCocina ? '<span class="text-[8px] text-orange-600 font-bold">COCINA</span>' : ''}
-                                    </div>
-                                    <div class="flex items-center">
-                                        <span class="precio mr-2">${p.precio.toFixed(2)}€</span>
-                                        <button class="btn-add" onclick="agregarAlCarrito('${p.nombre}', ${p.precio}, ${p.esCocina || false})">+</button>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>`;
-            });
-        }
-
-        function toggleCat(id) { document.getElementById(id).classList.toggle('active'); }
-
-        function agregarAlCarrito(nombre, precio, esCocina) {
-            carrito.push({nombre, precio, esCocina});
-            document.getElementById('total-cuenta').innerText = carrito.reduce((s, i) => s + i.precio, 0).toFixed(2) + "€";
-        }
-
-        function enviarPedido() {
-            if(!mesa) return alert("Error: Mesa no detectada.");
-            if(carrito.length === 0) return alert("Añade algo primero.");
-            
-            const total = carrito.reduce((s, i) => s + i.precio, 0);
-            db.ref('pedidos').push({ 
-                mesa, items: carrito, total, 
-                hora: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
-                admin_auth: ADMIN_KEY // Autorizamos el envío del cliente
-            }).then(() => {
-                alert("✅ Enviado a Barra.");
-                carrito = []; 
-                document.getElementById('total-cuenta').innerText = "0.00€";
-            });
-        }
-
-        // PANEL ADMIN
-        function abrirAdmin() {
-            if(localStorage.getItem('isStaff') === 'true' || prompt("Clave:") === ADMIN_KEY) {
-                localStorage.setItem('isStaff', 'true');
-                document.getElementById('panel-staff').style.display = 'block';
-                verSeccion('pedidos');
-            }
-        }
-
-        function cerrarAdmin() { document.getElementById('panel-staff').style.display = 'none'; }
-
-        function verSeccion(id) {
-            document.querySelectorAll('.admin-sec').forEach(s => s.style.display = 'none');
-            document.querySelectorAll('.nav-admin button').forEach(b => b.classList.remove('active-nav'));
-            document.getElementById('sec-' + id).style.display = 'block';
-            document.getElementById('btn-sec-' + id).classList.add('active-nav');
-        }
-
-        function renderAdminData(data) {
-            const listP = document.getElementById('lista-pedidos-admin');
-            const listC = document.getElementById('lista-cocina');
-            listP.innerHTML = ""; listC.innerHTML = "";
-            
-            if(!data) return;
-
-            Object.keys(data).forEach(id => {
-                const p = data[id];
-                const itemsCocina = p.items.filter(i => i.esCocina);
-                
-                const card = `
-                    <div class="bg-white p-4 rounded-xl shadow border-l-8 ${itemsCocina.length > 0 ? 'border-orange-500' : 'border-blue-900'}">
-                        <div class="flex justify-between font-black"><span>MESA ${p.mesa}</span> <span class="text-xs text-gray-400">${p.hora}</span></div>
-                        <div class="text-sm my-2">${p.items.map(i => `<div>- ${i.nombre}</div>`).join('')}</div>
-                        <div class="flex justify-between items-center mt-3">
-                            <span class="font-black text-blue-900">${p.total.toFixed(2)}€</span>
-                            <button class="bg-green-600 text-white px-4 py-2 rounded font-bold" onclick="gestionarPedido('${id}', ${p.total}, 'barra')">COBRAR/LISTO</button>
-                        </div>
-                    </div>`;
-                
-                listP.innerHTML += card;
-                if(itemsCocina.length > 0) listC.innerHTML += card.replace('COBRAR/LISTO', 'TERMINADO');
-            });
-        }
-
-        // CORRECCIÓN CLAVE: Aquí es donde fallaba antes por falta de admin_auth
-        function gestionarPedido(id, monto, desde) {
-            const updates = {};
-            updates['/pedidos/' + id] = null; // Borrar pedido
-            if(desde === 'barra') {
-                updates['/caja_total'] = firebase.database.ServerValue.increment(monto); // Sumar a caja
-            }
-            updates['/admin_auth'] = ADMIN_KEY; // ¡LA LLAVE MAESTRA!
-
-            db.ref().update(updates).then(() => {
-                console.log("Pedido gestionado con éxito");
-            }).catch(e => alert("Error de permisos en Firebase"));
-        }
-
-        function resetearCaja() {
-            if(confirm("¿Seguro que quieres poner la caja a 0?")) {
-                db.ref().update({ caja_total: 0, admin_auth: ADMIN_KEY });
-            }
-        }
-
-        function renderCamarerosUI() {
-            const div = document.getElementById('lista-camareros-ui');
-            div.innerHTML = listaCamareros.map((c, idx) => `
-                <div class="bg-white p-4 rounded shadow flex justify-between items-center border-l-4 ${c.activo ? 'border-green-500' : 'border-gray-200'}">
-                    <span class="font-bold">${c.nombre}</span>
-                    <label class="switch">
-                        <input type="checkbox" ${c.activo ? 'checked' : ''} onchange="toggleCamareroFirebase(${idx})">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-            `).join('');
-        }
-
-        function toggleCamareroFirebase(idx) {
-            listaCamareros[idx].activo = !listaCamareros[idx].activo;
-            db.ref().update({
-                camareros_estado: listaCamareros,
-                admin_auth: ADMIN_KEY
-            });
-        }
-
-        function renderEditor() {
-            const div = document.getElementById('editor-productos');
-            div.innerHTML = carta.map((p, i) => `
-                <div class="bg-white p-2 border-b flex gap-2 items-center text-xs">
-                    <input type="text" value="${p.nombre}" class="flex-1 border p-1" onchange="updItem(${i}, 'nombre', this.value)">
-                    <input type="number" value="${p.precio}" class="w-12 border p-1" onchange="updItem(${i}, 'precio', this.value)">
-                    <input type="checkbox" ${p.esCocina ? 'checked' : ''} onchange="updItem(${i}, 'esCocina', this.checked)">🍳
-                    <button class="text-red-500" onclick="delItem(${i})">X</button>
-                </div>
-            `).join('');
-        }
-
-        function updItem(i, f, v) { if(f === 'precio') v = parseFloat(v); carta[i][f] = v; }
-        function delItem(i) { carta.splice(i, 1); renderEditor(); }
-        function guardarCarta() { 
-            db.ref().update({ carta: carta, admin_auth: ADMIN_KEY }).then(() => alert("CARTA ACTUALIZADA")); 
-        }
-
-        window.onload = init;
-    </script>
 </body>
 </html>
