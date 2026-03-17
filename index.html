@@ -1,336 +1,308 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, onValue, set, push, update, serverTimestamp } from 'firebase/database';
-import { ShoppingCart, Plus, Trash2, Edit2, X, Check, Lock, Settings, ChevronDown, ChevronUp, Bell, Utensils, Eye, EyeOff } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bar El Pelotazo - Sistema Pro</title>
+    <!-- Firebase SDK Legacy (Más estable para HTML directo) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --azul: #001f3f; --rojo: #e11d48; }
+        body { background-color: #f8fafc; font-family: 'sans-serif'; padding-bottom: 180px; }
+        .header-pelotazo { background-color: var(--azul); border-bottom: 4px solid var(--rojo); }
+        .categoria-btn { background-color: var(--azul); transition: all 0.3s; }
+        .categoria-btn:active { transform: scale(0.98); }
+        .producto-card { transition: transform 0.2s; border: 1px solid #e2e8f0; }
+        .producto-card:active { transform: scale(0.98); }
+        .admin-panel { border: 2px solid #22c55e; }
+        .comanda-card { border-left: 8px solid var(--rojo); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        /* Animación para nuevos pedidos */
+        .nuevo-pedido { animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { background-color: #fff; } 50% { background-color: #fef3c7; } 100% { background-color: #fff; } }
+    </style>
+</head>
+<body>
 
-// Configuración de Firebase
-const firebaseConfig = JSON.parse(__firebase_config);
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-const App = () => {
-  const [productos, setProductos] = useState([]);
-  const [pedidos, setPedidos] = useState([]);
-  const [carrito, setCarrito] = useState([]);
-  const [mesa, setMesa] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
-  const [adminKeyInput, setAdminKeyInput] = useState('');
-  const [clickCount, setClickCount] = useState(0);
-  const [openCategories, setOpenCategories] = useState(["Raciones"]); 
-  
-  // Estado para gestión de productos
-  const [editingProduct, setEditingProduct] = useState(null);
-  const [newProduct, setNewProduct] = useState({ nombre: '', precio: '', categoria: 'Raciones', esCocina: false, activo: true });
-
-  const ADMIN_KEY = "V887233R";
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const mesaParam = params.get('mesa');
-    if (mesaParam) setMesa(mesaParam.toUpperCase());
-
-    // Cargar Productos
-    const productosRef = ref(db, 'productos');
-    onValue(productosRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const lista = Object.entries(data).map(([id, val]) => ({ id, ...val }));
-        setProductos(lista);
-      }
-    });
-
-    // Escuchar pedidos nuevos para el sonido
-    if (isAdmin) {
-      const pedidosRef = ref(db, 'pedidos');
-      onValue(pedidosRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          const lista = Object.entries(data).map(([id, val]) => ({ id, ...val }));
-          if (lista.length > pedidos.length && pedidos.length !== 0) {
-            reproducirCampana();
-          }
-          setPedidos(lista.reverse());
-        }
-      });
-    }
-  }, [isAdmin, pedidos.length]);
-
-  const reproducirCampana = () => {
-    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-    audio.play().catch(e => console.log("Audio bloqueado"));
-  };
-
-  const handleLogoClick = () => {
-    const newCount = clickCount + 1;
-    setClickCount(newCount);
-    if (newCount === 3) {
-      setShowAdminLogin(true);
-      setClickCount(0);
-    }
-    setTimeout(() => setClickCount(0), 3000);
-  };
-
-  const toggleCategory = (cat) => {
-    setOpenCategories(prev => 
-      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
-    );
-  };
-
-  const enviarPedido = () => {
-    if (!mesa) return alert("Por favor, escanea el QR de tu mesa");
-    if (carrito.length === 0) return alert("El carrito está vacío");
-
-    const pedidoData = {
-      mesa: mesa,
-      items: carrito,
-      total: carrito.reduce((acc, p) => acc + p.precio, 0),
-      timestamp: serverTimestamp(),
-      estado: 'nuevo'
-    };
-
-    push(ref(db, 'pedidos'), pedidoData).then(() => {
-      alert("¡Pedido enviado correctamente!");
-      setCarrito([]);
-    });
-  };
-
-  // FUNCIONES DE ADMINISTRACIÓN CON SEGURIDAD
-  const updateProductStatus = (id, field, value) => {
-    const updates = {};
-    updates[`/productos/${id}/${field}`] = value;
-    updates[`/admin_key`] = ADMIN_KEY; // Clave de seguridad para las Reglas
-    update(ref(db), updates).catch(err => alert("Error de seguridad: " + err.message));
-  };
-
-  const deleteProduct = (id) => {
-    if (window.confirm("¿Seguro que quieres eliminar este producto de la carta?")) {
-      const updates = {};
-      updates[`/productos/${id}`] = null;
-      updates[`/admin_key`] = ADMIN_KEY;
-      update(ref(db), updates);
-    }
-  };
-
-  const handleAddProduct = () => {
-    if (!newProduct.nombre || !newProduct.precio) return;
-    const updates = {};
-    const nuevoId = push(ref(db, 'productos')).key;
-    updates[`/productos/${nuevoId}`] = { 
-      ...newProduct, 
-      precio: parseFloat(newProduct.precio) 
-    };
-    updates[`/admin_key`] = ADMIN_KEY;
-    
-    update(ref(db), updates).then(() => {
-      setNewProduct({ nombre: '', precio: '', categoria: 'Raciones', esCocina: false, activo: true });
-    });
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50 pb-40 font-sans text-gray-900">
-      {/* DISEÑO ORIGINAL: HEADER AZUL MARINO */}
-      <header className="bg-[#001f3f] text-white p-6 shadow-lg border-b-4 border-red-600 flex flex-col items-center">
-        <div onClick={handleLogoClick} className="cursor-pointer active:scale-95 transition-transform">
-          <img src="logo pelotazo png.png" alt="Logo" className="w-24 h-24 rounded-full border-2 border-white bg-white p-1" />
+    <!-- CABECERA -->
+    <header class="header-pelotazo text-white p-6 flex flex-col items-center shadow-2xl">
+        <div onclick="intentarAdmin()" class="cursor-pointer">
+            <img src="logo%20pelotazo%20png.png" alt="Logo" class="w-24 h-24 rounded-full border-2 border-white bg-white p-1 shadow-lg">
         </div>
-        <h1 className="mt-4 text-3xl font-black italic tracking-tighter">BAR EL PELOTAZO</h1>
-        <div className="mt-3 bg-white text-[#001f3f] px-8 py-2 rounded shadow-md border-l-8 border-[#001f3f]">
-           {mesa ? (
-             <div className="text-center leading-none">
-               <span className="text-[10px] uppercase font-bold block">Tu Mesa</span>
-               <span className="text-3xl font-black">{mesa}</span>
-             </div>
-           ) : <span className="text-red-600 font-bold">ESCANEA TU QR</span>}
+        <h1 class="mt-4 text-3xl font-black italic tracking-tighter uppercase">BAR EL PELOTAZO</h1>
+        <div id="mesa-tag" class="mt-4 bg-white text-[#001f3f] px-8 py-2 rounded shadow-xl border-l-8 border-[#001f3f]">
+            <span class="font-bold uppercase text-xs block text-center">Mesa</span>
+            <span id="num-mesa-display" class="text-3xl font-black block text-center">--</span>
         </div>
-        {isAdmin && (
-          <div className="mt-4 bg-green-500 text-white px-4 py-1 rounded-full text-xs font-bold flex items-center gap-2 animate-pulse">
-            <Settings size={14} /> PANEL DE ADMINISTRACIÓN ACTIVO
-          </div>
-        )}
-      </header>
+    </header>
 
-      <main className="max-w-md mx-auto p-4 space-y-4">
+    <main class="max-w-md mx-auto p-4 space-y-4">
         
-        {/* PANEL ADMIN: CREAR PRODUCTOS */}
-        {isAdmin && (
-          <section className="bg-white p-4 rounded-xl shadow-xl border-2 border-green-500 mb-8">
-            <h2 className="font-bold text-green-700 flex items-center gap-2 mb-4 uppercase text-sm tracking-widest"><Plus size={18}/> Nuevo Artículo</h2>
-            <div className="space-y-3">
-              <input type="text" placeholder="Nombre (ej: Croquetas)" className="w-full p-3 border rounded-lg" value={newProduct.nombre} onChange={e => setNewProduct({...newProduct, nombre: e.target.value})} />
-              <div className="flex gap-2">
-                <input type="number" placeholder="Precio" className="w-1/2 p-3 border rounded-lg" value={newProduct.precio} onChange={e => setNewProduct({...newProduct, precio: e.target.value})} />
-                <select className="w-1/2 p-3 border rounded-lg bg-white" value={newProduct.categoria} onChange={e => setNewProduct({...newProduct, categoria: e.target.value})}>
-                  <option>Raciones</option><option>Bebidas</option><option>Tapas</option><option>Bocadillos</option>
-                </select>
-              </div>
-              <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer">
-                <input type="checkbox" className="w-5 h-5" checked={newProduct.esCocina} onChange={e => setNewProduct({...newProduct, esCocina: e.target.checked})} />
-                <span className="text-sm font-bold flex items-center gap-2"><Utensils size={16}/> ¿Enviar a Cocina?</span>
-              </label>
-              <button onClick={handleAddProduct} className="w-full bg-green-600 text-white p-4 rounded-xl font-black shadow-lg">AÑADIR A LA CARTA</button>
-            </div>
-          </section>
-        )}
-
-        {/* DISEÑO ORIGINAL: PESTAÑAS DESPLEGABLES */}
-        {["Raciones", "Bebidas", "Tapas", "Bocadillos"].map(cat => (
-          <div key={cat} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
-            <button 
-              onClick={() => toggleCategory(cat)}
-              className="w-full flex justify-between items-center p-4 bg-[#001f3f] text-white font-bold uppercase text-xs tracking-[0.2em]"
-            >
-              <span>{cat}</span>
-              {openCategories.includes(cat) ? <ChevronUp size={18}/> : <ChevronDown size={18}/>}
-            </button>
-            
-            {openCategories.includes(cat) && (
-              <div className="p-2 space-y-2 bg-white">
-                {productos.filter(p => p.categoria === cat).map(p => (
-                  <div key={p.id} className={`p-4 rounded-xl border flex justify-between items-center transition-all ${!p.activo ? 'bg-gray-100 opacity-60' : 'bg-white'}`}>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-black uppercase text-sm tracking-tight">{p.nombre}</span>
-                        {p.esCocina && <Utensils size={14} className="text-orange-500" title="Va a cocina" />}
-                        {!p.activo && <span className="text-[10px] bg-gray-400 text-white px-2 py-0.5 rounded">AGOTADO</span>}
-                      </div>
-                      <span className="text-red-600 font-black text-lg">{p.precio.toFixed(2)}€</span>
+        <!-- PANEL DE ADMINISTRACIÓN (OCULTO POR DEFECTO) -->
+        <div id="panel-admin" class="hidden space-y-6">
+            <div class="bg-white p-4 rounded-2xl shadow-xl admin-panel">
+                <h2 class="font-black text-green-700 mb-4 flex items-center gap-2"><i class="fas fa-plus-circle"></i> NUEVO ARTÍCULO</h2>
+                <div class="space-y-3">
+                    <input type="text" id="new-nombre" placeholder="Nombre del plato" class="w-full p-3 border rounded-xl">
+                    <div class="flex gap-2">
+                        <input type="number" id="new-precio" placeholder="Precio" class="w-1/2 p-3 border rounded-xl">
+                        <select id="new-cat" class="w-1/2 p-3 border rounded-xl bg-white">
+                            <option>Raciones</option>
+                            <option>Bebidas</option>
+                            <option>Tapas</option>
+                            <option>Bocadillos</option>
+                        </select>
                     </div>
-
-                    <div className="flex items-center gap-1">
-                      {isAdmin ? (
-                        <>
-                          <button onClick={() => updateProductStatus(p.id, 'activo', !p.activo)} className={`p-2 rounded-lg ${p.activo ? 'text-blue-600 bg-blue-50' : 'text-gray-400 bg-gray-200'}`}>
-                            {p.activo ? <Eye size={20} /> : <EyeOff size={20} />}
-                          </button>
-                          <button onClick={() => updateProductStatus(p.id, 'esCocina', !p.esCocina)} className={`p-2 rounded-lg ${p.esCocina ? 'text-orange-600 bg-orange-50' : 'text-gray-300'}`}>
-                            <Utensils size={20} />
-                          </button>
-                          <button onClick={() => deleteProduct(p.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg">
-                            <Trash2 size={20} />
-                          </button>
-                        </>
-                      ) : (
-                        p.activo && (
-                          <button 
-                            onClick={() => setCarrito([...carrito, p])}
-                            className="bg-[#001f3f] text-white w-12 h-12 rounded-xl flex items-center justify-center shadow-lg active:scale-90 transition"
-                          >
-                            <Plus size={24} strokeWidth={3} />
-                          </button>
-                        )
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-
-        {/* COMANDAS PARA EL CAMARERO (Solo en modo Admin) */}
-        {isAdmin && (
-          <section className="mt-12 space-y-4">
-            <h2 className="text-[#001f3f] font-black text-xl flex items-center gap-2 uppercase tracking-tighter">
-              <Bell className="text-red-600" /> Pedidos Recibidos
-            </h2>
-            <div className="grid gap-4">
-              {pedidos.map(pedido => (
-                <div key={pedido.id} className="bg-white p-5 rounded-2xl shadow-xl border-l-8 border-red-600 relative overflow-hidden">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <span className="block text-[10px] font-bold text-gray-400 uppercase">Localización</span>
-                      <span className="text-2xl font-black text-[#001f3f]">MESA {pedido.mesa}</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="block text-[10px] font-bold text-gray-400 uppercase">Hora</span>
-                      <span className="font-bold text-sm">{new Date(pedido.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                    </div>
-                  </div>
-                  <div className="space-y-2 border-t border-b py-3 mb-3 border-dashed border-gray-200">
-                    {pedido.items.map((item, idx) => (
-                      <div key={idx} className="flex justify-between items-center text-sm font-medium">
-                        <span className="flex items-center gap-2">
-                           • {item.nombre}
-                           {item.esCocina && <span className="text-[9px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-black uppercase tracking-tighter italic">COCINA</span>}
-                        </span>
-                        <span className="text-gray-400">{item.precio.toFixed(2)}€</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-gray-400 uppercase">Total Pedido:</span>
-                    <span className="text-2xl font-black text-red-600">{pedido.total.toFixed(2)}€</span>
-                  </div>
+                    <label class="flex items-center gap-2 p-3 bg-gray-50 rounded-xl cursor-pointer font-bold text-sm">
+                        <input type="checkbox" id="new-cocina" class="w-5 h-5"> ¿ENVIAR A COCINA?
+                    </label>
+                    <button onclick="crearProducto()" class="w-full bg-green-600 text-white p-4 rounded-xl font-bold shadow-lg">GUARDAR EN CARTA</button>
                 </div>
-              ))}
             </div>
-          </section>
-        )}
-      </main>
 
-      {/* FOOTER ORIGINAL CON TOTAL GIGANTE */}
-      {!isAdmin && (
-        <footer className="fixed bottom-0 w-full bg-white p-6 shadow-[0_-10px_30px_rgba(0,0,0,0.15)] z-50 border-t-2 border-gray-100">
-          <div className="max-w-md mx-auto">
-            <div className="flex justify-between items-end mb-4">
-              <span className="text-gray-400 font-bold text-xs uppercase tracking-widest leading-none">Total Comanda</span>
-              <span className="text-6xl font-black text-red-600 tracking-tighter leading-none">
-                {carrito.reduce((acc, p) => acc + p.precio, 0).toFixed(2)}<small className="text-2xl font-bold italic">€</small>
-              </span>
+            <div class="bg-[#001f3f] p-4 rounded-2xl shadow-xl">
+                <h2 class="font-black text-white mb-4 flex items-center gap-2"><i class="fas fa-bell"></i> COMANDAS RECIBIDAS</h2>
+                <div id="lista-pedidos" class="space-y-4">
+                    <!-- Pedidos en vivo -->
+                </div>
             </div>
-            <button 
-              onClick={enviarPedido}
-              disabled={carrito.length === 0}
-              className={`w-full py-5 rounded-2xl font-black text-xl shadow-lg transition-all ${carrito.length > 0 ? 'bg-[#27ae60] text-white active:scale-95' : 'bg-gray-200 text-gray-400'}`}
-            >
-              REALIZAR PEDIDO
-            </button>
-          </div>
-        </footer>
-      )}
-
-      {/* LOGIN DE ADMINISTRADOR */}
-      {showAdminLogin && (
-        <div className="fixed inset-0 bg-[#001f3f]/95 flex items-center justify-center p-6 z-[100] backdrop-blur-md">
-          <div className="bg-white w-full max-w-xs p-8 rounded-[2.5rem] shadow-2xl">
-            <div className="bg-red-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Lock className="text-red-600" size={36} />
-            </div>
-            <h2 className="text-center font-black text-2xl mb-2 text-[#001f3f]">GERENCIA</h2>
-            <p className="text-center text-xs text-gray-400 font-bold mb-6 uppercase tracking-widest">Bar El Pelotazo</p>
-            <input 
-              type="password" 
-              autoFocus
-              className="w-full p-4 border-2 border-gray-100 rounded-2xl mb-6 text-center text-3xl tracking-[0.5em] font-black focus:border-red-600 outline-none transition-colors"
-              value={adminKeyInput}
-              onChange={e => setAdminKeyInput(e.target.value)}
-              onKeyPress={e => e.key === 'Enter' && (adminKeyInput === ADMIN_KEY ? (setIsAdmin(true), setShowAdminLogin(false)) : alert("Clave Incorrecta"))}
-            />
-            <div className="flex gap-2">
-              <button 
-                onClick={() => {
-                  if (adminKeyInput === ADMIN_KEY) {
-                    setIsAdmin(true);
-                    setShowAdminLogin(false);
-                    setAdminKeyInput('');
-                  } else {
-                    alert("Clave maestra incorrecta");
-                  }
-                }} 
-                className="flex-1 bg-red-600 text-white py-4 rounded-2xl font-black text-lg shadow-lg active:scale-95 transition"
-              >
-                ENTRAR
-              </button>
-              <button onClick={() => setShowAdminLogin(false)} className="px-6 bg-gray-100 text-gray-400 rounded-2xl font-black">
-                <X />
-              </button>
-            </div>
-          </div>
+            <hr class="border-2 border-dashed">
+            <h2 class="font-black text-center text-gray-400">EDITAR CARTA ACTUAL</h2>
         </div>
-      )}
-    </div>
-  );
-};
 
-export default App;
+        <!-- CATEGORÍAS (PESTAÑAS DESPLEGABLES) -->
+        <div id="contenedor-menu" class="space-y-3">
+            <!-- RACIONES -->
+            <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
+                <button onclick="toggleCat('Raciones')" class="categoria-btn w-full flex justify-between items-center p-4 text-white font-bold uppercase text-xs tracking-widest">
+                    <span>Raciones</span>
+                    <i id="icon-Raciones" class="fas fa-chevron-down"></i>
+                </button>
+                <div id="cat-Raciones" class="hidden p-2 space-y-2"></div>
+            </div>
+
+            <!-- BEBIDAS -->
+            <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
+                <button onclick="toggleCat('Bebidas')" class="categoria-btn w-full flex justify-between items-center p-4 text-white font-bold uppercase text-xs tracking-widest">
+                    <span>Bebidas</span>
+                    <i id="icon-Bebidas" class="fas fa-chevron-down"></i>
+                </button>
+                <div id="cat-Bebidas" class="hidden p-2 space-y-2"></div>
+            </div>
+
+            <!-- TAPAS -->
+            <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
+                <button onclick="toggleCat('Tapas')" class="categoria-btn w-full flex justify-between items-center p-4 text-white font-bold uppercase text-xs tracking-widest">
+                    <span>Tapas</span>
+                    <i id="icon-Tapas" class="fas fa-chevron-down"></i>
+                </button>
+                <div id="cat-Tapas" class="hidden p-2 space-y-2"></div>
+            </div>
+
+            <!-- BOCADILLOS -->
+            <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
+                <button onclick="toggleCat('Bocadillos')" class="categoria-btn w-full flex justify-between items-center p-4 text-white font-bold uppercase text-xs tracking-widest">
+                    <span>Bocadillos</span>
+                    <i id="icon-Bocadillos" class="fas fa-chevron-down"></i>
+                </button>
+                <div id="cat-Bocadillos" class="hidden p-2 space-y-2"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER CLIENTE -->
+    <footer id="footer-cliente" class="fixed bottom-0 w-full bg-white p-6 shadow-[0_-10px_30px_rgba(0,0,0,0.15)] z-50 border-t-2 border-gray-100">
+        <div class="max-w-md mx-auto">
+            <div class="flex justify-between items-end mb-4">
+                <span class="text-gray-400 font-bold text-xs uppercase tracking-widest">Total Comanda</span>
+                <span id="total-vocal" class="text-5xl font-black text-red-600 tracking-tighter">0.00<small class="text-xl">€</small></span>
+            </div>
+            <button onclick="lanzarPedido()" class="w-full bg-[#27ae60] text-white py-5 rounded-2xl font-black text-xl shadow-lg active:scale-95 transition-all">
+                REALIZAR PEDIDO
+            </button>
+        </div>
+    </footer>
+
+    <script>
+        // CONFIGURACIÓN
+        const firebaseConfig = {
+            apiKey: "AIzaSyAxI0dtf4RdxNDYlmk_dVYhF5NyZOg8B2w",
+            databaseURL: "https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "bar-el-pelotazo-16c19"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let carrito = [];
+        let productosData = {};
+        let isAdmin = false;
+        let clickCount = 0;
+        let numMesa = new URLSearchParams(window.location.search).get('mesa') || "";
+        const CLAVE_MAESTRA = "V887233R";
+
+        // INICIO
+        window.onload = () => {
+            if(numMesa) document.getElementById('num-mesa-display').innerText = numMesa.toUpperCase();
+            
+            // Cargar Productos
+            db.ref('productos').on('value', snap => {
+                productosData = snap.val() || {};
+                renderMenu();
+            });
+
+            // Sonido de aviso para pedidos (solo si es admin)
+            db.ref('pedidos').limitToLast(1).on('child_added', snap => {
+                if(isAdmin) {
+                    reproducirCampana();
+                }
+                actualizarComandas();
+            });
+        };
+
+        function reproducirCampana() {
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+            audio.play().catch(e => console.log("Sonido bloqueado"));
+        }
+
+        // RENDERIZAR MENÚ
+        function renderMenu() {
+            const cats = ["Raciones", "Bebidas", "Tapas", "Bocadillos"];
+            cats.forEach(c => document.getElementById(`cat-${c}`).innerHTML = "");
+
+            Object.entries(productosData).forEach(([id, p]) => {
+                const container = document.getElementById(`cat-${p.categoria}`);
+                if(!container) return;
+
+                const card = document.createElement('div');
+                card.className = `producto-card p-4 rounded-xl flex justify-between items-center ${!p.activo ? 'bg-gray-100 opacity-50' : 'bg-white'}`;
+                
+                // Si el cliente no es admin y el producto está inactivo, no se muestra
+                if(!isAdmin && !p.activo) return;
+
+                card.innerHTML = `
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="font-black uppercase text-sm">${p.nombre}</span>
+                            ${p.esCocina ? '<i class="fas fa-utensils text-orange-500 text-xs"></i>' : ''}
+                        </div>
+                        <span class="text-red-600 font-black text-lg">${p.precio.toFixed(2)}€</span>
+                    </div>
+                    <div class="flex gap-1">
+                        ${isAdmin ? `
+                            <button onclick="toggleActivo('${id}', ${p.activo})" class="p-2 ${p.activo ? 'text-blue-600' : 'text-gray-400'}"><i class="fas ${p.activo ? 'fa-eye' : 'fa-eye-slash'}"></i></button>
+                            <button onclick="toggleCocina('${id}', ${p.esCocina})" class="p-2 ${p.esCocina ? 'text-orange-600' : 'text-gray-300'}"><i class="fas fa-utensils"></i></button>
+                            <button onclick="borrarProd('${id}')" class="p-2 text-red-600"><i class="fas fa-trash"></i></button>
+                        ` : `
+                            <button onclick="addCarrito('${id}')" class="bg-[#001f3f] text-white w-12 h-12 rounded-xl flex items-center justify-center shadow-lg">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        `}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // FUNCIONES CARRITO
+        function addCarrito(id) {
+            const p = productosData[id];
+            carrito.push(p);
+            const total = carrito.reduce((acc, item) => acc + item.precio, 0);
+            document.getElementById('total-vocal').innerHTML = `${total.toFixed(2)}<small class="text-xl">€</small>`;
+        }
+
+        function lanzarPedido() {
+            if(!numMesa) return alert("Por favor, escanea el QR de tu mesa");
+            if(carrito.length === 0) return alert("Añade algún artículo");
+
+            db.ref('pedidos').push({
+                mesa: numMesa,
+                items: carrito,
+                total: carrito.reduce((a,b) => a+b.precio, 0),
+                timestamp: Date.now()
+            }).then(() => {
+                alert("¡Pedido enviado! Suena la campana en barra.");
+                carrito = [];
+                document.getElementById('total-vocal').innerHTML = `0.00<small class="text-xl">€</small>`;
+            });
+        }
+
+        // FUNCIONES ADMIN
+        function intentarAdmin() {
+            clickCount++;
+            if(clickCount === 3) {
+                const pass = prompt("ACCESO GERENCIA - CLAVE:");
+                if(pass === CLAVE_MAESTRA) {
+                    isAdmin = true;
+                    document.getElementById('panel-admin').classList.remove('hidden');
+                    document.getElementById('footer-cliente').classList.add('hidden');
+                    renderMenu();
+                    actualizarComandas();
+                }
+                clickCount = 0;
+            }
+            setTimeout(() => clickCount = 0, 3000);
+        }
+
+        function toggleCat(cat) {
+            const div = document.getElementById(`cat-${cat}`);
+            const icon = document.getElementById(`icon-${cat}`);
+            div.classList.toggle('hidden');
+            icon.classList.toggle('fa-chevron-down');
+            icon.classList.toggle('fa-chevron-up');
+        }
+
+        function crearProducto() {
+            const nombre = document.getElementById('new-nombre').value;
+            const precio = parseFloat(document.getElementById('new-precio').value);
+            const categoria = document.getElementById('new-cat').value;
+            const esCocina = document.getElementById('new-cocina').checked;
+
+            if(!nombre || !precio) return alert("Rellena nombre y precio");
+
+            db.ref('productos').push({
+                nombre, precio, categoria, esCocina, activo: true, admin_key: CLAVE_MAESTRA
+            });
+            
+            document.getElementById('new-nombre').value = "";
+            document.getElementById('new-precio').value = "";
+        }
+
+        function borrarProd(id) { if(confirm("¿Borrar?")) db.ref('productos').child(id).remove(); }
+        function toggleActivo(id, val) { db.ref(`productos/${id}`).update({activo: !val}); }
+        function toggleCocina(id, val) { db.ref(`productos/${id}`).update({esCocina: !val}); }
+
+        function actualizarComandas() {
+            if(!isAdmin) return;
+            db.ref('pedidos').limitToLast(10).once('value', snap => {
+                const peds = snap.val() || {};
+                const cont = document.getElementById('lista-pedidos');
+                cont.innerHTML = "";
+                
+                Object.values(peds).reverse().forEach(p => {
+                    const div = document.createElement('div');
+                    div.className = "bg-white text-black p-4 rounded-xl comanda-card";
+                    div.innerHTML = `
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-black bg-yellow-400 px-3 py-1 rounded text-lg uppercase">MESA ${p.mesa}</span>
+                            <span class="text-xs font-bold text-gray-400">${new Date(p.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                        </div>
+                        <div class="space-y-1 border-y border-dashed py-2 my-2 text-sm">
+                            ${p.items.map(it => `
+                                <div class="flex justify-between">
+                                    <span>• ${it.nombre} ${it.esCocina ? '<span class="text-[9px] font-black text-orange-600">[COCINA]</span>' : ''}</span>
+                                    <span class="font-bold">${it.precio.toFixed(2)}€</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="text-right font-black text-red-600 text-xl">TOTAL: ${p.total.toFixed(2)}€</div>
+                    `;
+                    cont.appendChild(div);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
