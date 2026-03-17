@@ -94,7 +94,7 @@
         </div>
 
         <div id="carta-categorias" class="px-2 mt-4">
-            <!-- Cargando productos... -->
+            <!-- Categorías dinámicas aquí -->
         </div>
 
         <footer>
@@ -111,7 +111,6 @@
     <div id="panel-staff">
         <div class="flex gap-2 mb-4 sticky top-0 bg-gray-100 p-2 z-50 rounded shadow border-b">
             <button class="flex-1 bg-blue-900 text-white p-3 rounded text-[10px] font-bold uppercase" onclick="verSeccion('pedidos')">Comandas</button>
-            <button class="flex-1 bg-orange-600 text-white p-3 rounded text-[10px] font-bold uppercase" onclick="verSeccion('cocina')">Cocina</button>
             <button class="flex-1 bg-gray-600 text-white p-3 rounded text-[10px] font-bold uppercase" onclick="verSeccion('editar')">Editar Carta</button>
             <button class="bg-red-600 text-white p-3 rounded font-bold" onclick="cerrarAdmin()">✕</button>
         </div>
@@ -120,11 +119,6 @@
             <h2 class="font-bold border-b-2 border-blue-900 pb-2 mb-4 text-blue-900 uppercase text-xs">Monitor de Barra</h2>
             <div id="lista-pedidos-admin"></div>
             <div id="caja-hoy" class="mt-6 p-4 bg-green-100 rounded text-center font-black text-green-800 text-2xl border-2 border-green-300 shadow">Caja: 0.00€</div>
-        </div>
-
-        <div id="sec-cocina" style="display:none">
-            <h2 class="font-bold border-b-2 border-orange-600 pb-2 mb-4 text-orange-600 uppercase text-xs">Monitor de Cocina</h2>
-            <div id="lista-cocina"></div>
         </div>
 
         <div id="sec-editar" style="display:none">
@@ -137,7 +131,6 @@
     </div>
 
     <script>
-        // CONFIGURACIÓN FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyAxI0dtf4RdxNDYlmk_dVYhF5NyZOg8B2w",
             databaseURL: "https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app",
@@ -151,8 +144,14 @@
         let carta = [];
         const ADMIN_KEY = "V887233R"; 
 
-        const categorias = ["Tapas/Ración/Menú", "Café/repostería/Postres", "Bebidas/Refrescos", "Tapas del día", "Otros"];
-        const categoriasCocina = ["Tapas/Ración/Menú", "Tapas del día", "Otros"];
+        // TUS CATEGORÍAS EXACTAS
+        const categoriasDefinidas = [
+            "Tapas/Ración/Menú",
+            "Café/repostería/Postres",
+            "Bebidas/Refrescos",
+            "Tapas del día",
+            "Otros"
+        ];
 
         function init() {
             const params = new URLSearchParams(window.location.search);
@@ -169,13 +168,11 @@
         }
 
         function cargarDatos() {
-            // Escuchar cambios en la carta
             db.ref('carta').on('value', snap => {
                 carta = snap.val() || [];
                 renderCarta();
                 renderEditor();
             });
-            // Escuchar pedidos en tiempo real
             db.ref('pedidos').on('value', snap => {
                 renderPedidosStaff(snap.val());
             });
@@ -184,9 +181,14 @@
         function renderCarta() {
             const container = document.getElementById('carta-categorias');
             container.innerHTML = "";
-            categorias.forEach((cat, index) => {
+            
+            categoriasDefinidas.forEach((cat, index) => {
+                // Filtrar solo productos activos de esta categoría
                 const items = carta.filter(p => p.categoria === cat && p.activo !== false);
+                
+                // REGLA: SI NO HAY NADA EN LA CATEGORÍA, NO SALE EN LA PAG PRINCIPAL
                 if (items.length === 0) return;
+
                 const catId = `cat-${index}`;
                 container.innerHTML += `
                     <div class="mb-2">
@@ -233,47 +235,41 @@
             });
         }
 
-        // --- FUNCIONES DEL PANEL DE CONTROL ---
         function abrirAdmin() {
             const pass = prompt("Introduce clave de administrador:");
             if(pass === ADMIN_KEY) {
                 document.getElementById('panel-staff').style.display = 'block';
             } else if (pass !== null) {
-                alert("Acceso denegado. Clave incorrecta.");
+                alert("Acceso denegado.");
             }
         }
 
         function cerrarAdmin() { document.getElementById('panel-staff').style.display = 'none'; }
 
         function verSeccion(id) {
-            ['sec-pedidos', 'sec-cocina', 'sec-editar'].forEach(s => document.getElementById(s).style.display = 'none');
+            document.getElementById('sec-pedidos').style.display = 'none';
+            document.getElementById('sec-editar').style.display = 'none';
             document.getElementById('sec-' + id).style.display = 'block';
         }
 
         function renderPedidosStaff(data) {
             const listP = document.getElementById('lista-pedidos-admin');
-            const listC = document.getElementById('lista-cocina');
             let caja = 0;
-            listP.innerHTML = ""; listC.innerHTML = "";
+            listP.innerHTML = "";
             if(!data) return;
 
             Object.keys(data).forEach(id => {
                 const p = data[id];
                 caja += p.total;
-                const html = `
-                    <div class="bg-white p-4 rounded-lg shadow-sm mb-4 border-l-8 ${p.cocina_listo ? 'border-green-500' : 'border-blue-900'}">
+                listP.innerHTML += `
+                    <div class="bg-white p-4 rounded-lg shadow-sm mb-4 border-l-8 border-blue-900">
                         <div class="flex justify-between font-bold"><span>MESA ${p.mesa}</span><span class="text-xs text-gray-400">${p.hora}</span></div>
                         <div class="text-sm my-2 text-gray-600">${p.items.map(i => `<div>• ${i.nombre}</div>`).join('')}</div>
                         <div class="flex justify-between items-center border-t pt-2">
                             <span class="text-blue-900 font-black text-lg">${p.total.toFixed(2)}€</span>
-                            <button class="bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-md active:bg-green-700" onclick="borrarPedido('${id}')">COBRAR Y QUITAR</button>
+                            <button class="bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-md" onclick="borrarPedido('${id}')">COBRAR</button>
                         </div>
                     </div>`;
-                listP.innerHTML += html;
-                const itemsCocina = p.items.filter(i => categoriasCocina.includes(i.categoria));
-                if(itemsCocina.length > 0) {
-                    listC.innerHTML += html.replace('COBRAR Y QUITAR', 'PEDIDO LISTO').replace('border-blue-900', 'border-orange-600');
-                }
             });
             document.getElementById('caja-hoy').innerText = "Caja: " + caja.toFixed(2) + "€";
         }
@@ -283,13 +279,13 @@
         function renderEditor() {
             const div = document.getElementById('editor-productos');
             div.innerHTML = "";
-            categorias.forEach(cat => {
+            categoriasDefinidas.forEach(cat => {
                 const items = carta.filter(p => p.categoria === cat);
                 div.innerHTML += `
                     <div class="mb-4 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
                         <div class="flex justify-between items-center mb-4 pb-2 border-b">
                             <b class="text-xs text-blue-900 uppercase tracking-wider">${cat}</b>
-                            <button class="bg-blue-900 text-white px-3 py-1 rounded-md text-[10px] font-bold" onclick="nuevoItem('${cat}')">+ AÑADIR NUEVO</button>
+                            <button class="bg-blue-900 text-white px-3 py-1 rounded-md text-[10px] font-bold" onclick="nuevoItem('${cat}')">+ AÑADIR</button>
                         </div>
                         ${items.map(p => {
                             const idx = carta.indexOf(p);
@@ -306,7 +302,7 @@
                                             <input type="checkbox" ${p.activo !== false ? 'checked' : ''} onchange="updItem(${idx}, 'activo', this.checked)">
                                             <span class="slider"></span>
                                         </label>
-                                        <button class="text-red-500 font-bold text-xs bg-red-50 p-2 rounded" onclick="delItem(${idx})">BORRAR</button>
+                                        <button class="text-red-500 font-bold text-xs" onclick="delItem(${idx})">BORRAR</button>
                                     </div>
                                 </div>
                             </div>`;
@@ -324,14 +320,14 @@
             renderEditor(); 
         }
         function delItem(i) { 
-            if(confirm("¿Seguro que quieres borrar este producto?")) { 
+            if(confirm("¿Borrar producto?")) { 
                 carta.splice(i, 1); 
                 renderEditor(); 
             } 
         }
         function guardarCarta() { 
             db.ref('carta').set(carta).then(() => { 
-                alert("✅ Carta actualizada en todos los móviles."); 
+                alert("✅ Carta actualizada."); 
                 renderCarta(); 
             }); 
         }
@@ -340,3 +336,4 @@
     </script>
 </body>
 </html>
+
