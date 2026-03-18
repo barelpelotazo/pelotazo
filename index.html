@@ -1,4 +1,3 @@
-<!-- VERSION 28 - HORA ARREGLADA + MESA DESTACADA -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -9,11 +8,21 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+@keyframes flashPedido {
+  0% { background-color: #fef9c3; }
+  100% { background-color: white; }
+}
+.flash {
+  animation: flashPedido 1.2s ease-out;
+}
+</style>
 </head>
 
 <body class="bg-gray-100">
 
-<div class="bg-blue-900 text-white text-center p-3">
+<div class="bg-blue-950 text-white text-center p-3">
   <img src="logo pelotazo png.png" class="mx-auto mb-2" style="max-height:60px;">
   <div class="font-black text-lg">Bar El Pelotazo</div>
 </div>
@@ -27,7 +36,7 @@
 
 <div class="text-center p-3">
   <div class="text-base font-semibold text-gray-600 mb-1">Mesa</div>
-  <div id="mesa" class="inline-block px-5 py-2 rounded-full bg-white border-2 border-blue-800 text-blue-900 text-2xl font-black shadow">
+  <div id="mesa" class="inline-block px-5 py-2 rounded-full bg-white border-2 border-blue-900 text-blue-950 text-2xl font-black shadow">
     --
   </div>
 </div>
@@ -101,6 +110,7 @@ let carrito = [];
 let cartaCache = {};
 let ultimoConteoComandas = 0;
 let audioHabilitado = false;
+let idsAnteriores = [];
 
 mesaEl.textContent = mesa || "--";
 
@@ -135,7 +145,7 @@ const coloresCategoria = {
   }
 };
 
-// ACTIVAR SONIDO EN PRIMER TOQUE
+// AUDIO
 document.addEventListener("click", activarAudio, { once: true });
 document.addEventListener("touchstart", activarAudio, { once: true });
 
@@ -152,8 +162,8 @@ function sonarPedido(){
 
     const ctx = new AudioContextClass();
 
-    const tiempos = [0, 0.22, 0.44];
-    const frecuencias = [950, 1250, 1550];
+    const tiempos = [0, 0.18, 0.36, 0.54];
+    const frecuencias = [900, 1200, 1500, 1200];
 
     tiempos.forEach((t, i) => {
       const osc = ctx.createOscillator();
@@ -163,14 +173,14 @@ function sonarPedido(){
       osc.frequency.value = frecuencias[i];
 
       gain.gain.setValueAtTime(0.001, ctx.currentTime + t);
-      gain.gain.exponentialRampToValueAtTime(0.6, ctx.currentTime + t + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.18);
+      gain.gain.exponentialRampToValueAtTime(0.75, ctx.currentTime + t + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.14);
 
       osc.connect(gain);
       gain.connect(ctx.destination);
 
       osc.start(ctx.currentTime + t);
-      osc.stop(ctx.currentTime + t + 0.2);
+      osc.stop(ctx.currentTime + t + 0.16);
     });
   }catch(e){}
 }
@@ -195,6 +205,7 @@ function tab(t){
   document.getElementById(t).classList.remove("hidden");
 }
 
+// UTILS
 function formatHora(timestamp, horaTexto){
   if(horaTexto) return horaTexto;
 
@@ -216,6 +227,14 @@ function productoMarcadoEnCarta(nombreProducto){
     String(p.nombre || "").trim().toLowerCase() === String(nombreProducto || "").trim().toLowerCase() &&
     esCocina(p.cocina)
   );
+}
+
+function pedidoTieneCocinaPendiente(pedido){
+  return (pedido.items || []).some(item => {
+    const vaACocina = esCocina(item.cocina) || productoMarcadoEnCarta(item.nombre);
+    const cocinaHecha = esCocina(item.cocinaHecho);
+    return vaACocina && !cocinaHecha;
+  });
 }
 
 // TOTAL MESA
@@ -240,7 +259,6 @@ db.ref("carta").on("value", snap => {
 
   categorias.forEach(cat => {
     let items = Object.values(data).filter(p => p.categoria === cat && p.activo);
-
     if(!items.length) return;
 
     html += `
@@ -323,11 +341,13 @@ db.ref("comandas").on("value", snap => {
   let data = snap.val() || {};
   pedidosEl.innerHTML = "";
 
-  const conteoActual = Object.keys(data).length;
-  if(ultimoConteoComandas !== 0 && conteoActual > ultimoConteoComandas){
+  const idsActuales = Object.keys(data);
+  const nuevosIds = idsActuales.filter(id => !idsAnteriores.includes(id));
+
+  if(ultimoConteoComandas !== 0 && idsActuales.length > ultimoConteoComandas){
     sonarPedido();
   }
-  ultimoConteoComandas = conteoActual;
+  ultimoConteoComandas = idsActuales.length;
 
   let mesas = {};
 
@@ -338,17 +358,15 @@ db.ref("comandas").on("value", snap => {
     if(!mesas[m]){
       mesas[m] = {
         total: 0,
-        productos: {},
-        ids: [],
         camarero: p.camarero || "",
         hora: Number(p.timestamp || 0),
         horaTexto: p.horaTexto || "",
-        cocinaPendiente: false
+        cocinaPendiente: false,
+        comandas: []
       };
     }
 
     mesas[m].total += Number(p.total || 0);
-    mesas[m].ids.push(id);
 
     if(p.camarero){
       mesas[m].camarero = p.camarero;
@@ -362,39 +380,68 @@ db.ref("comandas").on("value", snap => {
       mesas[m].horaTexto = p.horaTexto;
     }
 
+    const cocinaPendientePedido = pedidoTieneCocinaPendiente(p);
+    if(cocinaPendientePedido){
+      mesas[m].cocinaPendiente = true;
+    }
+
+    let productos = {};
     (p.items || []).forEach(i => {
-      mesas[m].productos[i.nombre] = (mesas[m].productos[i.nombre] || 0) + 1;
+      productos[i.nombre] = (productos[i.nombre] || 0) + 1;
+    });
 
-      const vaACocina = esCocina(i.cocina) || productoMarcadoEnCarta(i.nombre);
-      const cocinaHecha = esCocina(i.cocinaHecho);
-
-      if(vaACocina && !cocinaHecha){
-        mesas[m].cocinaPendiente = true;
-      }
+    mesas[m].comandas.push({
+      id: id,
+      productos: productos,
+      total: Number(p.total || 0),
+      hora: Number(p.timestamp || 0),
+      horaTexto: p.horaTexto || "",
+      nuevo: nuevosIds.includes(id),
+      cocinaPendiente: cocinaPendientePedido
     });
   });
 
   Object.keys(mesas).forEach(m => {
+    mesas[m].comandas.sort((a,b) => Number(a.hora || 0) - Number(b.hora || 0));
+
     const borde = mesas[m].cocinaPendiente ? "border-2 border-orange-500" : "border";
     const etiquetaCocina = mesas[m].cocinaPendiente
       ? `<div class="mt-2 inline-block bg-orange-100 text-orange-700 px-2 py-1 rounded text-sm font-bold">COCINA PENDIENTE</div>`
       : "";
 
+    const detalleComandas = mesas[m].comandas.map(c => `
+      <div class="mt-3 border rounded-lg p-3 ${c.nuevo ? 'flash bg-yellow-50 border-yellow-300' : 'bg-gray-50 border-gray-200'}">
+        <div class="flex justify-between items-center gap-3">
+          <span class="text-sm font-bold ${c.nuevo ? 'text-yellow-700' : 'text-gray-600'}">
+            ${c.nuevo ? 'NUEVO PEDIDO' : 'Pedido'}
+          </span>
+          <span class="text-sm text-gray-500 font-semibold">Hora ${formatHora(c.hora, c.horaTexto)}</span>
+        </div>
+
+        ${c.cocinaPendiente ? `<div class="mt-2 inline-block bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs font-bold">Cocina pendiente</div>` : ""}
+
+        <div class="mt-2 text-base leading-7">
+          ${Object.keys(c.productos).map(k => `• <span class="font-semibold">${k}</span> x${c.productos[k]}`).join("<br>")}
+        </div>
+
+        <div class="text-red-600 font-black text-lg mt-2">
+          ${c.total.toFixed(2)}€
+        </div>
+      </div>
+    `).join("");
+
     pedidosEl.innerHTML += `
       <div class="p-4 m-3 rounded-xl bg-white shadow-md ${borde}">
         <div class="flex justify-between items-center gap-3">
-          <b class="text-xl">Mesa ${m}</b>
+          <b class="text-2xl">Mesa ${m}</b>
           <span class="text-base text-gray-500 font-semibold">Hora ${formatHora(mesas[m].hora, mesas[m].horaTexto)}</span>
         </div>
 
         ${etiquetaCocina}
+        ${detalleComandas}
 
-        <div class="mt-3 text-base leading-7">
-          ${Object.keys(mesas[m].productos).map(k => `• ${k} x${mesas[m].productos[k]}`).join("<br>")}
-        </div>
-
-        <div class="text-red-600 font-black text-xl mt-3">
-          ${mesas[m].total.toFixed(2)}€
+        <div class="text-red-600 font-black text-2xl mt-4">
+          Total mesa: ${mesas[m].total.toFixed(2)}€
         </div>
 
         <select onchange="setCamarero('${m}',this.value)"
@@ -421,6 +468,7 @@ db.ref("comandas").on("value", snap => {
     pedidosEl.innerHTML = `<div class="text-center text-gray-500 p-6 text-lg">No hay pedidos</div>`;
   }
 
+  idsAnteriores = idsActuales;
   renderCocina(data);
 });
 
@@ -442,15 +490,22 @@ function cobrar(m){
   db.ref("comandas").once("value", snap => {
     let d = snap.val() || {};
     let tieneCamarero = false;
+    let hayCocinaPendiente = false;
 
     Object.values(d).forEach(p => {
-      if(String(p.mesa) === String(m) && p.camarero){
-        tieneCamarero = true;
+      if(String(p.mesa) === String(m)){
+        if(p.camarero) tieneCamarero = true;
+        if(pedidoTieneCocinaPendiente(p)) hayCocinaPendiente = true;
       }
     });
 
     if(!tieneCamarero){
       alert("Selecciona camarero antes de cobrar");
+      return;
+    }
+
+    if(hayCocinaPendiente){
+      alert("No puedes cobrar: hay productos pendientes en cocina");
       return;
     }
 
@@ -515,11 +570,11 @@ function renderCocina(data){
       <div class="p-4 m-3 rounded-xl bg-white shadow-md border-2 border-orange-400">
         <div class="flex justify-between items-center gap-3 mb-3">
           <div class="text-orange-600 font-black text-2xl">Mesa ${m}</div>
-          <span class="text-base text-gray-500 font-semibold">Hora ${formatHora(mesas[m].hora, mesas[m].horaTexto)}</span>
+          <span class="text-lg text-gray-500 font-semibold">Hora ${formatHora(mesas[m].hora, mesas[m].horaTexto)}</span>
         </div>
 
-        <div class="text-lg leading-8">
-          ${Object.keys(agrupados).map(k => `• ${k} x${agrupados[k]}`).join("<br>")}
+        <div class="text-xl leading-9">
+          ${Object.keys(agrupados).map(k => `• <span class="font-semibold">${k}</span> x${agrupados[k]}`).join("<br>")}
         </div>
 
         <button onclick="marcarCocinaMesa('${m}')"
@@ -562,20 +617,36 @@ db.ref("caja").on("value", snap => {
   let d = snap.val() || {};
   let total = 0;
   let cam = {};
+  let tickets = {};
 
   Object.values(d).forEach(p => {
     total += Number(p.total || 0);
     let nombreCamarero = p.camarero || "Sin asignar";
+
     cam[nombreCamarero] = (cam[nombreCamarero] || 0) + Number(p.total || 0);
+
+    if(!tickets[nombreCamarero]) tickets[nombreCamarero] = [];
+    tickets[nombreCamarero].push({
+      mesa: p.mesa,
+      total: Number(p.total || 0),
+      horaTexto: p.horaTexto || ""
+    });
   });
 
   let html = `
     <div class="bg-white p-3 m-3 rounded-xl shadow">
-      <b class="text-lg">Total: ${total.toFixed(2)}€</b><br><br>
+      <b class="text-xl">Total: ${total.toFixed(2)}€</b><br><br>
   `;
 
   Object.keys(cam).forEach(c => {
-    html += `Camarero ${c}: ${cam[c].toFixed(2)}€<br>`;
+    html += `
+      <div class="border rounded-lg p-3 mb-3 bg-gray-50">
+        <div class="font-black text-lg mb-2">Camarero ${c}: ${cam[c].toFixed(2)}€</div>
+        <div class="text-sm leading-7">
+          ${tickets[c].map(t => `• Mesa ${t.mesa} - ${t.total.toFixed(2)}€ ${t.horaTexto ? '- ' + t.horaTexto : ''}`).join("<br>")}
+        </div>
+      </div>
+    `;
   });
 
   html += `
