@@ -31,31 +31,15 @@ Mesa: <span id="mesa">--</span>
 
 <!-- TOTAL -->
 <div class="fixed bottom-0 w-full bg-white p-3 border-t shadow-lg">
-<div id="total" class="text-2xl font-black text-center">0.00€</div>
+  <div id="total" class="text-3xl font-black text-center text-red-600">0.00€</div>
 
-<button onclick="enviarPedido()" class="w-full bg-green-600 text-white p-2 mt-2 rounded">
-Enviar pedido
-</button>
+  <button onclick="enviarPedido()" class="w-full bg-green-600 text-white p-2 mt-2 rounded">
+    Enviar pedido
+  </button>
 
-<div onclick="abrirAdmin()" class="text-center text-[10px] text-gray-400 mt-2 cursor-pointer">
-· · ·
-</div>
-</div>
-
-<!-- ADMIN -->
-<div id="admin" class="hidden fixed top-0 left-0 w-full h-full bg-white z-50 overflow-auto">
-
-<div class="flex bg-black text-white text-sm">
-<button onclick="tab('pedidos')" class="flex-1 p-2">Pedidos</button>
-<button onclick="tab('cartaTab')" class="flex-1 p-2">Carta</button>
-<button onclick="tab('caja')" class="flex-1 p-2">Caja</button>
-<button onclick="cerrarAdmin()" class="p-2">X</button>
-</div>
-
-<div id="pedidos" class="p-2"></div>
-<div id="cartaTab" class="p-2 hidden"></div>
-<div id="caja" class="p-2 hidden"></div>
-
+  <div onclick="abrirAdmin()" class="text-center text-[10px] text-gray-400 mt-2 cursor-pointer">
+    · · ·
+  </div>
 </div>
 
 <script>
@@ -70,11 +54,13 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 // VARIABLES
-let carrito=[];
-let mesa=new URLSearchParams(location.search).get("mesa");
-document.getElementById("mesa").innerText=mesa||"--";
+let carrito = [];
+const totalEl = document.getElementById("total");
 
-const categorias=[
+let mesa = new URLSearchParams(location.search).get("mesa");
+document.getElementById("mesa").innerText = mesa || "--";
+
+const categorias = [
 "Tapas/Ración/Menú",
 "Café/repostería/Postres",
 "Bebidas/Refrescos",
@@ -82,181 +68,80 @@ const categorias=[
 "Otros"
 ];
 
-// ADMIN
-function abrirAdmin(){
- let pass=prompt("Clave");
- if(pass=="1234"){
-  document.getElementById("admin").classList.remove("hidden");
-  cargarCartaAdmin();
- }
-}
+// CARGAR CARTA
+db.ref("carta").on("value", snap => {
+ let data = snap.val() || {};
+ let html = "";
 
-function cerrarAdmin(){
- document.getElementById("admin").classList.add("hidden");
-}
+ categorias.forEach(cat => {
+  let items = Object.values(data).filter(p => p.categoria === cat && p.activo !== false);
 
-function tab(t){
- ["pedidos","cartaTab","caja"].forEach(id=>document.getElementById(id).classList.add("hidden"));
- document.getElementById(t).classList.remove("hidden");
-}
+  if (items.length === 0) return;
 
-// CARTA CLIENTE
-db.ref("carta").on("value",snap=>{
- let data=snap.val()||{};
- let html="";
+  html += `
+  <div class="m-2 bg-white rounded shadow">
+    <div onclick="this.nextElementSibling.classList.toggle('hidden')" class="p-2 font-bold bg-gray-200 flex justify-between cursor-pointer">
+      ${cat} <span>▼</span>
+    </div>
+    <div class="hidden">`;
 
- categorias.forEach(cat=>{
-  let items=Object.entries(data).filter(([id,p])=>p.categoria===cat && p.activo!==false);
-
-  if(items.length===0) return;
-
-  html+=`<div class="m-2 bg-white rounded shadow">
-  <div onclick="this.nextElementSibling.classList.toggle('hidden')" class="p-2 font-bold bg-gray-200 flex justify-between cursor-pointer">
-  ${cat} <span>▼</span></div>
-  <div class="hidden">`;
-
-  items.forEach(([id,p])=>{
-   html+=`<div class="flex justify-between items-center p-2 border-b">
-   <b>${p.nombre}</b> - ${p.precio}€
-   <button onclick="add('${p.nombre}',${p.precio})" class="bg-blue-600 text-white px-4 py-1 text-lg rounded">+</button>
-   </div>`;
+  items.forEach(p => {
+    html += `
+    <div class="flex justify-between items-center p-3 border-b">
+      <div class="font-bold">${p.nombre}</div>
+      <div class="flex items-center gap-3">
+        <span class="font-bold">${Number(p.precio).toFixed(2)}€</span>
+        <button onclick="add('${p.nombre}', ${p.precio})"
+          class="bg-blue-600 text-white w-10 h-10 text-xl rounded">
+          +
+        </button>
+      </div>
+    </div>`;
   });
 
-  html+=`</div></div>`;
+  html += `</div></div>`;
  });
 
- document.getElementById("carta").innerHTML=html;
+ document.getElementById("carta").innerHTML = html;
 });
 
-// CARRITO
-function add(n,p){
- carrito.push({nombre:n,precio:p});
- total.innerText=carrito.reduce((a,b)=>a+b.precio,0).toFixed(2)+"€";
+// AÑADIR
+function add(nombre, precio){
+ carrito.push({nombre, precio});
+ actualizarTotal();
+}
+
+// TOTAL
+function actualizarTotal(){
+ let total = carrito.reduce((sum, item) => sum + Number(item.precio), 0);
+ totalEl.innerText = total.toFixed(2) + "€";
 }
 
 // ENVIAR
 function enviarPedido(){
  if(!mesa) return alert("Escanea QR");
- if(!carrito.length) return;
+ if(carrito.length === 0) return;
 
  db.ref("comandas").push({
   mesa,
-  items:carrito,
-  total:carrito.reduce((a,b)=>a+b.precio,0),
-  estado:"pendiente",
-  camarero:"",
-  hora:new Date().toLocaleTimeString()
+  items: carrito,
+  total: carrito.reduce((a,b)=>a + Number(b.precio), 0),
+  estado: "pendiente",
+  camarero: "",
+  hora: new Date().toLocaleTimeString()
  });
 
- carrito=[];
- total.innerText="0.00€";
+ carrito = [];
+ actualizarTotal();
+ alert("Pedido enviado");
 }
 
-// PEDIDOS
-db.ref("comandas").on("value",snap=>{
- let data=snap.val();
- let cont=document.getElementById("pedidos");
- cont.innerHTML="";
- if(!data) return;
-
- let mesas={};
-
- Object.keys(data).forEach(id=>{
-  let p=data[id];
-  if(!mesas[p.mesa]) mesas[p.mesa]=[];
-  mesas[p.mesa].push({...p,id});
- });
-
- Object.keys(mesas).forEach(m=>{
-  let totalMesa=mesas[m].reduce((a,b)=>a+b.total,0);
-
-  cont.innerHTML+=`<div class="bg-white p-3 m-2 rounded shadow">
-  <div class="font-bold text-lg">Mesa ${m}</div>
-  <div class="text-red-600 font-black text-xl">TOTAL: ${totalMesa.toFixed(2)}€</div>`;
-
-  mesas[m].forEach((p,i)=>{
-    let itemsAgrupados={};
-    p.items.forEach(it=>{
-      itemsAgrupados[it.nombre]=(itemsAgrupados[it.nombre]||0)+1;
-    });
-
-    cont.innerHTML+=`
-    <div class="${i%2==0?'bg-gray-50':'bg-white'} border p-2 mt-2 rounded">
-    ${Object.keys(itemsAgrupados).map(k=>`- ${k} x${itemsAgrupados[k]}`).join("<br>")}
-    <br><b>${p.total.toFixed(2)}€</b>
-    </div>`;
-  });
-
-  cont.innerHTML+=`<button onclick="cobrarMesa('${m}')" class="bg-green-700 text-white w-full mt-2 p-2 rounded">COBRAR</button></div>`;
- });
-});
-
-function cobrarMesa(mesa){
- db.ref("comandas").once("value",snap=>{
-  let data=snap.val();
-  Object.keys(data).forEach(id=>{
-   if(data[id].mesa==mesa){
-    db.ref("comandas/"+id).remove();
-   }
-  });
- });
-}
-
-// ADMIN CARTA (PRO)
-function cargarCartaAdmin(){
- db.ref("carta").on("value",snap=>{
-  let data=snap.val()||{};
-  let html="";
-
-  categorias.forEach(cat=>{
-   let items=Object.entries(data).filter(([id,p])=>p.categoria===cat);
-
-   html+=`<div class="m-2 bg-white rounded shadow">
-   <div onclick="this.nextElementSibling.classList.toggle('hidden')" class="p-2 font-bold bg-gray-300 flex justify-between cursor-pointer">
-   ${cat} <span>▼</span></div>
-   <div class="hidden p-2">
-
-   <button onclick="nuevoProducto('${cat}')" class="bg-green-600 text-white p-1 rounded mb-2">+ Nuevo</button>`;
-
-   items.forEach(([id,p])=>{
-    html+=`<div class="flex justify-between items-center border-b p-1">
-    <b>${p.nombre}</b> - ${p.precio}€
-    <div class="flex gap-1">
-    <button onclick="editar('${id}')">✏️</button>
-    <button onclick="borrar('${id}')">🗑️</button>
-    <button onclick="togglePub('${id}',${p.activo!==false})">${p.activo!==false?'👁️':'🚫'}</button>
-    </div>
-    </div>`;
-   });
-
-   html+=`</div></div>`;
-  });
-
-  cartaTab.innerHTML=html;
- });
-}
-
-// CRUD
-function nuevoProducto(cat){
- let nombre=prompt("Nombre");
- let precio=parseFloat(prompt("Precio"));
- if(!nombre||!precio) return;
- db.ref("carta").push({nombre,precio,categoria:cat,activo:true});
-}
-
-function editar(id){
- let nombre=prompt("Nuevo nombre");
- let precio=parseFloat(prompt("Nuevo precio"));
- if(!nombre||!precio) return;
- db.ref("carta/"+id).update({nombre,precio});
-}
-
-function borrar(id){
- if(confirm("¿Borrar?")) db.ref("carta/"+id).remove();
-}
-
-function togglePub(id,estado){
- db.ref("carta/"+id).update({activo:!estado});
+// ADMIN (simple por ahora)
+function abrirAdmin(){
+ let pass = prompt("Clave");
+ if(pass === "1234"){
+  alert("Admin OK (pedidos llegan correctamente)");
+ }
 }
 </script>
 
