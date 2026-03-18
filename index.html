@@ -207,23 +207,11 @@ function sonarPedido(){
 // ADMIN
 function abrirAdmin(){
   if(!authReady || !currentUid){
-    alert("Esperando conexión segura...");
+    alert("Esperando conexión...");
     return;
   }
 
-  db.ref("admins/" + currentUid).once("value")
-    .then((snap) => {
-      if(snap.val() === true){
-        adminEl.classList.remove("hidden");
-        cargarCartaAdmin();
-      } else {
-        alert("No autorizado. UID mostrado en consola.");
-        console.log("Tu UID es:", currentUid);
-      }
-    })
-    .catch(() => {
-      alert("Error comprobando permisos");
-    });
+  alert("Tu UID es: " + currentUid);
 }
 }
 
