@@ -1,4 +1,4 @@
-<!-- VERSION 11 - DISEÑO PRO OK -->
+<!-- VERSION 12 - CLIENTE ORIGINAL + ADMIN MEJORADO -->
 
 <!DOCTYPE html>
 <html lang="es">
@@ -9,12 +9,11 @@
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-<script src="https://cdn.tailwindcss.com?v=1100"></script>
+<script src="https://cdn.tailwindcss.com?v=1200"></script>
 </head>
 
 <body class="bg-gray-100">
 
-<!-- HEADER -->
 <div class="bg-blue-900 text-white text-center p-3">
 <img src="logo pelotazo png.png" class="mx-auto mb-2" style="max-height:60px;">
 <div class="font-black text-lg">Bar El Pelotazo</div>
@@ -32,16 +31,13 @@ Mesa: <span id="mesa">--</span>
 Total gastado: <span id="totalMesa">0.00€</span>
 </div>
 
-<!-- CARTA -->
 <div id="carta" style="padding-bottom:140px;"></div>
 
-<!-- FOOTER -->
 <div class="text-center text-[11px] text-gray-500 pb-24">
 programación y diseño 
 <a href="https://rodante.es" target="_blank" class="text-blue-400">rodante</a>
 </div>
 
-<!-- BARRA INFERIOR -->
 <div class="fixed bottom-0 w-full bg-white p-3 border-t shadow-lg">
 <div id="total" class="text-2xl text-red-600 text-center font-bold">0€</div>
 
@@ -54,7 +50,6 @@ Enviar pedido
 </div>
 </div>
 
-<!-- ADMIN -->
 <div id="admin" class="hidden fixed top-0 left-0 w-full h-full bg-white z-50 overflow-auto">
 
 <div class="flex bg-black text-white">
@@ -83,7 +78,6 @@ const db = firebase.database();
 
 let carrito=[];
 let mesa=new URLSearchParams(location.search).get("mesa");
-
 document.getElementById("mesa").innerText=mesa||"--";
 
 const totalEl=document.getElementById("total");
@@ -125,35 +119,26 @@ function tab(t){
  document.getElementById(t).classList.remove("hidden");
 }
 
-// CLIENTE CARTA (DISEÑO MEJORADO)
+// CLIENTE (SIN CAMBIOS)
 db.ref("carta").on("value",snap=>{
  let data=snap.val()||{};
  let html="";
 
  categorias.forEach(cat=>{
   let items=Object.values(data).filter(p=>p.categoria===cat && p.activo);
-
   if(!items.length) return;
 
-  html+=`
-  <div class="m-3 rounded-xl overflow-hidden shadow-lg border border-gray-200">
-
+  html+=`<div class="m-2 bg-white shadow">
   <div onclick="this.nextElementSibling.classList.toggle('hidden')" 
-  class="p-3 bg-gradient-to-r from-blue-800 to-blue-600 text-white font-bold flex justify-between items-center cursor-pointer">
-  <span>${cat}</span>
-  <span>▼</span>
-  </div>
-
-  <div class="hidden bg-white">`;
+  class="p-2 bg-gray-200 font-bold flex justify-between cursor-pointer">
+  ${cat}<span>▼</span></div><div class="hidden">`;
 
   items.forEach(p=>{
-   html+=`
-   <div class="flex justify-between items-center p-3 border-b hover:bg-gray-50">
+   html+=`<div class="flex justify-between p-2 border-b">
    <b>${p.nombre}</b>
    <div>${p.precio}€
-   <button onclick="add('${p.nombre}',${p.precio})" class="bg-blue-600 text-white px-3 ml-2 rounded text-lg">+</button>
-   </div>
-   </div>`;
+   <button onclick="add('${p.nombre}',${p.precio})" class="bg-blue-600 text-white px-2 ml-2">+</button>
+   </div></div>`;
   });
 
   html+=`</div></div>`;
@@ -168,13 +153,12 @@ function add(n,p){
  totalEl.innerText=carrito.reduce((a,b)=>a+Number(b.precio),0)+"€";
 }
 
-// ENVIAR (QR obligatorio)
+// ENVIAR
 function enviarPedido(){
  if(!mesa){
   alert("Escanea el QR de tu mesa antes de hacer el pedido");
   return;
  }
-
  if(!carrito.length){
   alert("Añade productos al pedido");
   return;
@@ -191,8 +175,60 @@ function enviarPedido(){
  totalEl.innerText="0€";
 }
 
-// (TODO LO DEMÁS IGUAL: pedidos, caja, admin carta)
+// 🔥 ADMIN CARTA MEJORADA (VISUAL)
+function cargarCartaAdmin(){
+ db.ref("carta").on("value",snap=>{
+  let data=snap.val()||{};
+  let html="";
 
+  categorias.forEach(cat=>{
+   html+=`
+   <div class="bg-white m-2 p-3 rounded shadow border-l-4 border-blue-600">
+   <div class="flex justify-between items-center">
+     <b class="text-lg">${cat}</b>
+     <button onclick="nuevo('${cat}')" class="bg-green-600 text-white px-2 rounded">+</button>
+   </div>`;
+
+   Object.entries(data).forEach(([id,p])=>{
+    if(p.categoria===cat){
+     html+=`
+     <div class="flex justify-between items-center border-b py-2">
+
+     <div>
+     <input value="${p.nombre}" onchange="editarNombre('${id}',this.value)" class="border px-1 w-32">
+     <input value="${p.precio}" type="number" onchange="editarPrecio('${id}',this.value)" class="border px-1 w-16 ml-2"> €
+     </div>
+
+     <div class="flex gap-1">
+     <button onclick="toggle('${id}',${p.activo})"
+     class="${p.activo?'bg-blue-600':'bg-gray-400'} text-white px-2 rounded">
+     ${p.activo?'ON':'OFF'}
+     </button>
+
+     <button onclick="borrar('${id}')" class="bg-red-600 text-white px-2 rounded">X</button>
+     </div>
+
+     </div>`;
+    }
+   });
+
+   html+=`</div>`;
+  });
+
+  cartaTab.innerHTML=html;
+ });
+}
+
+// CRUD
+function editarNombre(id,n){db.ref("carta/"+id+"/nombre").set(n);}
+function editarPrecio(id,p){db.ref("carta/"+id+"/precio").set(Number(p));}
+function nuevo(cat){
+ let n=prompt("Nombre");
+ let p=parseFloat(prompt("Precio"));
+ db.ref("carta").push({nombre:n,precio:p,categoria:cat,activo:true});
+}
+function toggle(id,a){db.ref("carta/"+id+"/activo").set(!a);}
+function borrar(id){db.ref("carta/"+id).remove();}
 </script>
 
 </body>
