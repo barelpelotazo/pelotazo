@@ -1,4 +1,4 @@
-<!-- VERSION 19 - TODO FUNCIONANDO -->
+<!-- VERSION 20 - DISEÑO MEJORADO SEGURO -->
 
 <!DOCTYPE html>
 <html lang="es">
@@ -46,13 +46,13 @@ Enviar pedido
 </div>
 
 <!-- ADMIN -->
-<div id="admin" class="hidden fixed top-0 left-0 w-full h-full bg-white z-50 overflow-auto">
+<div id="admin" class="hidden fixed top-0 left-0 w-full h-full bg-gray-100 z-50 overflow-auto">
 
 <div class="flex bg-black text-white">
-<button onclick="tab('pedidos')" class="flex-1 p-2">Pedidos</button>
-<button onclick="tab('cartaTab')" class="flex-1 p-2">Carta</button>
-<button onclick="tab('caja')" class="flex-1 p-2">Caja</button>
-<button onclick="cerrarAdmin()" class="p-2">X</button>
+<button onclick="tab('pedidos')" class="flex-1 p-3">Pedidos</button>
+<button onclick="tab('cartaTab')" class="flex-1 p-3">Carta</button>
+<button onclick="tab('caja')" class="flex-1 p-3">Caja</button>
+<button onclick="cerrarAdmin()" class="p-3">X</button>
 </div>
 
 <div id="pedidos" class="p-2"></div>
@@ -128,15 +128,16 @@ db.ref("carta").on("value",snap=>{
   let items=Object.values(data).filter(p=>p.categoria===cat && p.activo);
   if(!items.length) return;
 
-  html+=`<div class="m-2 bg-white shadow">
-  <div onclick="this.nextElementSibling.classList.toggle('hidden')" class="p-2 bg-gray-200 font-bold flex justify-between">
+  html+=`<div class="m-2 bg-white shadow rounded">
+  <div onclick="this.nextElementSibling.classList.toggle('hidden')" 
+  class="p-2 bg-gray-200 font-bold flex justify-between">
   ${cat}<span>▼</span></div><div class="hidden">`;
 
   items.forEach(p=>{
    html+=`<div class="flex justify-between p-2 border-b">
    <b>${p.nombre}</b>
    <div>${p.precio}€
-   <button onclick="add('${p.nombre}',${p.precio})" class="bg-blue-600 text-white px-2 ml-2">+</button>
+   <button onclick="add('${p.nombre}',${p.precio})" class="bg-blue-600 text-white px-2 ml-2 rounded">+</button>
    </div></div>`;
   });
 
@@ -168,7 +169,7 @@ function enviarPedido(){
  totalEl.innerText="0€";
 }
 
-// PEDIDOS + CAMARERO + COBRO
+// PEDIDOS DISEÑO PRO
 db.ref("comandas").on("value",snap=>{
  let data=snap.val()||{};
  let cont=document.getElementById("pedidos");
@@ -194,21 +195,27 @@ db.ref("comandas").on("value",snap=>{
 
  Object.keys(mesas).forEach((m,i)=>{
   cont.innerHTML+=`
-  <div class="p-3 m-2 rounded ${i%2?'bg-gray-200':'bg-white'} shadow">
+  <div class="p-4 m-3 rounded-xl bg-white shadow-md border">
 
-  <b>Mesa ${m}</b><br>
+  <b class="text-lg">Mesa ${m}</b>
 
-  ${Object.keys(mesas[m].productos).map(k=>`- ${k} x${mesas[m].productos[k]}`).join("<br>")}
+  <div class="mt-2 text-sm">
+  ${Object.keys(mesas[m].productos).map(k=>`• ${k} x${mesas[m].productos[k]}`).join("<br>")}
+  </div>
 
-  <div class="text-red-600 font-bold mt-2">${mesas[m].total.toFixed(2)}€</div>
+  <div class="text-red-600 font-black text-lg mt-3">
+  ${mesas[m].total.toFixed(2)}€
+  </div>
 
-  <select onchange="setCamarero('${m}',this.value)" class="w-full mt-2">
+  <select onchange="setCamarero('${m}',this.value)" 
+  class="w-full mt-3 p-2 border rounded bg-gray-50">
   <option value="">Camarero</option>
   <option>1</option><option>2</option><option>3</option>
   <option>4</option><option>5</option><option>6</option><option>7</option>
   </select>
 
-  <button onclick="cobrar('${m}')" class="bg-green-700 text-white w-full mt-2 p-2">
+  <button onclick="cobrar('${m}')" 
+  class="bg-green-600 text-white w-full mt-3 p-2 rounded shadow">
   COBRAR
   </button>
 
@@ -216,6 +223,7 @@ db.ref("comandas").on("value",snap=>{
  });
 });
 
+// CAMARERO
 function setCamarero(m,c){
  db.ref("comandas").once("value",snap=>{
   let d=snap.val();
@@ -227,6 +235,7 @@ function setCamarero(m,c){
  });
 }
 
+// COBRAR
 function cobrar(m){
  db.ref("comandas").once("value",snap=>{
   let d=snap.val();
@@ -240,7 +249,7 @@ function cobrar(m){
  });
 }
 
-// CAJA
+// CAJA DISEÑO
 db.ref("caja").on("value",snap=>{
  let d=snap.val()||{};
  let total=0;
@@ -251,10 +260,14 @@ db.ref("caja").on("value",snap=>{
   cam[p.camarero]=(cam[p.camarero]||0)+Number(p.total);
  });
 
- let html=`<b>Total: ${total.toFixed(2)}€</b><br>`;
+ let html=`<div class="bg-white p-3 m-3 rounded-xl shadow">
+ <b class="text-lg">Total: ${total.toFixed(2)}€</b><br><br>`;
+
  Object.keys(cam).forEach(c=>{
   html+=`Camarero ${c}: ${cam[c].toFixed(2)}€<br>`;
  });
+
+ html+=`</div>`;
 
  caja.innerHTML=html;
 });
@@ -266,17 +279,21 @@ function cargarCartaAdmin(){
   let html="";
 
   categorias.forEach(cat=>{
-   html+=`<div class="bg-white p-2 m-2 shadow">
+   html+=`<div class="bg-white p-3 m-3 rounded-xl shadow border">
    <b>${cat}</b>
-   <button onclick="nuevo('${cat}')">+</button><br>`;
+   <button onclick="nuevo('${cat}')" class="ml-2 bg-green-500 text-white px-2 rounded">+</button><br>`;
 
    Object.entries(data).forEach(([id,p])=>{
     if(p.categoria===cat){
      html+=`
-     <input value="${p.nombre}" onchange="editarNombre('${id}',this.value)">
-     <input value="${p.precio}" type="number" onchange="editarPrecio('${id}',this.value)">
-     <button onclick="toggle('${id}',${p.activo})">${p.activo?'ON':'OFF'}</button>
-     <button onclick="borrar('${id}')">X</button><br>`;
+     <div class="flex items-center mt-2">
+     <input class="border p-1 rounded mr-2" value="${p.nombre}" onchange="editarNombre('${id}',this.value)">
+     <input class="border p-1 rounded mr-2 w-20" type="number" value="${p.precio}" onchange="editarPrecio('${id}',this.value)">
+     <button onclick="toggle('${id}',${p.activo})" class="px-2 mr-1 rounded ${p.activo?'bg-blue-600':'bg-gray-400'} text-white">
+     ${p.activo?'ON':'OFF'}
+     </button>
+     <button onclick="borrar('${id}')" class="bg-red-600 text-white px-2 rounded">X</button>
+     </div>`;
     }
    });
 
@@ -287,6 +304,7 @@ function cargarCartaAdmin(){
  });
 }
 
+// CRUD CARTA
 function editarNombre(id,n){db.ref("carta/"+id+"/nombre").set(n);}
 function editarPrecio(id,p){db.ref("carta/"+id+"/precio").set(Number(p));}
 function nuevo(cat){
