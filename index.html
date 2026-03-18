@@ -7,41 +7,33 @@
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-<script src="https://cdn.tailwindcss.com?v=10"></script>
+<script src="https://cdn.tailwindcss.com?v=20"></script>
 </head>
 
 <body class="bg-gray-100">
 
-<!-- CABECERA -->
+<!-- HEADER -->
 <div class="bg-blue-900 text-white text-center p-3">
 <img src="logo pelotazo png.png" class="mx-auto mb-2" style="max-height:60px;">
 <div class="font-black text-lg">Bar El Pelotazo</div>
-</div>
-
-<div class="bg-red-600 text-white text-center p-2 font-bold">
-⚠️ Escanea el QR de tu mesa para hacer tu pedido
 </div>
 
 <div class="text-center p-2">
 Mesa: <span id="mesa">--</span>
 </div>
 
-<div class="text-center text-red-600 font-black text-xl">
-Total mesa: <span id="totalMesa">0.00€</span>
-</div>
-
-<!-- CARTA -->
+<!-- CARTA CLIENTE -->
 <div id="carta"></div>
 
 <!-- TOTAL -->
-<div class="fixed bottom-0 w-full bg-white p-3 border-t shadow-lg">
-<div id="total" class="text-3xl font-black text-center text-red-600">0.00€</div>
+<div class="fixed bottom-0 w-full bg-white p-3 border-t">
+<div id="total" class="text-2xl text-red-600 text-center font-bold">0€</div>
 
 <button onclick="enviarPedido()" class="w-full bg-green-600 text-white p-2 mt-2 rounded">
 Enviar pedido
 </button>
 
-<div id="adminBtn" class="text-center text-[10px] text-gray-400 mt-2 cursor-pointer">
+<div onclick="abrirAdmin()" class="text-center text-xs mt-2 text-gray-400 cursor-pointer">
 ···
 </div>
 </div>
@@ -50,11 +42,13 @@ Enviar pedido
 <div id="admin" class="hidden fixed top-0 left-0 w-full h-full bg-white z-50 overflow-auto">
 
 <div class="flex bg-black text-white">
-<button class="flex-1 p-2">Pedidos</button>
+<button onclick="tab('pedidos')" class="flex-1 p-2">Pedidos</button>
+<button onclick="tab('cartaTab')" class="flex-1 p-2">Carta</button>
 <button onclick="cerrarAdmin()" class="p-2">X</button>
 </div>
 
 <div id="pedidos" class="p-2"></div>
+<div id="cartaTab" class="p-2 hidden"></div>
 
 </div>
 
@@ -69,135 +63,141 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// VARIABLES
 let carrito=[];
 let mesa=new URLSearchParams(location.search).get("mesa");
-
 document.getElementById("mesa").innerText=mesa||"--";
 
 let totalEl=document.getElementById("total");
-let totalMesaEl=document.getElementById("totalMesa");
+
+const categorias=[
+"Tapas/Ración/Menú",
+"Café/repostería/Postres",
+"Bebidas/Refrescos",
+"Tapas del día",
+"Otros"
+];
 
 // ADMIN
-document.getElementById("adminBtn").onclick=()=>{
+function abrirAdmin(){
  let pass=prompt("Clave");
  if(pass==="1234"){
   document.getElementById("admin").classList.remove("hidden");
+  cargarCartaAdmin();
  }
-};
+}
 
 function cerrarAdmin(){
  document.getElementById("admin").classList.add("hidden");
 }
 
-// TOTAL MESA
-db.ref("comandas").on("value",snap=>{
- let total=0;
- let data=snap.val()||{};
+function tab(t){
+ pedidos.classList.add("hidden");
+ cartaTab.classList.add("hidden");
+ document.getElementById(t).classList.remove("hidden");
+}
 
- Object.values(data).forEach(p=>{
-  if(p.mesa==mesa){
-   total+=Number(p.total);
-  }
- });
-
- totalMesaEl.innerText=total.toFixed(2)+"€";
-});
-
-// CARTA
+// CARTA CLIENTE
 db.ref("carta").on("value",snap=>{
  let data=snap.val()||{};
  let html="";
 
- Object.values(data).forEach(p=>{
-  if(p.activo===false) return;
+ categorias.forEach(cat=>{
+  let items=Object.entries(data).filter(([id,p])=>p.categoria===cat && p.activo);
+
+  if(items.length===0) return;
 
   html+=`
-  <div class="m-2 bg-white p-3 rounded shadow flex justify-between">
-    <b>${p.nombre}</b>
-    <div>
-      ${p.precio}€
-      <button onclick="add('${p.nombre}',${p.precio})"
-      class="bg-blue-600 text-white px-3 rounded ml-2">+</button>
+  <div class="m-2 bg-white rounded shadow">
+    <div onclick="this.nextElementSibling.classList.toggle('hidden')" class="p-2 font-bold bg-gray-200 flex justify-between cursor-pointer">
+      ${cat} <span>▼</span>
     </div>
-  </div>`;
+    <div class="hidden">`;
+
+  items.forEach(([id,p])=>{
+    html+=`
+    <div class="flex justify-between p-2 border-b">
+      <b>${p.nombre}</b>
+      <div>
+        ${p.precio}€
+        <button onclick="add('${p.nombre}',${p.precio})" class="bg-blue-600 text-white px-2 ml-2">+</button>
+      </div>
+    </div>`;
+  });
+
+  html+=`</div></div>`;
  });
 
- document.getElementById("carta").innerHTML=html;
+ carta.innerHTML=html;
 });
 
 // CARRITO
 function add(n,p){
  carrito.push({nombre:n,precio:p});
- let total=carrito.reduce((a,b)=>a+Number(b.precio),0);
- totalEl.innerText=total.toFixed(2)+"€";
+ totalEl.innerText=carrito.reduce((a,b)=>a+Number(b.precio),0)+"€";
 }
 
 // ENVIAR
 function enviarPedido(){
- if(!mesa) return alert("Escanea QR");
- if(!carrito.length) return;
+ if(!mesa||!carrito.length) return;
 
  db.ref("comandas").push({
   mesa,
   items:carrito,
-  total:carrito.reduce((a,b)=>a+Number(b.precio),0),
-  camarero:""
+  total:carrito.reduce((a,b)=>a+Number(b.precio),0)
  });
 
  carrito=[];
- totalEl.innerText="0.00€";
+ totalEl.innerText="0€";
 }
 
-// ADMIN PEDIDOS
+// ADMIN CARTA
+function cargarCartaAdmin(){
+ db.ref("carta").on("value",snap=>{
+  let data=snap.val()||{};
+  let html="";
+
+  categorias.forEach(cat=>{
+    let items=Object.entries(data).filter(([id,p])=>p.categoria===cat);
+
+    html+=`
+    <div class="m-2 bg-white p-2 rounded shadow">
+    <b>${cat}</b>
+
+    <button onclick="nuevo('${cat}')" class="bg-green-600 text-white px-2 ml-2">+</button><br>`;
+
+    items.forEach(([id,p])=>{
+      html+=`
+      ${p.nombre} (${p.precio}€)
+      <button onclick="toggle('${id}',${p.activo})">👁️</button>
+      <button onclick="borrar('${id}')">🗑️</button><br>`;
+    });
+
+    html+=`</div>`;
+  });
+
+  cartaTab.innerHTML=html;
+ });
+}
+
+function nuevo(cat){
+ let n=prompt("Nombre");
+ let p=parseFloat(prompt("Precio"));
+ db.ref("carta").push({nombre:n,precio:p,categoria:cat,activo:true});
+}
+
+function toggle(id,a){
+ db.ref("carta/"+id+"/activo").set(!a);
+}
+
+function borrar(id){
+ db.ref("carta/"+id).remove();
+}
+
+// PEDIDOS
 db.ref("comandas").on("value",snap=>{
- let data=snap.val();
- let cont=document.getElementById("pedidos");
- cont.innerHTML="";
- if(!data) return;
-
- let mesas={};
-
- Object.keys(data).forEach(id=>{
-  let p=data[id];
-  if(!mesas[p.mesa]) mesas[p.mesa]={total:0,productos:{}};
-
-  mesas[p.mesa].total+=Number(p.total);
-
-  p.items.forEach(i=>{
-    mesas[p.mesa].productos[i.nombre]=(mesas[p.mesa].productos[i.nombre]||0)+1;
-  });
- });
-
- Object.keys(mesas).forEach(m=>{
-  cont.innerHTML+=`
-  <div class="bg-white p-3 m-2 rounded shadow">
-  <b>Mesa ${m}</b><br>
-
-  ${Object.keys(mesas[m].productos).map(k=>`- ${k} x${mesas[m].productos[k]}`).join("<br>")}
-
-  <div class="text-red-600 font-bold mt-2">${mesas[m].total.toFixed(2)}€</div>
-
-  <button onclick="cobrar('${m}')" class="bg-green-700 text-white w-full mt-2 p-2 rounded">
-  COBRAR
-  </button>
-
-  </div>`;
- });
+ let data=snap.val()||{};
+ pedidos.innerHTML=JSON.stringify(data);
 });
-
-// COBRAR
-function cobrar(mesa){
- db.ref("comandas").once("value",snap=>{
-  let data=snap.val();
-
-  Object.keys(data).forEach(id=>{
-   if(data[id].mesa==mesa){
-    db.ref("comandas/"+id).remove();
-   }
-  });
- });
-}
 </script>
 
 </body>
