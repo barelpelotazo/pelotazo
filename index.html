@@ -12,35 +12,51 @@
 </head>
 <body class="bg-gray-100">
 
-<div class="p-4 text-center bg-blue-900 text-white font-black">
-BAR EL PELOTAZO
+<!-- CABECERA CON LOGO -->
+<div class="bg-blue-900 text-white text-center p-3">
+  <img src="logo pelotazo png.png" class="mx-auto mb-2" style="max-height:60px;">
+  <div class="font-black text-lg">BAR EL PELOTAZO</div>
 </div>
 
-<div class="p-3 text-center">
+<!-- AVISO -->
+<div class="bg-red-600 text-white text-center p-2 font-bold flex justify-center items-center gap-2">
+  ⚠️ Escanea el QR de tu mesa para hacer tu pedido
+</div>
+
+<div class="p-2 text-center">
 Mesa: <span id="mesa">--</span>
 </div>
 
-<div id="carta" class="p-2"></div>
+<!-- CARTA -->
+<div id="carta"></div>
 
-<div class="fixed bottom-0 w-full bg-white p-4 border-t">
-<div id="total" class="text-3xl font-black text-center">0.00€</div>
+<!-- TOTAL -->
+<div class="fixed bottom-0 w-full bg-white p-3 border-t shadow-lg">
+<div id="total" class="text-2xl font-black text-center">0.00€</div>
 
-<button onclick="enviarPedido()" class="w-full bg-green-600 text-white p-3 rounded mt-2">
+<button onclick="enviarPedido()" class="w-full bg-green-600 text-white p-2 mt-2 rounded">
 ENVIAR PEDIDO
 </button>
 
-<button onclick="abrirAdmin()" class="w-full bg-gray-800 text-white p-2 rounded mt-2 text-xs">
+<button onclick="abrirAdmin()" class="w-full bg-black text-white p-1 mt-2 text-xs rounded">
 ADMIN
 </button>
 </div>
 
 <!-- ADMIN -->
-<div id="admin" class="hidden fixed top-0 left-0 w-full h-full bg-white overflow-auto">
-  <div class="p-4 bg-black text-white flex justify-between">
-    <span>ADMIN</span>
-    <button onclick="cerrarAdmin()">X</button>
-  </div>
-  <div id="listaPedidos" class="p-3"></div>
+<div id="admin" class="hidden fixed top-0 left-0 w-full h-full bg-white overflow-auto z-50">
+
+<div class="flex bg-black text-white text-sm">
+<button onclick="tab('pedidos')" class="flex-1 p-2">Pedidos</button>
+<button onclick="tab('cartaTab')" class="flex-1 p-2">Carta</button>
+<button onclick="tab('caja')" class="flex-1 p-2">Caja</button>
+<button onclick="cerrarAdmin()" class="p-2">X</button>
+</div>
+
+<div id="pedidos" class="p-2"></div>
+<div id="cartaTab" class="p-2 hidden"></div>
+<div id="caja" class="p-2 hidden"></div>
+
 </div>
 
 <script>
@@ -54,97 +70,220 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 let carrito = [];
-let mesa = new URLSearchParams(window.location.search).get("mesa");
+let mesa = new URLSearchParams(location.search).get("mesa");
 document.getElementById("mesa").innerText = mesa || "--";
 
-// CARTA
-db.ref("carta").on("value", snap => {
- const data = snap.val() || [];
- renderCarta(data);
+const categorias = [
+"Tapas/Ración/Menú",
+"Café/repostería/Postres",
+"Bebidas/Refrescos",
+"Tapas del día",
+"Otros"
+];
+
+// CARTA CLIENTE
+db.ref("carta").on("value", snap=>{
+ const data = snap.val()||[];
+ let html="";
+
+ categorias.forEach(cat=>{
+  const items = Object.values(data).filter(p=>p.categoria===cat && p.activo!==false);
+  if(items.length==0) return;
+
+  html+=`<div class="m-2 bg-white rounded shadow">
+  <div onclick="toggle(this)" class="p-2 font-bold bg-gray-200 cursor-pointer">${cat}</div>
+  <div class="hidden">`;
+
+  items.forEach(p=>{
+   html+=`
+   <div class="flex justify-between p-2 border-b">
+     ${p.nombre} - ${p.precio}€
+     <button onclick="add('${p.nombre}',${p.precio})" class="bg-blue-600 text-white px-2 rounded">+</button>
+   </div>`;
+  });
+
+  html+=`</div></div>`;
+ });
+
+ document.getElementById("carta").innerHTML=html;
 });
 
-function renderCarta(data) {
- const div = document.getElementById("carta");
- div.innerHTML = "";
-
- data.filter(p => p.activo !== false).forEach(p => {
- div.innerHTML += `
- <div class="bg-white p-3 m-2 rounded flex justify-between">
-   <div>
-     <b>${p.nombre}</b><br>
-     ${p.precio.toFixed(2)}€
-   </div>
-   <button onclick="add('${p.nombre}', ${p.precio})" class="bg-blue-900 text-white px-3 rounded">+</button>
- </div>`;
- });
+function toggle(el){
+ el.nextElementSibling.classList.toggle("hidden");
 }
 
-function add(nombre, precio) {
- carrito.push({nombre, precio});
+function add(n,p){
+ carrito.push({nombre:n,precio:p});
  updateTotal();
 }
 
-function updateTotal() {
- const total = carrito.reduce((a,b)=>a+b.precio,0);
- document.getElementById("total").innerText = total.toFixed(2)+"€";
+function updateTotal(){
+ let t=carrito.reduce((a,b)=>a+b.precio,0);
+ document.getElementById("total").innerText=t.toFixed(2)+"€";
 }
 
-function enviarPedido() {
- if(!mesa) return alert("Escanea QR de mesa");
- if(carrito.length==0) return alert("Sin productos");
+function enviarPedido(){
+ if(!mesa) return alert("Escanea QR");
+ if(carrito.length==0) return alert("Vacío");
 
  db.ref("comandas").push({
-   mesa,
-   items: carrito,
-   total: carrito.reduce((a,b)=>a+b.precio,0),
-   estado: "pendiente",
-   hora: new Date().toLocaleTimeString()
+  mesa,
+  items: carrito,
+  total: carrito.reduce((a,b)=>a+b.precio,0),
+  estado:"pendiente",
+  camarero:"",
+  hora:new Date().toLocaleTimeString()
  });
 
  carrito=[];
  updateTotal();
- alert("Pedido enviado");
+ alert("Pedido añadido a tu mesa");
 }
 
 // ADMIN
 function abrirAdmin(){
- const pass = prompt("Clave");
- if(pass=="1234"){
-  document.getElementById("admin").classList.remove("hidden");
- }
+ let pass=prompt("Clave");
+ if(pass=="1234") document.getElementById("admin").classList.remove("hidden");
 }
-
 function cerrarAdmin(){
  document.getElementById("admin").classList.add("hidden");
 }
 
-// PEDIDOS EN TIEMPO REAL
-db.ref("comandas").on("value", snap => {
- const data = snap.val();
- const div = document.getElementById("listaPedidos");
- div.innerHTML="";
+function tab(t){
+ ["pedidos","cartaTab","caja"].forEach(id=>document.getElementById(id).classList.add("hidden"));
+ document.getElementById(t).classList.remove("hidden");
+}
 
- if(!data) {
-   div.innerHTML = "<p>No hay comandas</p>";
-   return;
- }
+// SONIDO
+let audio=new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+
+// PEDIDOS
+db.ref("comandas").on("value", snap=>{
+ const data=snap.val();
+ let cont=document.getElementById("pedidos");
+ cont.innerHTML="";
+ if(!data) return;
+
+ audio.play();
+
+ let mesas={};
 
  Object.keys(data).forEach(id=>{
-  const p = data[id];
-  div.innerHTML += `
-  <div class="bg-gray-100 p-3 mb-2 rounded">
-    <b>Mesa ${p.mesa}</b> - ${p.hora}<br>
-    ${p.items.map(i=>i.nombre).join(", ")}<br>
-    <b>${p.total.toFixed(2)}€</b>
-    <button onclick="cobrar('${id}')" class="bg-green-600 text-white px-2 ml-2">COBRAR</button>
-  </div>`;
+  let p=data[id];
+  if(!mesas[p.mesa]) mesas[p.mesa]=[];
+  mesas[p.mesa].push({...p,id});
+ });
+
+ Object.keys(mesas).forEach(m=>{
+  let totalMesa=mesas[m].reduce((a,b)=>a+b.total,0);
+
+  cont.innerHTML+=`<div class="bg-white p-2 m-2 rounded shadow">
+  <div class="font-bold text-lg">Mesa ${m}</div>
+  <div class="text-red-600 font-black text-xl">TOTAL: ${totalMesa.toFixed(2)}€</div>`;
+
+  mesas[m].forEach(p=>{
+   cont.innerHTML+=`
+   <div class="border p-2 mt-1 rounded">
+   ${p.items.map(i=>i.nombre).join(", ")}<br>
+   ${p.total.toFixed(2)}€<br>
+
+   Camarero:
+   <select onchange="setCamarero('${p.id}',this.value)">
+   <option value="">--</option>
+   <option>1</option><option>2</option><option>3</option>
+   <option>4</option><option>5</option><option>6</option><option>7</option>
+   </select>
+
+   <div class="mt-1">
+   <button onclick="estado('${p.id}','cocina')" class="bg-yellow-500 px-2">🍳</button>
+   <button onclick="estado('${p.id}','servido')" class="bg-green-500 px-2">✅</button>
+   </div>
+   </div>`;
+  });
+
+  cont.innerHTML+=`<button onclick="cobrarMesa('${m}')" class="bg-green-700 text-white w-full mt-2 p-2 rounded">
+  COBRAR MESA
+  </button></div>`;
  });
 });
 
-function cobrar(id){
- db.ref("comandas/"+id).remove();
+function setCamarero(id,v){
+ db.ref("comandas/"+id+"/camarero").set(v);
+}
+
+function estado(id,e){
+ db.ref("comandas/"+id+"/estado").set(e);
+}
+
+function cobrarMesa(mesa){
+ db.ref("comandas").once("value",snap=>{
+  let data=snap.val();
+  Object.keys(data).forEach(id=>{
+   if(data[id].mesa==mesa){
+    if(!data[id].camarero) return alert("Falta camarero");
+    db.ref("caja").push(data[id]);
+    db.ref("comandas/"+id).remove();
+   }
+  });
+ });
+}
+
+// CAJA
+db.ref("caja").on("value",snap=>{
+ let data=snap.val();
+ let total=0;
+ let camareros={};
+
+ if(data){
+  Object.values(data).forEach(p=>{
+   total+=p.total;
+   camareros[p.camarero]=(camareros[p.camarero]||0)+p.total;
+  });
+ }
+
+ let html=`<div class="text-xl font-bold">Total: ${total.toFixed(2)}€</div>`;
+ Object.keys(camareros).forEach(c=>{
+  html+=`<div>Camarero ${c}: ${camareros[c].toFixed(2)}€</div>`;
+ });
+
+ document.getElementById("caja").innerHTML=html;
+});
+
+// CARTA ADMIN
+db.ref("carta").on("value",snap=>{
+ let data=snap.val()||{};
+ let div=document.getElementById("cartaTab");
+
+ let html=`<input id="n" placeholder="Nombre">
+ <input id="p" type="number" placeholder="Precio">
+ <select id="c">${categorias.map(c=>`<option>${c}</option>`)}</select>
+ <button onclick="crear()" class="bg-blue-600 text-white px-2">Crear</button><hr>`;
+
+ Object.keys(data).forEach(id=>{
+  let p=data[id];
+  html+=`${p.nombre} ${p.precio}€
+  <button onclick="toggleProd('${id}',${p.activo!==false})">ON/OFF</button><br>`;
+ });
+
+ div.innerHTML=html;
+});
+
+function crear(){
+ let n=document.getElementById("n").value;
+ let p=parseFloat(document.getElementById("p").value);
+ let c=document.getElementById("c").value;
+
+ db.ref("carta").push({nombre:n,precio:p,categoria:c,activo:true});
+}
+
+function toggleProd(id,act){
+ db.ref("carta/"+id+"/activo").set(!act);
 }
 </script>
+
+<footer class="text-center text-xs p-2">
+Creación y diseño por <a href="https://rodante.es" target="_blank">Rodante</a>
+</footer>
 
 </body>
 </html>
