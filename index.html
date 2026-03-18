@@ -1,4 +1,4 @@
-<!-- VERSION FINAL ESTABLE SIN COCINA -->
+<!-- VERSION 20 - DISEÑO MEJORADO SEGURO -->
 
 <!DOCTYPE html>
 <html lang="es">
@@ -23,48 +23,36 @@
 Escanea el QR de tu mesa para hacer tu pedido
 </div>
 
-<div class="text-center p-2">Mesa: <span id="mesa">--</span></div>
+<div class="text-center p-2">
+Mesa: <span id="mesa">--</span>
+</div>
 
 <div class="text-center text-red-600 font-bold">
 Total gastado: <span id="totalMesa">0.00€</span>
 </div>
 
-<div id="carta" style="padding-bottom:160px;"></div>
+<div id="carta" style="padding-bottom:140px;"></div>
 
-<!-- FOOTER -->
-<div class="text-center text-[11px] text-gray-500 pb-28">
-  creacion y diseño 
-  <span onclick="abrirRodante()" class="text-blue-400 cursor-pointer">rodante</span>
-</div>
-
-<!-- POPUP -->
-<div id="popupRodante" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-  <div class="bg-white p-5 rounded-xl shadow text-center">
-    <b>rodante</b><br>
-    <a href="https://rodante.es" target="_blank" class="text-blue-500">ir a rodante.es</a><br><br>
-    <button onclick="cerrarRodante()">cerrar</button>
-  </div>
-</div>
-
-<!-- BARRA -->
-<div class="fixed bottom-0 w-full bg-white p-3 border-t shadow">
+<div class="fixed bottom-0 w-full bg-white p-3 border-t shadow-lg">
 <div id="total" class="text-2xl text-red-600 text-center font-bold">0€</div>
 
 <button onclick="enviarPedido()" class="w-full bg-green-600 text-white p-2 mt-2 rounded">
 Enviar pedido
 </button>
 
-<div onclick="abrirAdmin()" class="text-center text-xs mt-2 text-gray-400">···</div>
+<div onclick="abrirAdmin()" class="text-center text-xs mt-2 text-gray-400 cursor-pointer">
+···
+</div>
 </div>
 
 <!-- ADMIN -->
 <div id="admin" class="hidden fixed top-0 left-0 w-full h-full bg-gray-100 z-50 overflow-auto">
 
 <div class="flex bg-black text-white">
-<button onclick="tab('pedidos')" class="flex-1 p-2">Pedidos</button>
-<button onclick="tab('cartaTab')" class="flex-1 p-2">Carta</button>
-<button onclick="tab('caja')" class="flex-1 p-2">Caja</button>
-<button onclick="cerrarAdmin()" class="p-2">X</button>
+<button onclick="tab('pedidos')" class="flex-1 p-3">Pedidos</button>
+<button onclick="tab('cartaTab')" class="flex-1 p-3">Carta</button>
+<button onclick="tab('caja')" class="flex-1 p-3">Caja</button>
+<button onclick="cerrarAdmin()" class="p-3">X</button>
 </div>
 
 <div id="pedidos" class="p-2"></div>
@@ -74,31 +62,44 @@ Enviar pedido
 </div>
 
 <script>
-// POPUP
-function abrirRodante(){popupRodante.classList.remove("hidden")}
-function cerrarRodante(){popupRodante.classList.add("hidden")}
-
 // FIREBASE
-const firebaseConfig={
- apiKey:"AIzaSyAxI0dtf4RdxNDYlmk_dVYhF5NyZOg8B2w",
- databaseURL:"https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app",
- projectId:"bar-el-pelotazo-16c19"
+const firebaseConfig = {
+ apiKey: "AIzaSyAxI0dtf4RdxNDYlmk_dVYhF5NyZOg8B2w",
+ databaseURL: "https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app",
+ projectId: "bar-el-pelotazo-16c19"
 };
-firebase.initializeApp(firebaseConfig);
-const db=firebase.database();
 
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// VARIABLES
 let mesa=new URLSearchParams(location.search).get("mesa");
 let carrito=[];
-mesaEl.innerText=mesa||"--";
+
+document.getElementById("mesa").innerText=mesa||"--";
+
+const totalEl=document.getElementById("total");
+const totalMesaEl=document.getElementById("totalMesa");
+
+const categorias=[
+"Tapas/Ración/Menú",
+"Café/repostería/Postres",
+"Bebidas/Refrescos",
+"Tapas del día",
+"Otros"
+];
 
 // ADMIN
 function abrirAdmin(){
  if(prompt("Clave")==="1234"){
-  admin.classList.remove("hidden");
+  document.getElementById("admin").classList.remove("hidden");
   cargarCartaAdmin();
  }
 }
-function cerrarAdmin(){admin.classList.add("hidden")}
+function cerrarAdmin(){
+ document.getElementById("admin").classList.add("hidden");
+}
+
 function tab(t){
  pedidos.classList.add("hidden");
  cartaTab.classList.add("hidden");
@@ -106,28 +107,30 @@ function tab(t){
  document.getElementById(t).classList.remove("hidden");
 }
 
-// TOTAL
+// TOTAL MESA
 db.ref("comandas").on("value",snap=>{
  let total=0;
- let d=snap.val()||{};
- Object.values(d).forEach(p=>{
-  if(String(p.mesa)===String(mesa)) total+=Number(p.total);
+ let data=snap.val()||{};
+ Object.values(data).forEach(p=>{
+  if(String(p.mesa)===String(mesa)){
+   total+=Number(p.total);
+  }
  });
- totalMesa.innerText=total.toFixed(2)+"€";
+ totalMesaEl.innerText=total.toFixed(2)+"€";
 });
 
-// CARTA CLIENTE
+// CLIENTE
 db.ref("carta").on("value",snap=>{
  let data=snap.val()||{};
  let html="";
- let cats=["Tapas/Ración/Menú","Café/repostería/Postres","Bebidas/Refrescos","Tapas del día","Otros"];
 
- cats.forEach(cat=>{
+ categorias.forEach(cat=>{
   let items=Object.values(data).filter(p=>p.categoria===cat && p.activo);
   if(!items.length) return;
 
   html+=`<div class="m-2 bg-white shadow rounded">
-  <div onclick="this.nextElementSibling.classList.toggle('hidden')" class="p-2 bg-gray-200 font-bold flex justify-between">
+  <div onclick="this.nextElementSibling.classList.toggle('hidden')" 
+  class="p-2 bg-gray-200 font-bold flex justify-between">
   ${cat}<span>▼</span></div><div class="hidden">`;
 
   items.forEach(p=>{
@@ -144,16 +147,16 @@ db.ref("carta").on("value",snap=>{
  carta.innerHTML=html;
 });
 
-// ADD
+// CARRITO
 function add(n,p){
  carrito.push({nombre:n,precio:p});
- total.innerText=carrito.reduce((a,b)=>a+Number(b.precio),0)+"€";
+ totalEl.innerText=carrito.reduce((a,b)=>a+Number(b.precio),0)+"€";
 }
 
 // ENVIAR
 function enviarPedido(){
- if(!mesa){alert("Escanea QR");return;}
- if(!carrito.length){alert("Añade productos");return;}
+ if(!mesa){ alert("Escanea QR"); return;}
+ if(!carrito.length){ alert("Añade productos"); return;}
 
  db.ref("comandas").push({
   mesa:String(mesa),
@@ -163,141 +166,11 @@ function enviarPedido(){
  });
 
  carrito=[];
- total.innerText="0€";
+ totalEl.innerText="0€";
 }
 
-// PEDIDOS + CAMARERO + COBRO
+// PEDIDOS DISEÑO PRO
 db.ref("comandas").on("value",snap=>{
  let data=snap.val()||{};
- pedidos.innerHTML="";
- let mesas={};
-
- Object.keys(data).forEach(id=>{
-  let p=data[id];
-  let m=String(p.mesa);
-
-  if(!mesas[m]) mesas[m]={total:0,prod:{},ids:[]};
-
-  mesas[m].total+=Number(p.total);
-  mesas[m].ids.push(id);
-
-  (p.items||[]).forEach(i=>{
-   mesas[m].prod[i.nombre]=(mesas[m].prod[i.nombre]||0)+1;
-  });
- });
-
- Object.keys(mesas).forEach((m,i)=>{
-  pedidos.innerHTML+=`
-  <div class="p-4 m-3 rounded-xl bg-white shadow border">
-
-  <b>Mesa ${m}</b><br>
-
-  ${Object.keys(mesas[m].prod).map(k=>`• ${k} x${mesas[m].prod[k]}`).join("<br>")}
-
-  <div class="text-red-600 font-bold mt-2">${mesas[m].total.toFixed(2)}€</div>
-
-  <select onchange="setCamarero('${m}',this.value)" class="w-full mt-2 border p-1">
-  <option value="">Camarero</option>
-  <option>1</option><option>2</option><option>3</option>
-  <option>4</option><option>5</option><option>6</option><option>7</option>
-  </select>
-
-  <button onclick="cobrar('${m}')" class="bg-green-600 text-white w-full mt-2 p-2 rounded">
-  COBRAR
-  </button>
-
-  </div>`;
- });
-});
-
-function setCamarero(m,c){
- db.ref("comandas").once("value",snap=>{
-  let d=snap.val();
-  Object.keys(d).forEach(id=>{
-   if(String(d[id].mesa)===String(m)){
-    db.ref("comandas/"+id+"/camarero").set(c);
-   }
-  });
- });
-}
-
-function cobrar(m){
- db.ref("comandas").once("value",snap=>{
-  let d=snap.val();
-
-  Object.keys(d).forEach(id=>{
-   if(String(d[id].mesa)===String(m)){
-    db.ref("caja").push(d[id]);
-    db.ref("comandas/"+id).remove();
-   }
-  });
- });
-}
-
-// CAJA
-db.ref("caja").on("value",snap=>{
- let d=snap.val()||{};
- let total=0;
- let cam={};
-
- Object.values(d).forEach(p=>{
-  total+=Number(p.total);
-  cam[p.camarero]=(cam[p.camarero]||0)+Number(p.total);
- });
-
- let html=`<div class="bg-white p-3 m-3 rounded-xl shadow">
- <b>Total: ${total.toFixed(2)}€</b><br><br>`;
-
- Object.keys(cam).forEach(c=>{
-  html+=`Camarero ${c}: ${cam[c].toFixed(2)}€<br>`;
- });
-
- html+=`</div>`;
-
- caja.innerHTML=html;
-});
-
-// CARTA ADMIN
-function cargarCartaAdmin(){
- db.ref("carta").on("value",snap=>{
-  let data=snap.val()||{};
-  let html="";
-  let cats=["Tapas/Ración/Menú","Café/repostería/Postres","Bebidas/Refrescos","Tapas del día","Otros"];
-
-  cats.forEach(cat=>{
-   html+=`<div class="bg-white p-3 m-3 rounded shadow">
-   <b>${cat}</b>
-   <button onclick="nuevo('${cat}')">+</button><br>`;
-
-   Object.entries(data).forEach(([id,p])=>{
-    if(p.categoria===cat){
-     html+=`
-     <input value="${p.nombre}" onchange="editarNombre('${id}',this.value)">
-     <input type="number" value="${p.precio}" onchange="editarPrecio('${id}',this.value)">
-     <button onclick="toggle('${id}',${p.activo})">${p.activo?'ON':'OFF'}</button>
-     <button onclick="borrar('${id}')">X</button><br>`;
-    }
-   });
-
-   html+=`</div>`;
-  });
-
-  cartaTab.innerHTML=html;
- });
-}
-
-// CRUD
-function editarNombre(id,n){db.ref("carta/"+id+"/nombre").set(n)}
-function editarPrecio(id,p){db.ref("carta/"+id+"/precio").set(Number(p))}
-function toggle(id,a){db.ref("carta/"+id+"/activo").set(!a)}
-function borrar(id){db.ref("carta/"+id).remove()}
-function nuevo(cat){
- let n=prompt("Nombre");
- let p=parseFloat(prompt("Precio"));
- db.ref("carta").push({nombre:n,precio:p,categoria:cat,activo:true});
-}
-</script>
-
-</body>
-</html>
-
+ let cont=document.getElementById("pedidos");
+ cont.inner
