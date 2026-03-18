@@ -21,6 +21,16 @@ Mesa: <span id="mesa">--</span>
 <div class="fixed bottom-0 w-full bg-white p-4 border-t">
 <div id="total" class="text-3xl font-black text-center">0.00€</div>
 <button onclick="enviarPedido()" class="w-full bg-green-600 text-white p-3 rounded mt-2">ENVIAR PEDIDO</button>
+<button onclick="abrirAdmin()" class="w-full bg-gray-800 text-white p-2 rounded mt-2 text-xs">ADMIN</button>
+</div>
+
+<!-- ADMIN -->
+<div id="admin" class="hidden fixed top-0 left-0 w-full h-full bg-white overflow-auto">
+  <div class="p-4 bg-black text-white flex justify-between">
+    <span>ADMIN</span>
+    <button onclick="cerrarAdmin()">X</button>
+  </div>
+  <div id="listaPedidos" class="p-3"></div>
 </div>
 
 <script>
@@ -37,7 +47,7 @@ let carrito = [];
 let mesa = new URLSearchParams(window.location.search).get("mesa");
 document.getElementById("mesa").innerText = mesa || "--";
 
-// Cargar carta
+// CARTA
 db.ref("carta").on("value", snap => {
  const data = snap.val() || [];
  renderCarta(data);
@@ -83,6 +93,40 @@ function enviarPedido() {
  carrito=[];
  updateTotal();
  alert("Pedido enviado");
+}
+
+// ADMIN
+function abrirAdmin(){
+ const pass = prompt("Clave");
+ if(pass=="1234"){
+  document.getElementById("admin").classList.remove("hidden");
+ }
+}
+
+function cerrarAdmin(){
+ document.getElementById("admin").classList.add("hidden");
+}
+
+// PEDIDOS EN TIEMPO REAL
+db.ref("pedidos").on("value", snap => {
+ const data = snap.val();
+ const div = document.getElementById("listaPedidos");
+ div.innerHTML="";
+ if(!data) return;
+ Object.keys(data).forEach(id=>{
+  const p = data[id];
+  div.innerHTML += `
+  <div class="bg-gray-100 p-3 mb-2 rounded">
+    <b>Mesa ${p.mesa}</b> - ${p.hora}<br>
+    ${p.items.map(i=>i.nombre).join(", ")}<br>
+    <b>${p.total.toFixed(2)}€</b>
+    <button onclick="cobrar('${id}', ${p.total})" class="bg-green-600 text-white px-2 ml-2">COBRAR</button>
+  </div>`;
+ });
+});
+
+function cobrar(id, total){
+ db.ref("pedidos/"+id).remove();
 }
 </script>
 
