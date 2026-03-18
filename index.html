@@ -7,7 +7,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-<script src="https://cdn.tailwindcss.com?v=70"></script>
+<script src="https://cdn.tailwindcss.com?v=100"></script>
 </head>
 
 <body class="bg-gray-100">
@@ -26,7 +26,6 @@ Escanea el QR de tu mesa para hacer tu pedido
 Mesa: <span id="mesa">--</span>
 </div>
 
-<!-- TOTAL MESA -->
 <div class="text-center text-red-600 font-bold">
 Total mesa: <span id="totalMesa">0.00€</span>
 </div>
@@ -34,7 +33,7 @@ Total mesa: <span id="totalMesa">0.00€</span>
 <!-- CARTA -->
 <div id="carta"></div>
 
-<!-- TOTAL PEDIDO -->
+<!-- TOTAL -->
 <div class="fixed bottom-0 w-full bg-white p-3 border-t">
 <div id="total" class="text-3xl text-red-600 text-center font-bold">0.00€</div>
 
@@ -70,7 +69,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// VARIABLES
 let carrito=[];
 let mesa=new URLSearchParams(location.search).get("mesa");
 
@@ -79,76 +77,47 @@ document.getElementById("mesa").innerText=mesa||"--";
 let totalEl=document.getElementById("total");
 let totalMesaEl=document.getElementById("totalMesa");
 
-// CATEGORÍAS FIJAS
-const categorias=[
-"Tapas/Ración/Menú",
-"Café/repostería/Postres",
-"Bebidas/Refrescos",
-"Tapas del día",
-"Otros"
-];
-
 // ADMIN
 function abrirAdmin(){
- let pass=prompt("Clave");
- if(pass==="1234"){
+ if(prompt("Clave")==="1234"){
   document.getElementById("admin").classList.remove("hidden");
  }
 }
-
 function cerrarAdmin(){
  document.getElementById("admin").classList.add("hidden");
 }
 
 // TOTAL MESA
 db.ref("comandas").on("value",snap=>{
- let data=snap.val()||{};
  let total=0;
-
+ let data=snap.val()||{};
  Object.values(data).forEach(p=>{
-  if(p.mesa==mesa){
-   total+=Number(p.total);
-  }
+  if(p.mesa==mesa) total+=Number(p.total);
  });
-
  totalMesaEl.innerText=total.toFixed(2)+"€";
 });
 
-// CARTA CORREGIDA
+// 🔥 CARTA GARANTIZADA (SIEMPRE SALE)
 db.ref("carta").on("value",snap=>{
  let data=snap.val()||{};
  let html="";
 
- categorias.forEach(cat=>{
+ if(Object.keys(data).length===0){
+  html="<div class='p-4 text-center'>No hay productos</div>";
+ }
 
-  let items=Object.values(data).filter(p=>{
-    let categoria = p.categoria || "Otros";
-    return categoria === cat && p.activo !== false;
-  });
-
-  if(items.length===0) return;
+ Object.values(data).forEach(p=>{
+  if(p.activo===false) return;
 
   html+=`
-  <div class="m-2 bg-white rounded shadow">
-  <div onclick="this.nextElementSibling.classList.toggle('hidden')" 
-  class="p-2 font-bold bg-gray-200 flex justify-between cursor-pointer">
-  ${cat} <span>▼</span></div>
-
-  <div class="hidden">`;
-
-  items.forEach(p=>{
-   html+=`
-   <div class="flex justify-between p-2 border-b">
-   <b>${p.nombre}</b>
-   <div>
-   ${Number(p.precio).toFixed(2)}€
-   <button onclick="add('${p.nombre}',${p.precio})" 
-   class="bg-blue-600 text-white px-2 ml-2 rounded">+</button>
-   </div>
-   </div>`;
-  });
-
-  html+=`</div></div>`;
+  <div class="m-2 bg-white p-3 rounded shadow flex justify-between">
+    <b>${p.nombre}</b>
+    <div>
+      ${Number(p.precio).toFixed(2)}€
+      <button onclick="add('${p.nombre}',${p.precio})"
+      class="bg-blue-600 text-white px-3 ml-2 rounded">+</button>
+    </div>
+  </div>`;
  });
 
  document.getElementById("carta").innerHTML=html;
@@ -157,8 +126,7 @@ db.ref("carta").on("value",snap=>{
 // CARRITO
 function add(n,p){
  carrito.push({nombre:n,precio:p});
- let total=carrito.reduce((a,b)=>a+Number(b.precio),0);
- totalEl.innerText=total.toFixed(2)+"€";
+ totalEl.innerText=carrito.reduce((a,b)=>a+Number(b.precio),0).toFixed(2)+"€";
 }
 
 // ENVIAR
@@ -177,7 +145,7 @@ function enviarPedido(){
  totalEl.innerText="0.00€";
 }
 
-// PEDIDOS ADMIN AGRUPADOS
+// PEDIDOS ADMIN (YA OK)
 db.ref("comandas").on("value",snap=>{
  let data=snap.val();
  let cont=document.getElementById("pedidos");
@@ -212,8 +180,7 @@ db.ref("comandas").on("value",snap=>{
   <option>4</option><option>5</option><option>6</option><option>7</option>
   </select>
 
-  <button onclick="cobrar('${m}')" 
-  class="bg-green-700 text-white w-full mt-2 p-2 rounded">
+  <button onclick="cobrar('${m}')" class="bg-green-700 text-white w-full mt-2 p-2">
   COBRAR
   </button>
 
@@ -239,7 +206,6 @@ function cobrar(m){
   let d=snap.val();
 
   let ok=true;
-
   Object.keys(d).forEach(id=>{
    if(d[id].mesa==m && !d[id].camarero){
     ok=false;
@@ -247,7 +213,7 @@ function cobrar(m){
   });
 
   if(!ok){
-   alert("Selecciona camarero antes de cobrar");
+   alert("Selecciona camarero");
    return;
   }
 
