@@ -48,6 +48,18 @@ Enviar pedido
 </div>
 </div>
 
+<!-- ADMIN -->
+<div id="admin" class="hidden fixed top-0 left-0 w-full h-full bg-white z-50 overflow-auto">
+
+<div class="flex bg-black text-white text-sm">
+<button class="flex-1 p-2">Pedidos</button>
+<button onclick="cerrarAdmin()" class="p-2">X</button>
+</div>
+
+<div id="pedidos" class="p-2"></div>
+
+</div>
+
 <script>
 // FIREBASE
 const firebaseConfig = {
@@ -61,11 +73,11 @@ const db = firebase.database();
 
 // VARIABLES
 let carrito=[];
-let totalEl=document.getElementById("total");
-let totalMesaEl=document.getElementById("totalMesa");
-
 let mesa=new URLSearchParams(location.search).get("mesa");
 document.getElementById("mesa").innerText=mesa||"--";
+
+let totalEl=document.getElementById("total");
+let totalMesaEl=document.getElementById("totalMesa");
 
 const categorias=[
 "Tapas/Ración/Menú",
@@ -75,18 +87,18 @@ const categorias=[
 "Otros"
 ];
 
-// 🔴 TOTAL MESA EN TIEMPO REAL
+// TOTAL MESA
 db.ref("comandas").on("value",snap=>{
  let data=snap.val()||{};
  let total=0;
 
  Object.values(data).forEach(p=>{
   if(p.mesa==mesa){
-   total += Number(p.total);
+   total+=Number(p.total);
   }
  });
 
- totalMesaEl.innerText = total.toFixed(2)+"€";
+ totalMesaEl.innerText=total.toFixed(2)+"€";
 });
 
 // CARTA
@@ -140,14 +152,81 @@ function enviarPedido(){
 
  carrito=[];
  totalEl.innerText="0.00€";
+ alert("Pedido enviado");
 }
 
 // ADMIN
 function abrirAdmin(){
  let pass=prompt("Clave");
  if(pass=="1234"){
-  alert("Admin activo (usa panel anterior)");
+  document.getElementById("admin").classList.remove("hidden");
  }
+}
+
+function cerrarAdmin(){
+ document.getElementById("admin").classList.add("hidden");
+}
+
+// PEDIDOS ADMIN
+db.ref("comandas").on("value",snap=>{
+ let data=snap.val();
+ let cont=document.getElementById("pedidos");
+ cont.innerHTML="";
+ if(!data) return;
+
+ let mesas={};
+
+ Object.keys(data).forEach(id=>{
+  let p=data[id];
+  if(!mesas[p.mesa]) mesas[p.mesa]=[];
+  mesas[p.mesa].push({...p,id});
+ });
+
+ Object.keys(mesas).forEach(m=>{
+  let totalMesa=mesas[m].reduce((a,b)=>a+b.total,0);
+
+  cont.innerHTML+=`
+  <div class="bg-white p-3 m-2 rounded shadow">
+  <div class="font-bold text-lg">Mesa ${m}</div>
+  <div class="text-red-600 font-black text-xl">${totalMesa.toFixed(2)}€</div>`;
+
+  mesas[m].forEach(p=>{
+   let lista=p.items.map(i=>`- ${i.nombre}`).join("<br>");
+
+   cont.innerHTML+=`
+   <div class="border p-2 mt-2 rounded">
+   ${lista}
+
+   <select onchange="db.ref('comandas/${p.id}/camarero').set(this.value)">
+   <option value="">Camarero</option>
+   <option>1</option><option>2</option><option>3</option>
+   <option>4</option><option>5</option><option>6</option><option>7</option>
+   </select>
+   </div>`;
+  });
+
+  cont.innerHTML+=`
+  <button onclick="cobrar('${m}')" class="bg-green-700 text-white w-full mt-2 p-2 rounded">
+  COBRAR
+  </button></div>`;
+ });
+});
+
+// COBRAR
+function cobrar(mesa){
+ db.ref("comandas").once("value",snap=>{
+  let data=snap.val();
+
+  Object.keys(data).forEach(id=>{
+   if(data[id].mesa==mesa){
+    if(!data[id].camarero){
+     alert("Selecciona camarero");
+     return;
+    }
+    db.ref("comandas/"+id).remove();
+   }
+  });
+ });
 }
 </script>
 
