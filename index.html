@@ -7,7 +7,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-<script src="https://cdn.tailwindcss.com?v=300"></script>
+<script src="https://cdn.tailwindcss.com?v=400"></script>
 </head>
 
 <body class="bg-gray-100">
@@ -26,7 +26,7 @@ Escanea el QR de tu mesa para hacer tu pedido
 Mesa: <span id="mesa">--</span>
 </div>
 
-<!-- CARTA CLIENTE -->
+<!-- CARTA -->
 <div id="carta"></div>
 
 <!-- TOTAL -->
@@ -46,11 +46,13 @@ Enviar pedido
 <div id="admin" class="hidden fixed top-0 left-0 w-full h-full bg-white z-50 overflow-auto">
 
 <div class="flex bg-black text-white">
+<button onclick="tab('pedidos')" class="flex-1 p-2">Pedidos</button>
 <button onclick="tab('cartaTab')" class="flex-1 p-2">Carta</button>
 <button onclick="cerrarAdmin()" class="p-2">X</button>
 </div>
 
-<div id="cartaTab" class="p-2"></div>
+<div id="pedidos" class="p-2"></div>
+<div id="cartaTab" class="p-2 hidden"></div>
 
 </div>
 
@@ -72,7 +74,6 @@ document.getElementById("mesa").innerText=mesa||"--";
 
 const totalEl=document.getElementById("total");
 
-// CATEGORÍAS FIJAS
 const categorias=[
 "Tapas/Ración/Menú",
 "Café/repostería/Postres",
@@ -88,9 +89,18 @@ function abrirAdmin(){
   cargarCartaAdmin();
  }
 }
-function cerrarAdmin(){admin.classList.add("hidden");}
 
-// CLIENTE (CARTA)
+function cerrarAdmin(){
+ admin.classList.add("hidden");
+}
+
+function tab(t){
+ pedidos.classList.add("hidden");
+ cartaTab.classList.add("hidden");
+ document.getElementById(t).classList.remove("hidden");
+}
+
+// CLIENTE
 db.ref("carta").on("value",snap=>{
  let data=snap.val()||{};
  let html="";
@@ -98,24 +108,19 @@ db.ref("carta").on("value",snap=>{
  categorias.forEach(cat=>{
   let items=Object.values(data).filter(p=>p.categoria===cat && p.activo);
 
-  if(items.length===0) return;
+  if(!items.length) return;
 
-  html+=`
-  <div class="m-2 bg-white rounded shadow">
+  html+=`<div class="m-2 bg-white shadow">
   <div onclick="this.nextElementSibling.classList.toggle('hidden')" 
-  class="p-2 font-bold bg-gray-200 flex justify-between cursor-pointer">
-  ${cat} <span>▼</span></div>
-
-  <div class="hidden">`;
+  class="p-2 bg-gray-200 font-bold flex justify-between">
+  ${cat}<span>▼</span></div><div class="hidden">`;
 
   items.forEach(p=>{
-   html+=`
-   <div class="flex justify-between p-2 border-b">
+   html+=`<div class="flex justify-between p-2 border-b">
    <b>${p.nombre}</b>
    <div>${p.precio}€
    <button onclick="add('${p.nombre}',${p.precio})" class="bg-blue-600 text-white px-2 ml-2">+</button>
-   </div>
-   </div>`;
+   </div></div>`;
   });
 
   html+=`</div></div>`;
@@ -144,22 +149,37 @@ function enviarPedido(){
  totalEl.innerText="0€";
 }
 
-// ADMIN CARTA
+// 🧾 PEDIDOS ADMIN (RECUPERADO)
+db.ref("comandas").on("value",snap=>{
+ let data=snap.val()||{};
+ let html="";
+
+ Object.values(data).forEach(p=>{
+  html+=`
+  <div class="bg-white p-2 m-2 shadow">
+  <b>Mesa ${p.mesa}</b><br>
+  ${p.items.map(i=>"- "+i.nombre).join("<br>")}
+  <div class="text-red-600">${p.total}€</div>
+  </div>`;
+ });
+
+ pedidos.innerHTML=html;
+});
+
+// 🍽️ ADMIN CARTA
 function cargarCartaAdmin(){
  db.ref("carta").on("value",snap=>{
   let data=snap.val()||{};
   let html="";
 
   categorias.forEach(cat=>{
-   html+=`
-   <div class="bg-white p-2 m-2 rounded shadow">
+   html+=`<div class="bg-white p-2 m-2 shadow">
    <b>${cat}</b>
    <button onclick="nuevo('${cat}')" class="bg-green-600 text-white px-2 ml-2">+</button><br>`;
 
    Object.entries(data).forEach(([id,p])=>{
     if(p.categoria===cat){
-     html+=`
-     ${p.nombre} (${p.precio}€)
+     html+=`${p.nombre} (${p.precio}€)
      <button onclick="toggle('${id}',${p.activo})">👁️</button>
      <button onclick="borrar('${id}')">🗑️</button><br>`;
     }
@@ -176,12 +196,7 @@ function cargarCartaAdmin(){
 function nuevo(cat){
  let n=prompt("Nombre");
  let p=parseFloat(prompt("Precio"));
- db.ref("carta").push({
-  nombre:n,
-  precio:p,
-  categoria:cat,
-  activo:true
- });
+ db.ref("carta").push({nombre:n,precio:p,categoria:cat,activo:true});
 }
 
 function toggle(id,a){
