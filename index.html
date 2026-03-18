@@ -14,8 +14,8 @@
 
 <!-- CABECERA -->
 <div class="bg-blue-900 text-white text-center p-3">
-  <img src="logo pelotazo png.png" class="mx-auto mb-2" style="max-height:60px;">
-  <div class="font-black text-lg">Bar El Pelotazo</div>
+<img src="logo pelotazo png.png" class="mx-auto mb-2" style="max-height:60px;">
+<div class="font-black text-lg">Bar El Pelotazo</div>
 </div>
 
 <div class="bg-red-600 text-white text-center p-2 font-bold">
@@ -26,20 +26,26 @@
 Mesa: <span id="mesa">--</span>
 </div>
 
+<!-- TOTAL MESA -->
+<div class="text-center text-red-600 font-black text-xl">
+Total mesa: <span id="totalMesa">0.00€</span>
+</div>
+
 <!-- CARTA -->
 <div id="carta"></div>
 
-<!-- TOTAL -->
+<!-- TOTAL PEDIDO -->
 <div class="fixed bottom-0 w-full bg-white p-3 border-t shadow-lg">
-  <div id="total" class="text-3xl font-black text-center text-red-600">0.00€</div>
+<div class="text-center text-gray-500 text-sm">Pedido actual</div>
+<div id="total" class="text-3xl font-black text-center text-red-600">0.00€</div>
 
-  <button onclick="enviarPedido()" class="w-full bg-green-600 text-white p-2 mt-2 rounded">
-    Enviar pedido
-  </button>
+<button onclick="enviarPedido()" class="w-full bg-green-600 text-white p-2 mt-2 rounded">
+Enviar pedido
+</button>
 
-  <div onclick="abrirAdmin()" class="text-center text-[10px] text-gray-400 mt-2 cursor-pointer">
-    · · ·
-  </div>
+<div onclick="abrirAdmin()" class="text-center text-[10px] text-gray-400 mt-2 cursor-pointer">
+· · ·
+</div>
 </div>
 
 <script>
@@ -54,13 +60,14 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 // VARIABLES
-let carrito = [];
-const totalEl = document.getElementById("total");
+let carrito=[];
+let totalEl=document.getElementById("total");
+let totalMesaEl=document.getElementById("totalMesa");
 
-let mesa = new URLSearchParams(location.search).get("mesa");
-document.getElementById("mesa").innerText = mesa || "--";
+let mesa=new URLSearchParams(location.search).get("mesa");
+document.getElementById("mesa").innerText=mesa||"--";
 
-const categorias = [
+const categorias=[
 "Tapas/Ración/Menú",
 "Café/repostería/Postres",
 "Bebidas/Refrescos",
@@ -68,79 +75,78 @@ const categorias = [
 "Otros"
 ];
 
-// CARGAR CARTA
-db.ref("carta").on("value", snap => {
- let data = snap.val() || {};
- let html = "";
+// 🔴 TOTAL MESA EN TIEMPO REAL
+db.ref("comandas").on("value",snap=>{
+ let data=snap.val()||{};
+ let total=0;
 
- categorias.forEach(cat => {
-  let items = Object.values(data).filter(p => p.categoria === cat && p.activo !== false);
-
-  if (items.length === 0) return;
-
-  html += `
-  <div class="m-2 bg-white rounded shadow">
-    <div onclick="this.nextElementSibling.classList.toggle('hidden')" class="p-2 font-bold bg-gray-200 flex justify-between cursor-pointer">
-      ${cat} <span>▼</span>
-    </div>
-    <div class="hidden">`;
-
-  items.forEach(p => {
-    html += `
-    <div class="flex justify-between items-center p-3 border-b">
-      <div class="font-bold">${p.nombre}</div>
-      <div class="flex items-center gap-3">
-        <span class="font-bold">${Number(p.precio).toFixed(2)}€</span>
-        <button onclick="add('${p.nombre}', ${p.precio})"
-          class="bg-blue-600 text-white w-10 h-10 text-xl rounded">
-          +
-        </button>
-      </div>
-    </div>`;
-  });
-
-  html += `</div></div>`;
+ Object.values(data).forEach(p=>{
+  if(p.mesa==mesa){
+   total += Number(p.total);
+  }
  });
 
- document.getElementById("carta").innerHTML = html;
+ totalMesaEl.innerText = total.toFixed(2)+"€";
 });
 
-// AÑADIR
-function add(nombre, precio){
- carrito.push({nombre, precio});
- actualizarTotal();
-}
+// CARTA
+db.ref("carta").on("value",snap=>{
+ let data=snap.val()||{};
+ let html="";
 
-// TOTAL
-function actualizarTotal(){
- let total = carrito.reduce((sum, item) => sum + Number(item.precio), 0);
- totalEl.innerText = total.toFixed(2) + "€";
+ categorias.forEach(cat=>{
+  let items=Object.values(data).filter(p=>p.categoria===cat && p.activo!==false);
+  if(items.length===0) return;
+
+  html+=`<div class="m-2 bg-white rounded shadow">
+  <div onclick="this.nextElementSibling.classList.toggle('hidden')" class="p-2 font-bold bg-gray-200 flex justify-between cursor-pointer">
+  ${cat} <span>▼</span></div><div class="hidden">`;
+
+  items.forEach(p=>{
+   html+=`
+   <div class="flex justify-between items-center p-3 border-b">
+   <div class="font-bold">${p.nombre}</div>
+   <div class="flex items-center gap-3">
+   <span class="font-bold">${Number(p.precio).toFixed(2)}€</span>
+   <button onclick="add('${p.nombre}',${p.precio})" class="bg-blue-600 text-white w-10 h-10 text-xl rounded">+</button>
+   </div>
+   </div>`;
+  });
+
+  html+=`</div></div>`;
+ });
+
+ carta.innerHTML=html;
+});
+
+// CARRITO
+function add(n,p){
+ carrito.push({nombre:n,precio:p});
+ let total=carrito.reduce((a,b)=>a+Number(b.precio),0);
+ totalEl.innerText=total.toFixed(2)+"€";
 }
 
 // ENVIAR
 function enviarPedido(){
  if(!mesa) return alert("Escanea QR");
- if(carrito.length === 0) return;
+ if(!carrito.length) return;
 
  db.ref("comandas").push({
   mesa,
-  items: carrito,
-  total: carrito.reduce((a,b)=>a + Number(b.precio), 0),
-  estado: "pendiente",
-  camarero: "",
-  hora: new Date().toLocaleTimeString()
+  items:carrito,
+  total:carrito.reduce((a,b)=>a+Number(b.precio),0),
+  camarero:""
  });
 
- carrito = [];
- actualizarTotal();
- alert("Pedido enviado");
+ carrito=[];
+ totalEl.innerText="0.00€";
 }
 
-// ADMIN (simple por ahora)
+// ADMIN
 function abrirAdmin(){
- let pass = prompt("Clave");
- if(pass === "1234"){
-  alert("Admin OK (pedidos llegan correctamente)");
+ let pass=prompt("Clave");
+ if(pass=="1234"){
+  alert("Admin activo (usa panel anterior)");
  }
 }
 </script>
