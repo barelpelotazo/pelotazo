@@ -7,7 +7,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-<script src="https://cdn.tailwindcss.com?v=50"></script>
+<script src="https://cdn.tailwindcss.com?v=60"></script>
 </head>
 
 <body class="bg-gray-100">
@@ -26,9 +26,15 @@ Escanea el QR de tu mesa para hacer tu pedido
 Mesa: <span id="mesa">--</span>
 </div>
 
+<!-- TOTAL MESA -->
+<div class="text-center text-red-600 font-bold">
+Total mesa: <span id="totalMesa">0.00€</span>
+</div>
+
+<!-- CARTA -->
 <div id="carta"></div>
 
-<!-- TOTAL -->
+<!-- TOTAL PEDIDO -->
 <div class="fixed bottom-0 w-full bg-white p-3 border-t">
 <div id="total" class="text-3xl text-red-600 text-center font-bold">0.00€</div>
 
@@ -45,15 +51,11 @@ Enviar pedido
 <div id="admin" class="hidden fixed top-0 left-0 w-full h-full bg-white z-50 overflow-auto">
 
 <div class="flex bg-black text-white">
-<button onclick="tab('pedidos')" class="flex-1 p-2">Pedidos</button>
-<button onclick="tab('cartaTab')" class="flex-1 p-2">Carta</button>
-<button onclick="tab('caja')" class="flex-1 p-2">Caja</button>
+<button class="flex-1 p-2">Pedidos</button>
 <button onclick="cerrarAdmin()" class="p-2">X</button>
 </div>
 
 <div id="pedidos" class="p-2"></div>
-<div id="cartaTab" class="p-2 hidden"></div>
-<div id="caja" class="p-2 hidden"></div>
 
 </div>
 
@@ -71,73 +73,95 @@ const db = firebase.database();
 // VARIABLES
 let carrito=[];
 let mesa=new URLSearchParams(location.search).get("mesa");
-document.getElementById("mesa").innerText=mesa||"--";
-let totalEl=document.getElementById("total");
 
-const categorias=[
-"Tapas/Ración/Menú",
-"Café/repostería/Postres",
-"Bebidas/Refrescos",
-"Tapas del día",
-"Otros"
-];
+document.getElementById("mesa").innerText=mesa||"--";
+
+let totalEl=document.getElementById("total");
+let totalMesaEl=document.getElementById("totalMesa");
 
 // ADMIN
 function abrirAdmin(){
- if(prompt("Clave")==="1234"){
-  admin.classList.remove("hidden");
+ let pass=prompt("Clave");
+ if(pass==="1234"){
+  document.getElementById("admin").classList.remove("hidden");
  }
 }
-function cerrarAdmin(){admin.classList.add("hidden");}
-function tab(t){
- pedidos.classList.add("hidden");
- cartaTab.classList.add("hidden");
- caja.classList.add("hidden");
- document.getElementById(t).classList.remove("hidden");
+
+function cerrarAdmin(){
+ document.getElementById("admin").classList.add("hidden");
 }
 
-// CARTA CLIENTE
+// TOTAL MESA
+db.ref("comandas").on("value",snap=>{
+ let data=snap.val()||{};
+ let total=0;
+
+ Object.values(data).forEach(p=>{
+  if(p.mesa==mesa){
+   total+=Number(p.total);
+  }
+ });
+
+ totalMesaEl.innerText=total.toFixed(2)+"€";
+});
+
+// CARTA (ARREGLADA)
 db.ref("carta").on("value",snap=>{
  let data=snap.val()||{};
  let html="";
 
+ const categorias=[
+ "Tapas/Ración/Menú",
+ "Café/repostería/Postres",
+ "Bebidas/Refrescos",
+ "Tapas del día",
+ "Otros"
+ ];
+
  categorias.forEach(cat=>{
-  let items=Object.entries(data).filter(([id,p])=>p.categoria===cat && p.activo);
-  if(!items.length) return;
+  let items=Object.values(data).filter(p=>p.categoria===cat && p.activo!==false);
 
-  html+=`<div class="m-2 bg-white rounded shadow">
-  <div onclick="this.nextElementSibling.classList.toggle('hidden')" class="p-2 font-bold bg-gray-200 flex justify-between">
-  ${cat} <span>▼</span></div><div class="hidden">`;
+  if(items.length===0) return;
 
-  items.forEach(([id,p])=>{
-   html+=`<div class="flex justify-between p-2 border-b">
+  html+=`
+  <div class="m-2 bg-white rounded shadow">
+  <div onclick="this.nextElementSibling.classList.toggle('hidden')" class="p-2 font-bold bg-gray-200 flex justify-between cursor-pointer">
+  ${cat} <span>▼</span></div>
+  <div class="hidden">`;
+
+  items.forEach(p=>{
+   html+=`
+   <div class="flex justify-between p-2 border-b">
    <b>${p.nombre}</b>
-   <div>${p.precio}€
-   <button onclick="add('${p.nombre}',${p.precio})" class="bg-blue-600 text-white px-2 ml-2">+</button>
-   </div></div>`;
+   <div>
+   ${p.precio}€
+   <button onclick="add('${p.nombre}',${p.precio})" class="bg-blue-600 text-white px-2 ml-2 rounded">+</button>
+   </div>
+   </div>`;
   });
 
   html+=`</div></div>`;
  });
 
- carta.innerHTML=html;
+ document.getElementById("carta").innerHTML=html;
 });
 
 // CARRITO
 function add(n,p){
  carrito.push({nombre:n,precio:p});
- totalEl.innerText=carrito.reduce((a,b)=>a+Number(b.precio),0).toFixed(2)+"€";
+ let total=carrito.reduce((a,b)=>a+Number(b.precio),0);
+ totalEl.innerText=total.toFixed(2)+"€";
 }
 
 // ENVIAR
 function enviarPedido(){
- if(!mesa||!carrito.length) return;
+ if(!mesa) return alert("Escanea QR");
+ if(!carrito.length) return;
 
  db.ref("comandas").push({
   mesa,
   items:carrito,
   total:carrito.reduce((a,b)=>a+Number(b.precio),0),
-  hora:new Date().toLocaleString(),
   camarero:""
  });
 
@@ -145,39 +169,43 @@ function enviarPedido(){
  totalEl.innerText="0.00€";
 }
 
-// PEDIDOS
+// PEDIDOS AGRUPADOS POR MESA
 db.ref("comandas").on("value",snap=>{
- let data=snap.val()||{};
- pedidos.innerHTML="";
+ let data=snap.val();
+ let cont=document.getElementById("pedidos");
+ cont.innerHTML="";
+ if(!data) return;
+
  let mesas={};
 
  Object.keys(data).forEach(id=>{
   let p=data[id];
   if(!mesas[p.mesa]) mesas[p.mesa]={total:0,prod:{},ids:[]};
-  mesas[p.mesa].total+=p.total;
+  mesas[p.mesa].total+=Number(p.total);
   mesas[p.mesa].ids.push(id);
 
   p.items.forEach(i=>{
-    mesas[p.mesa].prod[i.nombre]=(mesas[p.mesa].prod[i.nombre]||0)+1;
+   mesas[p.mesa].prod[i.nombre]=(mesas[p.mesa].prod[i.nombre]||0)+1;
   });
  });
 
- Object.keys(mesas).forEach((m,i)=>{
-  pedidos.innerHTML+=`
-  <div class="p-3 m-2 rounded ${i%2?'bg-gray-200':'bg-white'} shadow">
+ Object.keys(mesas).forEach(m=>{
+  cont.innerHTML+=`
+  <div class="bg-white p-3 m-2 rounded shadow">
+
   <b>Mesa ${m}</b><br>
 
   ${Object.keys(mesas[m].prod).map(k=>`- ${k} x${mesas[m].prod[k]}`).join("<br>")}
 
   <div class="text-red-600 font-bold mt-2">${mesas[m].total.toFixed(2)}€</div>
 
-  <select onchange="setCam('${m}',this.value)" class="w-full mt-2">
-  <option value="">Camarero</option>
+  <select onchange="setCamarero('${m}',this.value)" class="w-full mt-2">
+  <option value="">Seleccionar camarero</option>
   <option>1</option><option>2</option><option>3</option>
   <option>4</option><option>5</option><option>6</option><option>7</option>
   </select>
 
-  <button onclick="cobrar('${m}')" class="bg-green-700 text-white w-full mt-2 p-2">
+  <button onclick="cobrar('${m}')" class="bg-green-700 text-white w-full mt-2 p-2 rounded">
   COBRAR
   </button>
 
@@ -186,7 +214,7 @@ db.ref("comandas").on("value",snap=>{
 });
 
 // CAMARERO
-function setCam(m,c){
+function setCamarero(m,c){
  db.ref("comandas").once("value",snap=>{
   let d=snap.val();
   Object.keys(d).forEach(id=>{
@@ -197,37 +225,31 @@ function setCam(m,c){
  });
 }
 
-// COBRAR
+// COBRAR CON VALIDACIÓN
 function cobrar(m){
  db.ref("comandas").once("value",snap=>{
   let d=snap.val();
+
+  let ok=true;
+
+  Object.keys(d).forEach(id=>{
+   if(d[id].mesa==m && !d[id].camarero){
+    ok=false;
+   }
+  });
+
+  if(!ok){
+   alert("Selecciona camarero antes de cobrar");
+   return;
+  }
+
   Object.keys(d).forEach(id=>{
    if(d[id].mesa==m){
-    db.ref("caja").push(d[id]);
     db.ref("comandas/"+id).remove();
    }
   });
  });
 }
-
-// CAJA
-db.ref("caja").on("value",snap=>{
- let d=snap.val()||{};
- let total=0;
- let cam={};
-
- Object.values(d).forEach(p=>{
-  total+=p.total;
-  cam[p.camarero]=(cam[p.camarero]||0)+p.total;
- });
-
- let html=`<b>Total: ${total.toFixed(2)}€</b><br>`;
- Object.keys(cam).forEach(c=>{
-  html+=`Camarero ${c}: ${cam[c].toFixed(2)}€<br>`;
- });
-
- caja.innerHTML=html;
-});
 </script>
 
 </body>
