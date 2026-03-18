@@ -1,4 +1,4 @@
-<!-- VERSION BUENA + TOTAL MESA -->
+<!-- VERSION 7 - CARTA EDITABLE OK -->
 
 <!DOCTYPE html>
 <html lang="es">
@@ -9,7 +9,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-<script src="https://cdn.tailwindcss.com?v=800"></script>
+<script src="https://cdn.tailwindcss.com?v=900"></script>
 </head>
 
 <body class="bg-gray-100">
@@ -27,7 +27,6 @@ Escanea el QR de tu mesa para hacer tu pedido
 Mesa: <span id="mesa">--</span>
 </div>
 
-<!-- 🔥 TOTAL MESA -->
 <div class="text-center text-red-600 font-bold">
 Total gastado: <span id="totalMesa">0.00€</span>
 </div>
@@ -88,10 +87,10 @@ const categorias=[
 "Otros"
 ];
 
-// 🔥 TOTAL MESA
+// TOTAL MESA
 db.ref("comandas").on("value",snap=>{
- let data=snap.val()||{};
  let total=0;
+ let data=snap.val()||{};
  Object.values(data).forEach(p=>{
   if(p.mesa==mesa) total+=Number(p.total);
  });
@@ -164,7 +163,7 @@ function enviarPedido(){
  totalEl.innerText="0€";
 }
 
-// 🧾 PEDIDOS
+// PEDIDOS
 db.ref("comandas").on("value",snap=>{
  let data=snap.val()||{};
  let cont=pedidos;
@@ -253,22 +252,40 @@ db.ref("caja").on("value",snap=>{
  caja.innerHTML=html;
 });
 
-// CARTA ADMIN
+// 🔥 ADMIN CARTA EDITABLE
 function cargarCartaAdmin(){
  db.ref("carta").on("value",snap=>{
   let data=snap.val()||{};
   let html="";
 
   categorias.forEach(cat=>{
-   html+=`<div class="bg-white p-2 m-2 shadow">
+   html+=`
+   <div class="bg-white p-3 m-2 shadow rounded">
+   <div class="flex justify-between">
    <b>${cat}</b>
-   <button onclick="nuevo('${cat}')">+</button><br>`;
+   <button onclick="nuevo('${cat}')" class="bg-green-600 text-white px-2">+</button>
+   </div><br>`;
 
    Object.entries(data).forEach(([id,p])=>{
     if(p.categoria===cat){
-     html+=`${p.nombre} (${p.precio}€)
-     <button onclick="toggle('${id}',${p.activo})">👁️</button>
-     <button onclick="borrar('${id}')">🗑️</button><br>`;
+
+     html+=`
+     <div class="flex justify-between border-b py-1">
+
+     <div>
+     <input value="${p.nombre}" onchange="editarNombre('${id}',this.value)" class="border w-32">
+     <input value="${p.precio}" type="number" onchange="editarPrecio('${id}',this.value)" class="border w-16 ml-2"> €
+     </div>
+
+     <div>
+     <button onclick="toggle('${id}',${p.activo})" class="${p.activo?'bg-blue-600':'bg-gray-400'} text-white px-2">
+     ${p.activo?'ON':'OFF'}
+     </button>
+
+     <button onclick="borrar('${id}')" class="bg-red-600 text-white px-2">X</button>
+     </div>
+
+     </div>`;
     }
    });
 
@@ -279,13 +296,26 @@ function cargarCartaAdmin(){
  });
 }
 
+// EDITAR
+function editarNombre(id,n){
+ db.ref("carta/"+id+"/nombre").set(n);
+}
+function editarPrecio(id,p){
+ db.ref("carta/"+id+"/precio").set(Number(p));
+}
+
+// CRUD
 function nuevo(cat){
  let n=prompt("Nombre");
  let p=parseFloat(prompt("Precio"));
  db.ref("carta").push({nombre:n,precio:p,categoria:cat,activo:true});
 }
-function toggle(id,a){db.ref("carta/"+id+"/activo").set(!a);}
-function borrar(id){db.ref("carta/"+id).remove();}
+function toggle(id,a){
+ db.ref("carta/"+id+"/activo").set(!a);
+}
+function borrar(id){
+ db.ref("carta/"+id).remove();
+}
 </script>
 
 </body>
