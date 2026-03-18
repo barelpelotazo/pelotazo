@@ -1,4 +1,4 @@
-<!-- VERSION 17 - ADMIN FIX DEFINITIVO -->
+<!-- VERSION BASE ESTABLE -->
 
 <!DOCTYPE html>
 <html lang="es">
@@ -40,22 +40,24 @@ Total gastado: <span id="totalMesa">0.00€</span>
 Enviar pedido
 </button>
 
-<!-- 🔥 BOTÓN ADMIN MÁS FIABLE -->
-<button onclick="abrirAdmin()" class="w-full mt-2 text-xs text-gray-400">
-...
-</button>
-
+<div onclick="abrirAdmin()" class="text-center text-xs mt-2 text-gray-400 cursor-pointer">
+···
+</div>
 </div>
 
 <!-- ADMIN -->
-<div id="admin" style="display:none;" class="fixed top-0 left-0 w-full h-full bg-white z-50 overflow-auto">
+<div id="admin" class="hidden fixed top-0 left-0 w-full h-full bg-white z-50 overflow-auto">
 
 <div class="flex bg-black text-white">
 <button onclick="tab('pedidos')" class="flex-1 p-2">Pedidos</button>
+<button onclick="tab('cartaTab')" class="flex-1 p-2">Carta</button>
+<button onclick="tab('caja')" class="flex-1 p-2">Caja</button>
 <button onclick="cerrarAdmin()" class="p-2">X</button>
 </div>
 
 <div id="pedidos" class="p-2"></div>
+<div id="cartaTab" class="p-2 hidden"></div>
+<div id="caja" class="p-2 hidden"></div>
 
 </div>
 
@@ -70,44 +72,112 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// MESA FIX
-let mesaParam=new URLSearchParams(location.search).get("mesa");
-let mesa = mesaParam ? mesaParam.toString().trim() : null;
-document.getElementById("mesa").innerText=mesa||"--";
-
+let mesa=new URLSearchParams(location.search).get("mesa");
 let carrito=[];
 
-// 🔥 ADMIN FIX DEFINITIVO
+document.getElementById("mesa").innerText=mesa||"--";
+
+const totalEl=document.getElementById("total");
+const totalMesaEl=document.getElementById("totalMesa");
+
+const categorias=[
+"Tapas/Ración/Menú",
+"Café/repostería/Postres",
+"Bebidas/Refrescos",
+"Tapas del día",
+"Otros"
+];
+
+// ADMIN
 function abrirAdmin(){
- let pass = prompt("Clave admin");
- if(pass==="1234"){
-  document.getElementById("admin").style.display="block";
- }else{
-  alert("Clave incorrecta");
+ if(prompt("Clave")==="1234"){
+  document.getElementById("admin").classList.remove("hidden");
  }
 }
 
 function cerrarAdmin(){
- document.getElementById("admin").style.display="none";
+ document.getElementById("admin").classList.add("hidden");
 }
 
-// ENVIAR
+function tab(t){
+ pedidos.classList.add("hidden");
+ cartaTab.classList.add("hidden");
+ caja.classList.add("hidden");
+ document.getElementById(t).classList.remove("hidden");
+}
+
+// TOTAL MESA
+db.ref("comandas").on("value",snap=>{
+ let total=0;
+ let data=snap.val()||{};
+ Object.values(data).forEach(p=>{
+  if(p.mesa==mesa) total+=p.total;
+ });
+ totalMesaEl.innerText=total+"€";
+});
+
+// CLIENTE
+db.ref("carta").on("value",snap=>{
+ let data=snap.val()||{};
+ let html="";
+
+ categorias.forEach(cat=>{
+  let items=Object.values(data).filter(p=>p.categoria===cat && p.activo);
+  if(!items.length) return;
+
+  html+=`<div class="m-2 bg-white shadow">
+  <div onclick="this.nextElementSibling.classList.toggle('hidden')" class="p-2 bg-gray-200 font-bold flex justify-between">
+  ${cat}<span>▼</span></div><div class="hidden">`;
+
+  items.forEach(p=>{
+   html+=`<div class="flex justify-between p-2 border-b">
+   <b>${p.nombre}</b>
+   <div>${p.precio}€
+   <button onclick="add('${p.nombre}',${p.precio})" class="bg-blue-600 text-white px-2 ml-2">+</button>
+   </div></div>`;
+  });
+
+  html+=`</div></div>`;
+ });
+
+ carta.innerHTML=html;
+});
+
+function add(n,p){
+ carrito.push({nombre:n,precio:p});
+ totalEl.innerText=carrito.reduce((a,b)=>a+b.precio,0)+"€";
+}
+
 function enviarPedido(){
- if(!mesa){
-  alert("Escanea QR");
-  return;
- }
+ if(!mesa){ alert("Escanea QR"); return;}
+ if(!carrito.length){ alert("Añade productos"); return;}
+
+ db.ref("comandas").push({
+  mesa, items:carrito,
+  total:carrito.reduce((a,b)=>a+b.precio,0),
+  camarero:""
+ });
+
+ carrito=[];
+ totalEl.innerText="0€";
 }
 
 // PEDIDOS
 db.ref("comandas").on("value",snap=>{
  let data=snap.val()||{};
- let cont=document.getElementById("pedidos");
- cont.innerHTML="";
+ pedidos.innerHTML="";
 
  Object.values(data).forEach(p=>{
-  cont.innerHTML+=`Mesa ${p.mesa} - ${p.total}€<br>`;
+  pedidos.innerHTML+=`Mesa ${p.mesa} - ${p.total}€<br>`;
  });
+});
+
+// CAJA
+db.ref("caja").on("value",snap=>{
+ let d=snap.val()||{};
+ let total=0;
+ Object.values(d).forEach(p=> total+=p.total);
+ caja.innerHTML="TOTAL: "+total+"€";
 });
 </script>
 
