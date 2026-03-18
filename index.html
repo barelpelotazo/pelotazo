@@ -1,4 +1,4 @@
-<!-- VERSION 21 - COCINA + RODANTE -->
+<!-- VERSION 22 - COCINA POR MESAS + BORRAR CAJA -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -41,7 +41,7 @@
 
   <div class="text-center text-[11px] mt-2 text-gray-500">
     Creación y diseño de
-    <a href="https://rodante.es" target="_blank" class="underline">Rodante</a>
+    <a href="https://rodante.es" target="_blank" class="underline">rodante</a>
   </div>
 
   <div onclick="abrirAdmin()" class="text-center text-xs mt-1 text-gray-400 cursor-pointer">
@@ -330,18 +330,19 @@ function cobrar(m){
 function renderCocina(data){
   let mesas = {};
 
-  Object.keys(data).forEach(id => {
-    let pedido = data[id];
+  Object.keys(data).forEach(idPedido => {
+    let pedido = data[idPedido];
     let mesaPedido = String(pedido.mesa);
     let items = pedido.items || [];
 
     items.forEach((item, index) => {
-      if(item.cocina && !item.cocinaHecho){
+      if(item.cocina === true && item.cocinaHecho !== true){
         if(!mesas[mesaPedido]){
           mesas[mesaPedido] = [];
         }
+
         mesas[mesaPedido].push({
-          idPedido: id,
+          idPedido: idPedido,
           indexItem: index,
           nombre: item.nombre
         });
@@ -360,9 +361,9 @@ function renderCocina(data){
 
     html += `
       <div class="p-4 m-3 rounded-xl bg-white shadow-md border">
-        <b class="text-lg text-orange-600">Mesa ${m}</b>
+        <div class="text-orange-600 font-black text-xl mb-3">Mesa ${m}</div>
 
-        <div class="mt-3 text-base">
+        <div class="text-base leading-7">
           ${Object.keys(agrupados).map(k => `• ${k} x${agrupados[k]}`).join("<br>")}
         </div>
 
@@ -390,7 +391,7 @@ function marcarCocinaMesa(mesaObjetivo){
       if(String(pedido.mesa) !== String(mesaObjetivo)) return;
 
       (pedido.items || []).forEach((item, index) => {
-        if(item.cocina && !item.cocinaHecho){
+        if(item.cocina === true && item.cocinaHecho !== true){
           db.ref("comandas/" + idPedido + "/items/" + index + "/cocinaHecho").set(true);
         }
       });
@@ -419,10 +420,21 @@ db.ref("caja").on("value", snap => {
     html += `Camarero ${c}: ${cam[c].toFixed(2)}€<br>`;
   });
 
-  html += `</div>`;
+  html += `
+      <button onclick="borrarCaja()" class="w-full mt-4 bg-red-600 text-white p-3 rounded text-lg font-bold">
+        BORRAR DÍA
+      </button>
+    </div>
+  `;
 
   cajaEl.innerHTML = html;
 });
+
+function borrarCaja(){
+  if(confirm("¿Seguro que quieres borrar la caja del día?")){
+    db.ref("caja").remove();
+  }
+}
 
 // CARTA ADMIN
 function cargarCartaAdmin(){
