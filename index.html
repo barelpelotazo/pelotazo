@@ -8,43 +8,34 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
-
 </head>
+
 <body class="bg-gray-100">
 
-<!-- CABECERA CON LOGO -->
-<div class="bg-blue-900 text-white text-center p-3">
+<!-- CABECERA -->
+<div class="bg-blue-900 text-white text-center p-3" onclick="tapLogo()">
   <img src="logo pelotazo png.png" class="mx-auto mb-2" style="max-height:60px;">
-  <div class="font-black text-lg">BAR EL PELOTAZO</div>
+  <div class="font-black text-lg">Bar El Pelotazo</div>
 </div>
 
-<!-- AVISO -->
-<div class="bg-red-600 text-white text-center p-2 font-bold flex justify-center items-center gap-2">
-  ⚠️ Escanea el QR de tu mesa para hacer tu pedido
+<div class="bg-red-600 text-white text-center p-2 font-bold">
+⚠️ Escanea el QR de tu mesa para hacer tu pedido
 </div>
 
-<div class="p-2 text-center">
+<div class="text-center p-2">
 Mesa: <span id="mesa">--</span>
 </div>
 
-<!-- CARTA -->
 <div id="carta"></div>
 
 <!-- TOTAL -->
-<div class="fixed bottom-0 w-full bg-white p-3 border-t shadow-lg">
+<div class="fixed bottom-0 w-full bg-white p-3 border-t">
 <div id="total" class="text-2xl font-black text-center">0.00€</div>
-
-<button onclick="enviarPedido()" class="w-full bg-green-600 text-white p-2 mt-2 rounded">
-ENVIAR PEDIDO
-</button>
-
-<button onclick="abrirAdmin()" class="w-full bg-black text-white p-1 mt-2 text-xs rounded">
-ADMIN
-</button>
+<button onclick="enviarPedido()" class="w-full bg-green-600 text-white p-2 mt-2 rounded">Enviar pedido</button>
 </div>
 
 <!-- ADMIN -->
-<div id="admin" class="hidden fixed top-0 left-0 w-full h-full bg-white overflow-auto z-50">
+<div id="admin" class="hidden fixed top-0 left-0 w-full h-full bg-white z-50 overflow-auto">
 
 <div class="flex bg-black text-white text-sm">
 <button onclick="tab('pedidos')" class="flex-1 p-2">Pedidos</button>
@@ -69,11 +60,11 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-let carrito = [];
-let mesa = new URLSearchParams(location.search).get("mesa");
-document.getElementById("mesa").innerText = mesa || "--";
+let carrito=[];
+let mesa=new URLSearchParams(location.search).get("mesa");
+document.getElementById("mesa").innerText=mesa||"--";
 
-const categorias = [
+const categorias=[
 "Tapas/Ración/Menú",
 "Café/repostería/Postres",
 "Bebidas/Refrescos",
@@ -81,24 +72,35 @@ const categorias = [
 "Otros"
 ];
 
-// CARTA CLIENTE
-db.ref("carta").on("value", snap=>{
- const data = snap.val()||[];
+// 🔥 TAP LOGO ADMIN
+let taps=0;
+function tapLogo(){
+ taps++;
+ if(taps>=3){
+  let pass=prompt("Clave");
+  if(pass=="1234") document.getElementById("admin").classList.remove("hidden");
+  taps=0;
+ }
+ setTimeout(()=>taps=0,1500);
+}
+
+// CARTA
+db.ref("carta").on("value",snap=>{
+ let data=snap.val()||{};
  let html="";
 
  categorias.forEach(cat=>{
-  const items = Object.values(data).filter(p=>p.categoria===cat && p.activo!==false);
+  let items=Object.values(data).filter(p=>p.categoria===cat && p.activo!==false);
   if(items.length==0) return;
 
   html+=`<div class="m-2 bg-white rounded shadow">
-  <div onclick="toggle(this)" class="p-2 font-bold bg-gray-200 cursor-pointer">${cat}</div>
+  <div onclick="toggle(this)" class="p-2 font-bold bg-gray-200">${cat}</div>
   <div class="hidden">`;
 
   items.forEach(p=>{
-   html+=`
-   <div class="flex justify-between p-2 border-b">
-     ${p.nombre} - ${p.precio}€
-     <button onclick="add('${p.nombre}',${p.precio})" class="bg-blue-600 text-white px-2 rounded">+</button>
+   html+=`<div class="flex justify-between p-2 border-b">
+   ${p.nombre} - ${p.precio}€
+   <button onclick="add('${p.nombre}',${p.precio})">+</button>
    </div>`;
   });
 
@@ -108,9 +110,7 @@ db.ref("carta").on("value", snap=>{
  document.getElementById("carta").innerHTML=html;
 });
 
-function toggle(el){
- el.nextElementSibling.classList.toggle("hidden");
-}
+function toggle(el){el.nextElementSibling.classList.toggle("hidden");}
 
 function add(n,p){
  carrito.push({nombre:n,precio:p});
@@ -119,17 +119,17 @@ function add(n,p){
 
 function updateTotal(){
  let t=carrito.reduce((a,b)=>a+b.precio,0);
- document.getElementById("total").innerText=t.toFixed(2)+"€";
+ total.innerText=t.toFixed(2)+"€";
 }
 
 function enviarPedido(){
  if(!mesa) return alert("Escanea QR");
- if(carrito.length==0) return alert("Vacío");
+ if(!carrito.length) return;
 
  db.ref("comandas").push({
   mesa,
-  items: carrito,
-  total: carrito.reduce((a,b)=>a+b.precio,0),
+  items:carrito,
+  total:carrito.reduce((a,b)=>a+b.precio,0),
   estado:"pendiente",
   camarero:"",
   hora:new Date().toLocaleTimeString()
@@ -137,14 +137,10 @@ function enviarPedido(){
 
  carrito=[];
  updateTotal();
- alert("Pedido añadido a tu mesa");
+ alert("Pedido añadido");
 }
 
 // ADMIN
-function abrirAdmin(){
- let pass=prompt("Clave");
- if(pass=="1234") document.getElementById("admin").classList.remove("hidden");
-}
 function cerrarAdmin(){
  document.getElementById("admin").classList.add("hidden");
 }
@@ -154,12 +150,11 @@ function tab(t){
  document.getElementById(t).classList.remove("hidden");
 }
 
-// SONIDO
+// 🔔 sonido
 let audio=new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
 
-// PEDIDOS
-db.ref("comandas").on("value", snap=>{
- const data=snap.val();
+db.ref("comandas").on("value",snap=>{
+ let data=snap.val();
  let cont=document.getElementById("pedidos");
  cont.innerHTML="";
  if(!data) return;
@@ -181,23 +176,31 @@ db.ref("comandas").on("value", snap=>{
   <div class="font-bold text-lg">Mesa ${m}</div>
   <div class="text-red-600 font-black text-xl">TOTAL: ${totalMesa.toFixed(2)}€</div>`;
 
-  mesas[m].forEach(p=>{
-   cont.innerHTML+=`
-   <div class="border p-2 mt-1 rounded">
-   ${p.items.map(i=>i.nombre).join(", ")}<br>
-   ${p.total.toFixed(2)}€<br>
+  mesas[m].forEach((p,i)=>{
+   let itemsAgrupados={};
+   p.items.forEach(it=>{
+    itemsAgrupados[it.nombre]=(itemsAgrupados[it.nombre]||0)+1;
+   });
 
+   cont.innerHTML+=`
+   <div class="${i%2==0?'bg-gray-50':'bg-white'} border p-2 mt-2 rounded">
+   ${Object.keys(itemsAgrupados).map(k=>`- ${k} x${itemsAgrupados[k]}`).join("<br>")}
+   <br><b>${p.total.toFixed(2)}€</b>
+
+   <div class="mt-1">
    Camarero:
    <select onchange="setCamarero('${p.id}',this.value)">
    <option value="">--</option>
    <option>1</option><option>2</option><option>3</option>
    <option>4</option><option>5</option><option>6</option><option>7</option>
    </select>
+   </div>
 
    <div class="mt-1">
-   <button onclick="estado('${p.id}','cocina')" class="bg-yellow-500 px-2">🍳</button>
-   <button onclick="estado('${p.id}','servido')" class="bg-green-500 px-2">✅</button>
+   <button onclick="estado('${p.id}','cocina')">🍳</button>
+   <button onclick="estado('${p.id}','servido')">✅</button>
    </div>
+
    </div>`;
   });
 
@@ -248,41 +251,10 @@ db.ref("caja").on("value",snap=>{
 
  document.getElementById("caja").innerHTML=html;
 });
-
-// CARTA ADMIN
-db.ref("carta").on("value",snap=>{
- let data=snap.val()||{};
- let div=document.getElementById("cartaTab");
-
- let html=`<input id="n" placeholder="Nombre">
- <input id="p" type="number" placeholder="Precio">
- <select id="c">${categorias.map(c=>`<option>${c}</option>`)}</select>
- <button onclick="crear()" class="bg-blue-600 text-white px-2">Crear</button><hr>`;
-
- Object.keys(data).forEach(id=>{
-  let p=data[id];
-  html+=`${p.nombre} ${p.precio}€
-  <button onclick="toggleProd('${id}',${p.activo!==false})">ON/OFF</button><br>`;
- });
-
- div.innerHTML=html;
-});
-
-function crear(){
- let n=document.getElementById("n").value;
- let p=parseFloat(document.getElementById("p").value);
- let c=document.getElementById("c").value;
-
- db.ref("carta").push({nombre:n,precio:p,categoria:c,activo:true});
-}
-
-function toggleProd(id,act){
- db.ref("carta/"+id+"/activo").set(!act);
-}
 </script>
 
-<footer class="text-center text-xs p-2">
-Creación y diseño por <a href="https://rodante.es" target="_blank">Rodante</a>
+<footer class="text-center text-xs p-6 text-blue-600">
+<a href="https://rodante.es" target="_blank">rodante</a>
 </footer>
 
 </body>
