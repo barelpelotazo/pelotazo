@@ -43,8 +43,9 @@ Total mesa: <span id="totalMesa">0.00€</span>
 Enviar pedido
 </button>
 
-<div onclick="abrirAdmin()" class="text-center text-[10px] text-gray-400 mt-2 cursor-pointer">
-· · ·
+<!-- BOTÓN ADMIN -->
+<div id="adminBtn" class="text-center text-[10px] text-gray-400 mt-2 cursor-pointer">
+···
 </div>
 </div>
 
@@ -74,6 +75,7 @@ const db = firebase.database();
 // VARIABLES
 let carrito=[];
 let mesa=new URLSearchParams(location.search).get("mesa");
+
 document.getElementById("mesa").innerText=mesa||"--";
 
 let totalEl=document.getElementById("total");
@@ -87,7 +89,19 @@ const categorias=[
 "Otros"
 ];
 
-// TOTAL MESA
+// 🔓 ADMIN BOTÓN (más fiable)
+document.getElementById("adminBtn").addEventListener("click",()=>{
+ let pass = prompt("Clave admin");
+ if(pass==="1234"){
+  document.getElementById("admin").classList.remove("hidden");
+ }
+});
+
+function cerrarAdmin(){
+ document.getElementById("admin").classList.add("hidden");
+}
+
+// 🔴 TOTAL MESA
 db.ref("comandas").on("value",snap=>{
  let data=snap.val()||{};
  let total=0;
@@ -152,22 +166,11 @@ function enviarPedido(){
 
  carrito=[];
  totalEl.innerText="0.00€";
- alert("Pedido enviado");
+
+ alert("Pedido enviado correctamente");
 }
 
-// ADMIN
-function abrirAdmin(){
- let pass=prompt("Clave");
- if(pass=="1234"){
-  document.getElementById("admin").classList.remove("hidden");
- }
-}
-
-function cerrarAdmin(){
- document.getElementById("admin").classList.add("hidden");
-}
-
-// PEDIDOS ADMIN
+// ADMIN PEDIDOS
 db.ref("comandas").on("value",snap=>{
  let data=snap.val();
  let cont=document.getElementById("pedidos");
