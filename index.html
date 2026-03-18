@@ -13,7 +13,7 @@
 <body class="bg-gray-100">
 
 <!-- CABECERA -->
-<div class="bg-blue-900 text-white text-center p-3" onclick="tapLogo()">
+<div class="bg-blue-900 text-white text-center p-3">
   <img src="logo pelotazo png.png" class="mx-auto mb-2" style="max-height:60px;">
   <div class="font-black text-lg">Bar El Pelotazo</div>
 </div>
@@ -26,6 +26,7 @@
 Mesa: <span id="mesa">--</span>
 </div>
 
+<!-- CARTA -->
 <div id="carta"></div>
 
 <!-- TOTAL -->
@@ -53,16 +54,17 @@ Enviar pedido
 </div>
 
 <script>
-// 🔥 FIREBASE
+// 🔥 FIREBASE (TU CONFIG REAL)
 const firebaseConfig = {
- apiKey: "TU_API_KEY",
- databaseURL: "TU_DATABASE_URL",
- projectId: "TU_PROJECT_ID"
+ apiKey: "AIzaSyAxI0dtf4RdxNDYlmk_dVYhF5NyZOg8B2w",
+ databaseURL: "https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app",
+ projectId: "bar-el-pelotazo-16c19"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
+// VARIABLES
 let carrito=[];
 let mesa=new URLSearchParams(location.search).get("mesa");
 document.getElementById("mesa").innerText=mesa||"--";
@@ -75,19 +77,13 @@ const categorias=[
 "Otros"
 ];
 
-// 🔐 ADMIN
-let taps=0;
-function tapLogo(){
- taps++;
- if(taps>=3){
-  let pass=prompt("Clave");
-  if(pass=="1234"){
-   document.getElementById("admin").classList.remove("hidden");
-   cargarCartaAdmin();
-  }
-  taps=0;
+// ADMIN
+function abrirAdmin(){
+ let pass=prompt("Clave");
+ if(pass=="1234"){
+  document.getElementById("admin").classList.remove("hidden");
+  cargarCartaAdmin();
  }
- setTimeout(()=>taps=0,1500);
 }
 
 function cerrarAdmin(){
@@ -99,7 +95,7 @@ function tab(t){
  document.getElementById(t).classList.remove("hidden");
 }
 
-// 🔽 TOGGLE
+// TOGGLE
 function toggle(el){
  let cont = el.nextElementSibling;
  let flecha = el.querySelector(".flecha");
@@ -107,7 +103,7 @@ function toggle(el){
  flecha.style.transform = cont.classList.contains("hidden") ? "rotate(0deg)" : "rotate(180deg)";
 }
 
-// 🍽️ CARTA CLIENTE
+// CARTA CLIENTE
 db.ref("carta").on("value",snap=>{
  let data=snap.val()||{};
  let html="";
@@ -137,13 +133,13 @@ db.ref("carta").on("value",snap=>{
  document.getElementById("carta").innerHTML=html;
 });
 
-// 🛒
+// CARRITO
 function add(n,p){
  carrito.push({nombre:n,precio:p});
  total.innerText=carrito.reduce((a,b)=>a+b.precio,0).toFixed(2)+"€";
 }
 
-// 📤
+// ENVIAR
 function enviarPedido(){
  if(!mesa) return alert("Escanea QR");
  if(!carrito.length) return;
@@ -159,9 +155,10 @@ function enviarPedido(){
 
  carrito=[];
  total.innerText="0.00€";
+ alert("Pedido enviado");
 }
 
-// 🛠️ ADMIN CARTA
+// ADMIN CARTA
 function cargarCartaAdmin(){
  db.ref("carta").on("value",snap=>{
   let data=snap.val()||{};
@@ -200,20 +197,18 @@ function nuevoProducto(cat){
  let nombre=prompt("Nombre");
  let precio=parseFloat(prompt("Precio"));
  if(!nombre||!precio) return;
-
  db.ref("carta").push({nombre,precio,categoria:cat,activo:true});
 }
 
 function editar(id){
- let nombre=prompt("Nuevo nombre");
- let precio=parseFloat(prompt("Nuevo precio"));
+ let nombre=prompt("Nombre");
+ let precio=parseFloat(prompt("Precio"));
  if(!nombre||!precio) return;
-
  db.ref("carta/"+id).update({nombre,precio});
 }
 
 function borrar(id){
- if(confirm("Borrar?")){
+ if(confirm("Borrar producto?")){
   db.ref("carta/"+id).remove();
  }
 }
@@ -223,8 +218,10 @@ function togglePub(id,estado){
 }
 </script>
 
+<!-- FOOTER -->
 <footer class="text-center text-xs p-8 text-blue-600">
-creación y diseño <a href="https://rodante.es" target="_blank">rodante</a>
+<div>creación y diseño <a href="https://rodante.es" target="_blank">rodante</a></div>
+<div class="text-gray-400 mt-2 cursor-pointer" onclick="abrirAdmin()">admin</div>
 </footer>
 
 </body>
