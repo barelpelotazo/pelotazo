@@ -66,7 +66,6 @@
 
 <!-- ADMIN -->
 <div id="admin" class="hidden fixed top-0 left-0 w-full h-full bg-gray-100 z-50 overflow-auto">
-
   <div class="flex bg-black text-white">
     <button onclick="tab('pedidos')" class="flex-1 p-3 text-base font-semibold">Pedidos</button>
     <button onclick="tab('cocinaTab')" class="flex-1 p-3 text-base font-semibold">Cocina</button>
@@ -79,7 +78,6 @@
   <div id="cocinaTab" class="p-2 hidden"></div>
   <div id="cartaTab" class="p-2 hidden"></div>
   <div id="caja" class="p-2 hidden"></div>
-
 </div>
 
 <script>
@@ -161,7 +159,6 @@ function sonarPedido(){
     if(!AudioContextClass) return;
 
     const ctx = new AudioContextClass();
-
     const tiempos = [0, 0.18, 0.36, 0.54];
     const frecuencias = [900, 1200, 1500, 1200];
 
@@ -208,8 +205,8 @@ function tab(t){
 // UTILS
 function formatHora(timestamp, horaTexto){
   if(horaTexto) return horaTexto;
-
   if(!timestamp) return "--:--";
+
   const d = new Date(Number(timestamp));
   if(isNaN(d.getTime())) return "--:--";
 
@@ -229,12 +226,36 @@ function productoMarcadoEnCarta(nombreProducto){
   );
 }
 
+function itemVaACocina(item){
+  return esCocina(item.cocina) || productoMarcadoEnCarta(item.nombre);
+}
+
 function pedidoTieneCocinaPendiente(pedido){
   return (pedido.items || []).some(item => {
-    const vaACocina = esCocina(item.cocina) || productoMarcadoEnCarta(item.nombre);
-    const cocinaHecha = esCocina(item.cocinaHecho);
-    return vaACocina && !cocinaHecha;
+    return itemVaACocina(item) && !esCocina(item.cocinaHecho);
   });
+}
+
+function pedidoListoParaServir(pedido){
+  const items = pedido.items || [];
+  const tieneItemsCocina = items.some(item => itemVaACocina(item));
+  if(!tieneItemsCocina) return false;
+
+  return items
+    .filter(item => itemVaACocina(item))
+    .every(item => esCocina(item.cocinaHecho));
+}
+
+function pedidoEntregado(pedido){
+  return pedido.entregado === true || pedido.entregado === "true" || pedido.entregado === 1 || pedido.entregado === "1";
+}
+
+function claveFechaHoy(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dia = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dia}`;
 }
 
 // TOTAL MESA
@@ -329,7 +350,8 @@ function enviarPedido(){
     total: carrito.reduce((a,b)=>a+Number(b.precio),0),
     camarero: "",
     timestamp: firebase.database.ServerValue.TIMESTAMP,
-    horaTexto: horaTexto
+    horaTexto: horaTexto,
+    entregado: false
   });
 
   carrito = [];
@@ -362,6 +384,7 @@ db.ref("comandas").on("value", snap => {
         hora: Number(p.timestamp || 0),
         horaTexto: p.horaTexto || "",
         cocinaPendiente: false,
+        tieneSinEntregar: false,
         comandas: []
       };
     }
@@ -381,22 +404,33 @@ db.ref("comandas").on("value", snap => {
     }
 
     const cocinaPendientePedido = pedidoTieneCocinaPendiente(p);
+    const listoPedido = pedidoListoParaServir(p);
+    const entregadoPedido = pedidoEntregado(p);
+
     if(cocinaPendientePedido){
       mesas[m].cocinaPendiente = true;
     }
 
+    if(!entregadoPedido){
+      mesas[m].tieneSinEntregar = true;
+    }
+
     let productos = {};
     (p.items || []).forEach(i => {
-      const esDeCocina = esCocina(i.cocina) || productoMarcadoEnCarta(i.nombre);
+      const esDeCocina = itemVaACocina(i);
 
       if(!productos[i.nombre]){
         productos[i.nombre] = {
           cantidad: 0,
-          cocina: esDeCocina
+          cocina: esDeCocina,
+          cocinaHecho: esDeCocina ? esCocina(i.cocinaHecho) : false
         };
       }
 
       productos[i.nombre].cantidad += 1;
+      if(esDeCocina && !esCocina(i.cocinaHecho)){
+        productos[i.nombre].cocinaHecho = false;
+      }
     });
 
     mesas[m].comandas.push({
@@ -406,7 +440,9 @@ db.ref("comandas").on("value", snap => {
       hora: Number(p.timestamp || 0),
       horaTexto: p.horaTexto || "",
       nuevo: nuevosIds.includes(id),
-      cocinaPendiente: cocinaPendientePedido
+      cocinaPendiente: cocinaPendientePedido,
+      listo: listoPedido,
+      entregado: entregadoPedido
     });
   });
 
@@ -418,7 +454,21 @@ db.ref("comandas").on("value", snap => {
       ? `<div class="mt-2 inline-block bg-orange-100 text-orange-700 px-2 py-1 rounded text-sm font-bold">COCINA PENDIENTE</div>`
       : "";
 
-    const detalleComandas = mesas[m].comandas.map(c => `
+    const detalleComandas = mesas[m].comandas.map(c => {
+      let estadoHtml = "";
+      if(c.entregado){
+        estadoHtml = `<div class="mt-2 inline-block bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">ENTREGADO</div>`;
+      } else if(c.listo){
+        estadoHtml = `<div class="mt-2 inline-block bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">LISTO PARA SERVIR</div>`;
+      } else if(c.cocinaPendiente){
+        estadoHtml = `<div class="mt-2 inline-block bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs font-bold">Cocina pendiente</div>`;
+      }
+
+      const botonEntregado = c.entregado
+        ? ""
+        : `<button onclick="marcarEntregado('${c.id}')" class="w-full mt-3 bg-emerald-600 text-white p-2 rounded text-sm font-bold">ENTREGADO</button>`;
+
+      return `
       <div class="mt-3 border rounded-lg p-3 ${c.nuevo ? 'flash bg-yellow-50 border-yellow-300' : 'bg-gray-50 border-gray-200'}">
         <div class="flex justify-between items-center gap-3">
           <span class="text-sm font-bold ${c.nuevo ? 'text-yellow-700' : 'text-gray-600'}">
@@ -427,28 +477,39 @@ db.ref("comandas").on("value", snap => {
           <span class="text-sm text-gray-500 font-semibold">Hora ${formatHora(c.hora, c.horaTexto)}</span>
         </div>
 
-        ${c.cocinaPendiente ? `<div class="mt-2 inline-block bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs font-bold">Cocina pendiente</div>` : ""}
+        ${estadoHtml}
 
         <div class="mt-2 text-base leading-7">
-          ${Object.keys(c.productos).map(k => `
-            <div class="flex items-center justify-between gap-2 py-1">
-              <div>
-                • <span class="font-semibold">${k}</span> x${c.productos[k].cantidad}
+          ${Object.keys(c.productos).map(k => {
+            const prod = c.productos[k];
+            let etiqueta = '';
+            if(prod.cocina){
+              etiqueta = prod.cocinaHecho
+                ? `<span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">LISTO</span>`
+                : `<span class="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs font-bold">COCINA</span>`;
+            } else {
+              etiqueta = `<span class="bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs font-bold">BARRA</span>`;
+            }
+
+            return `
+              <div class="flex items-center justify-between gap-2 py-1">
+                <div>
+                  • <span class="font-semibold">${k}</span> x${prod.cantidad}
+                </div>
+                ${etiqueta}
               </div>
-              ${
-                c.productos[k].cocina
-                ? `<span class="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs font-bold">COCINA</span>`
-                : `<span class="bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs font-bold">BARRA</span>`
-              }
-            </div>
-          `).join("")}
+            `;
+          }).join("")}
         </div>
 
         <div class="text-red-600 font-black text-lg mt-2">
           ${c.total.toFixed(2)}€
         </div>
+
+        ${botonEntregado}
       </div>
-    `).join("");
+      `;
+    }).join("");
 
     pedidosEl.innerHTML += `
       <div class="p-4 m-3 rounded-xl bg-white shadow-md ${borde}">
@@ -505,17 +566,23 @@ function setCamarero(m,c){
   });
 }
 
+function marcarEntregado(id){
+  db.ref("comandas/" + id + "/entregado").set(true);
+}
+
 // COBRAR
 function cobrar(m){
   db.ref("comandas").once("value", snap => {
     let d = snap.val() || {};
     let tieneCamarero = false;
     let hayCocinaPendiente = false;
+    let haySinEntregar = false;
 
     Object.values(d).forEach(p => {
       if(String(p.mesa) === String(m)){
         if(p.camarero) tieneCamarero = true;
         if(pedidoTieneCocinaPendiente(p)) hayCocinaPendiente = true;
+        if(!pedidoEntregado(p)) haySinEntregar = true;
       }
     });
 
@@ -526,6 +593,11 @@ function cobrar(m){
 
     if(hayCocinaPendiente){
       alert("No puedes cobrar: hay productos pendientes en cocina");
+      return;
+    }
+
+    if(haySinEntregar){
+      alert("No puedes cobrar: hay pedidos sin entregar");
       return;
     }
 
@@ -548,7 +620,7 @@ function renderCocina(data){
     let items = pedido.items || [];
 
     items.forEach((item, index) => {
-      const vaACocina = esCocina(item.cocina) || productoMarcadoEnCarta(item.nombre);
+      const vaACocina = itemVaACocina(item);
       const cocinaHecha = esCocina(item.cocinaHecho);
 
       if(vaACocina && !cocinaHecha){
@@ -621,7 +693,7 @@ function marcarCocinaMesa(mesaObjetivo){
       if(String(pedido.mesa) !== String(mesaObjetivo)) return;
 
       (pedido.items || []).forEach((item, index) => {
-        const vaACocina = esCocina(item.cocina) || productoMarcadoEnCarta(item.nombre);
+        const vaACocina = itemVaACocina(item);
         const cocinaHecha = esCocina(item.cocinaHecho);
 
         if(vaACocina && !cocinaHecha){
@@ -680,9 +752,20 @@ db.ref("caja").on("value", snap => {
 });
 
 function borrarCaja(){
-  if(confirm("¿Seguro que quieres borrar la caja del día?")){
-    db.ref("caja").remove();
-  }
+  if(!confirm("¿Seguro que quieres borrar la caja del día?")) return;
+
+  db.ref("caja").once("value", snap => {
+    const data = snap.val() || {};
+    const fecha = claveFechaHoy();
+
+    db.ref("cierres/" + fecha).push({
+      fecha: fecha,
+      timestamp: Date.now(),
+      caja: data
+    }).then(() => {
+      return db.ref("caja").remove();
+    });
+  });
 }
 
 // CARTA ADMIN
