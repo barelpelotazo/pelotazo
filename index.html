@@ -1,4 +1,4 @@
-<!-- VERSION 15 - FIX MESAS OK -->
+<!-- VERSION 16 - ADMIN + MESAS OK -->
 
 <!DOCTYPE html>
 <html lang="es">
@@ -9,7 +9,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-<script src="https://cdn.tailwindcss.com?v=1500"></script>
+<script src="https://cdn.tailwindcss.com?v=1600"></script>
 </head>
 
 <body class="bg-gray-100">
@@ -95,7 +95,25 @@ const categorias=[
 "Otros"
 ];
 
-// TOTAL MESA (FIX)
+// 🔥 ADMIN FUNCIONES (RECUPERADAS)
+function abrirAdmin(){
+ if(prompt("Clave")==="1234"){
+  document.getElementById("admin").classList.remove("hidden");
+ }
+}
+
+function cerrarAdmin(){
+ document.getElementById("admin").classList.add("hidden");
+}
+
+function tab(t){
+ document.getElementById("pedidos").classList.add("hidden");
+ document.getElementById("cartaTab").classList.add("hidden");
+ document.getElementById("caja").classList.add("hidden");
+ document.getElementById(t).classList.remove("hidden");
+}
+
+// TOTAL MESA
 db.ref("comandas").on("value",snap=>{
  let total=0;
  let data=snap.val()||{};
@@ -143,14 +161,14 @@ function add(n,p){
  totalEl.innerText=carrito.reduce((a,b)=>a+Number(b.precio),0)+"€";
 }
 
-// ENVIAR (FIX)
+// ENVIAR
 function enviarPedido(){
  if(!mesa){
-  alert("Escanea el QR de tu mesa antes de hacer el pedido");
+  alert("Escanea el QR de tu mesa");
   return;
  }
  if(!carrito.length){
-  alert("Añade productos al pedido");
+  alert("Añade productos");
   return;
  }
 
@@ -165,7 +183,7 @@ function enviarPedido(){
  totalEl.innerText="0€";
 }
 
-// PEDIDOS (FIX)
+// PEDIDOS
 db.ref("comandas").on("value",snap=>{
  let data=snap.val()||{};
  let cont=document.getElementById("pedidos");
@@ -175,7 +193,7 @@ db.ref("comandas").on("value",snap=>{
 
  Object.keys(data).forEach(id=>{
   let p=data[id];
-  let mesaKey = String(p.mesa).trim();
+  let mesaKey=String(p.mesa).trim();
 
   if(!mesas[mesaKey]){
    mesas[mesaKey]={total:0,productos:{}};
@@ -193,13 +211,7 @@ db.ref("comandas").on("value",snap=>{
   <div class="p-3 m-2 rounded ${i%2?'bg-gray-200':'bg-white'} shadow">
   <b>Mesa ${m}</b><br>
   ${Object.keys(mesas[m].productos).map(k=>`- ${k} x${mesas[m].productos[k]}`).join("<br>")}
-  <div class="text-red-600 font-bold mt-2">${mesas[m].total.toFixed(2)}€</div>
-
-  <select onchange="setCamarero('${m}',this.value)" class="w-full mt-2">
-  <option value="">Camarero</option>
-  <option>1</option><option>2</option><option>3</option>
-  <option>4</option><option>5</option><option>6</option><option>7</option>
-  </select>
+  <div class="text-red-600 font-bold">${mesas[m].total.toFixed(2)}€</div>
 
   <button onclick="cobrar('${m}')" class="bg-green-700 text-white w-full mt-2 p-2">
   COBRAR
@@ -207,18 +219,6 @@ db.ref("comandas").on("value",snap=>{
   </div>`;
  });
 });
-
-// CAMARERO
-function setCamarero(m,c){
- db.ref("comandas").once("value",snap=>{
-  let d=snap.val();
-  Object.keys(d).forEach(id=>{
-   if(String(d[id].mesa)===String(m)){
-    db.ref("comandas/"+id+"/camarero").set(c);
-   }
-  });
- });
-}
 
 // COBRAR
 function cobrar(m){
