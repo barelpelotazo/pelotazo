@@ -1,4 +1,4 @@
-<!-- VERSION 23 - AJUSTES VISUALES -->
+<!-- VERSION 24 - QR ELEGANTE + COLORES CATEGORIAS + HORA PEDIDO -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -18,9 +18,9 @@
   <div class="font-black text-lg">Bar El Pelotazo</div>
 </div>
 
-<div class="flex justify-center p-3">
-  <div class="bg-red-600 text-white text-center px-4 py-2 font-bold rounded-xl shadow inline-flex items-center gap-2">
-    <span class="text-yellow-300 text-lg">⚠</span>
+<div class="flex justify-center px-3 pt-3 pb-2">
+  <div class="bg-red-600 text-white px-4 py-2 rounded-full shadow inline-flex items-center gap-2 text-sm font-semibold">
+    <span class="text-yellow-300 text-base">⚠</span>
     <span>Escanea el QR de tu mesa para hacer tu pedido</span>
   </div>
 </div>
@@ -29,7 +29,7 @@
   Mesa: <span id="mesa">--</span>
 </div>
 
-<div class="text-center text-red-600 font-bold text-lg">
+<div class="text-center text-red-600 font-bold text-xl">
   Total importe: <span id="totalMesa">0.00€</span>
 </div>
 
@@ -106,6 +106,29 @@ const categorias = [
   "Otros"
 ];
 
+const coloresCategoria = {
+  "Tapas/Ración/Menú": {
+    caja: "bg-red-50 border-red-200",
+    cabecera: "bg-red-100 text-red-800"
+  },
+  "Café/repostería/Postres": {
+    caja: "bg-amber-50 border-amber-200",
+    cabecera: "bg-amber-100 text-amber-800"
+  },
+  "Bebidas/Refrescos": {
+    caja: "bg-blue-50 border-blue-200",
+    cabecera: "bg-blue-100 text-blue-800"
+  },
+  "Tapas del día": {
+    caja: "bg-green-50 border-green-200",
+    cabecera: "bg-green-100 text-green-800"
+  },
+  "Otros": {
+    caja: "bg-purple-50 border-purple-200",
+    cabecera: "bg-purple-100 text-purple-800"
+  }
+};
+
 // ADMIN
 function abrirAdmin(){
   if(prompt("Clave")==="1234"){
@@ -124,6 +147,14 @@ function tab(t){
   cartaTabEl.classList.add("hidden");
   cajaEl.classList.add("hidden");
   document.getElementById(t).classList.remove("hidden");
+}
+
+function formatHora(timestamp){
+  if(!timestamp) return "--:--";
+  const d = new Date(timestamp);
+  const h = String(d.getHours()).padStart(2,"0");
+  const m = String(d.getMinutes()).padStart(2,"0");
+  return h + ":" + m;
 }
 
 // TOTAL MESA
@@ -170,7 +201,7 @@ db.ref("carta").on("value", snap => {
           <div class="flex items-center gap-3">
             <span class="text-lg font-bold">${precioSeguro.toFixed(2)}€</span>
             <button onclick="add('${nombreSeguro}',${precioSeguro},${cocinaSeguro})"
-                    class="bg-blue-600 text-white px-3 py-1 rounded text-xl leading-none font-bold">
+                    class="bg-blue-600 text-white px-3 py-1 rounded text-lg leading-none font-bold min-w-[42px]">
               +
             </button>
           </div>
@@ -211,7 +242,8 @@ function enviarPedido(){
     mesa: String(mesa),
     items: carrito,
     total: carrito.reduce((a,b)=>a+Number(b.precio),0),
-    camarero: ""
+    camarero: "",
+    timestamp: Date.now()
   });
 
   carrito = [];
@@ -234,7 +266,8 @@ db.ref("comandas").on("value", snap => {
         total: 0,
         productos: {},
         ids: [],
-        camarero: p.camarero || ""
+        camarero: p.camarero || "",
+        hora: p.timestamp || 0
       };
     }
 
@@ -245,6 +278,10 @@ db.ref("comandas").on("value", snap => {
       mesas[m].camarero = p.camarero;
     }
 
+    if((p.timestamp || 0) > (mesas[m].hora || 0)){
+      mesas[m].hora = p.timestamp;
+    }
+
     (p.items || []).forEach(i => {
       mesas[m].productos[i.nombre] = (mesas[m].productos[i.nombre] || 0) + 1;
     });
@@ -253,7 +290,10 @@ db.ref("comandas").on("value", snap => {
   Object.keys(mesas).forEach(m => {
     pedidosEl.innerHTML += `
       <div class="p-4 m-3 rounded-xl bg-white shadow-md border">
-        <b class="text-lg">Mesa ${m}</b>
+        <div class="flex justify-between items-center gap-3">
+          <b class="text-lg">Mesa ${m}</b>
+          <span class="text-sm text-gray-500 font-semibold">Hora ${formatHora(mesas[m].hora)}</span>
+        </div>
 
         <div class="mt-2 text-sm">
           ${Object.keys(mesas[m].productos).map(k => `• ${k} x${mesas[m].productos[k]}`).join("<br>")}
@@ -341,14 +381,21 @@ function renderCocina(data){
     items.forEach((item, index) => {
       if(item.cocina === true && item.cocinaHecho !== true){
         if(!mesas[mesaPedido]){
-          mesas[mesaPedido] = [];
+          mesas[mesaPedido] = {
+            items: [],
+            hora: pedido.timestamp || 0
+          };
         }
 
-        mesas[mesaPedido].push({
+        mesas[mesaPedido].items.push({
           idPedido: idPedido,
           indexItem: index,
           nombre: item.nombre
         });
+
+        if((pedido.timestamp || 0) > (mesas[mesaPedido].hora || 0)){
+          mesas[mesaPedido].hora = pedido.timestamp;
+        }
       }
     });
   });
@@ -358,13 +405,16 @@ function renderCocina(data){
   Object.keys(mesas).forEach(m => {
     let agrupados = {};
 
-    mesas[m].forEach(i => {
+    mesas[m].items.forEach(i => {
       agrupados[i.nombre] = (agrupados[i.nombre] || 0) + 1;
     });
 
     html += `
       <div class="p-4 m-3 rounded-xl bg-white shadow-md border">
-        <div class="text-orange-600 font-black text-xl mb-3">Mesa ${m}</div>
+        <div class="flex justify-between items-center gap-3 mb-3">
+          <div class="text-orange-600 font-black text-xl">Mesa ${m}</div>
+          <span class="text-sm text-gray-500 font-semibold">Hora ${formatHora(mesas[m].hora)}</span>
+        </div>
 
         <div class="text-base leading-7">
           ${Object.keys(agrupados).map(k => `• ${k} x${agrupados[k]}`).join("<br>")}
@@ -446,31 +496,40 @@ function cargarCartaAdmin(){
     let html = "";
 
     categorias.forEach(cat => {
+      const color = coloresCategoria[cat] || {
+        caja: "bg-white border-gray-200",
+        cabecera: "bg-gray-100 text-gray-800"
+      };
+
       html += `
-        <div class="bg-white p-3 m-3 rounded-xl shadow border">
-          <b>${cat}</b>
-          <button onclick="nuevo('${cat}')" class="ml-2 bg-green-500 text-white px-2 rounded">+</button><br>
+        <div class="${color.caja} p-3 m-3 rounded-xl shadow border">
+          <div class="${color.cabecera} px-3 py-2 rounded-lg font-bold flex items-center justify-between">
+            <span>${cat}</span>
+            <button onclick="nuevo('${cat}')" class="ml-2 bg-green-500 text-white px-2 py-1 rounded text-xs">
+              +
+            </button>
+          </div>
       `;
 
       Object.entries(data).forEach(([id,p]) => {
         if(p.categoria === cat){
           html += `
-            <div class="mt-3 border rounded p-2">
+            <div class="mt-3 border rounded p-2 bg-white">
               <div class="flex items-center flex-wrap gap-2">
-                <input class="border p-1 rounded flex-1 min-w-[140px]" value="${p.nombre}" onchange="editarNombre('${id}',this.value)">
-                <input class="border p-1 rounded w-24" type="number" value="${p.precio}" onchange="editarPrecio('${id}',this.value)">
+                <input class="border p-1 rounded flex-1 min-w-[140px] text-sm" value="${p.nombre}" onchange="editarNombre('${id}',this.value)">
+                <input class="border p-1 rounded w-24 text-sm" type="number" value="${p.precio}" onchange="editarPrecio('${id}',this.value)">
               </div>
 
               <div class="flex flex-wrap gap-2 mt-2">
-                <button onclick="toggle('${id}',${p.activo})" class="px-3 py-1 rounded ${p.activo ? 'bg-blue-600' : 'bg-gray-400'} text-white">
+                <button onclick="toggle('${id}',${p.activo})" class="px-2 py-1 rounded text-xs ${p.activo ? 'bg-blue-600' : 'bg-gray-400'} text-white">
                   ${p.activo ? 'ON' : 'OFF'}
                 </button>
 
-                <button onclick="toggleCocina('${id}',${p.cocina ? 'true' : 'false'})" class="px-3 py-1 rounded ${p.cocina ? 'bg-orange-600' : 'bg-gray-400'} text-white">
+                <button onclick="toggleCocina('${id}',${p.cocina ? 'true' : 'false'})" class="px-2 py-1 rounded text-xs ${p.cocina ? 'bg-orange-600' : 'bg-gray-400'} text-white">
                   ${p.cocina ? 'COCINA SI' : 'COCINA NO'}
                 </button>
 
-                <button onclick="borrar('${id}')" class="bg-red-600 text-white px-3 py-1 rounded">
+                <button onclick="borrar('${id}')" class="bg-red-600 text-white px-2 py-1 rounded text-xs">
                   X
                 </button>
               </div>
