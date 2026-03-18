@@ -7,7 +7,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-<script src="https://cdn.tailwindcss.com?v=400"></script>
+<script src="https://cdn.tailwindcss.com?v=500"></script>
 </head>
 
 <body class="bg-gray-100">
@@ -89,10 +89,7 @@ function abrirAdmin(){
   cargarCartaAdmin();
  }
 }
-
-function cerrarAdmin(){
- admin.classList.add("hidden");
-}
+function cerrarAdmin(){admin.classList.add("hidden");}
 
 function tab(t){
  pedidos.classList.add("hidden");
@@ -100,7 +97,7 @@ function tab(t){
  document.getElementById(t).classList.remove("hidden");
 }
 
-// CLIENTE
+// CLIENTE CARTA
 db.ref("carta").on("value",snap=>{
  let data=snap.val()||{};
  let html="";
@@ -112,7 +109,7 @@ db.ref("carta").on("value",snap=>{
 
   html+=`<div class="m-2 bg-white shadow">
   <div onclick="this.nextElementSibling.classList.toggle('hidden')" 
-  class="p-2 bg-gray-200 font-bold flex justify-between">
+  class="p-2 bg-gray-200 font-bold flex justify-between cursor-pointer">
   ${cat}<span>▼</span></div><div class="hidden">`;
 
   items.forEach(p=>{
@@ -142,29 +139,96 @@ function enviarPedido(){
  db.ref("comandas").push({
   mesa,
   items:carrito,
-  total:carrito.reduce((a,b)=>a+Number(b.precio),0)
+  total:carrito.reduce((a,b)=>a+Number(b.precio),0),
+  camarero:""
  });
 
  carrito=[];
  totalEl.innerText="0€";
 }
 
-// 🧾 PEDIDOS ADMIN (RECUPERADO)
+// 🧾 PEDIDOS AGRUPADOS PRO
 db.ref("comandas").on("value",snap=>{
  let data=snap.val()||{};
- let html="";
+ let cont=document.getElementById("pedidos");
+ cont.innerHTML="";
 
- Object.values(data).forEach(p=>{
-  html+=`
-  <div class="bg-white p-2 m-2 shadow">
-  <b>Mesa ${p.mesa}</b><br>
-  ${p.items.map(i=>"- "+i.nombre).join("<br>")}
-  <div class="text-red-600">${p.total}€</div>
-  </div>`;
+ let mesas={};
+
+ Object.keys(data).forEach(id=>{
+  let p=data[id];
+
+  if(!mesas[p.mesa]){
+   mesas[p.mesa]={total:0,productos:{}};
+  }
+
+  mesas[p.mesa].total+=Number(p.total);
+
+  p.items.forEach(i=>{
+   mesas[p.mesa].productos[i.nombre]=(mesas[p.mesa].productos[i.nombre]||0)+1;
+  });
  });
 
- pedidos.innerHTML=html;
+ Object.keys(mesas).forEach((m,i)=>{
+  cont.innerHTML+=`
+  <div class="p-3 m-2 rounded shadow ${i%2?'bg-gray-200':'bg-white'}">
+
+  <div class="font-bold text-lg">Mesa ${m}</div>
+
+  ${Object.keys(mesas[m].productos).map(k=>`- ${k} x${mesas[m].productos[k]}`).join("<br>")}
+
+  <div class="text-red-600 font-bold mt-2">${mesas[m].total.toFixed(2)}€</div>
+
+  <select onchange="setCamarero('${m}',this.value)" class="w-full mt-2 border p-1">
+  <option value="">Seleccionar camarero</option>
+  <option>1</option><option>2</option><option>3</option>
+  <option>4</option><option>5</option><option>6</option><option>7</option>
+  </select>
+
+  <button onclick="cobrar('${m}')" class="bg-green-700 text-white w-full mt-2 p-2 rounded">
+  COBRAR
+  </button>
+
+  </div>`;
+ });
 });
+
+// CAMARERO
+function setCamarero(mesa,c){
+ db.ref("comandas").once("value",snap=>{
+  let d=snap.val();
+  Object.keys(d).forEach(id=>{
+   if(d[id].mesa==mesa){
+    db.ref("comandas/"+id+"/camarero").set(c);
+   }
+  });
+ });
+}
+
+// COBRAR
+function cobrar(mesa){
+ db.ref("comandas").once("value",snap=>{
+  let d=snap.val();
+
+  let ok=true;
+  Object.keys(d).forEach(id=>{
+   if(d[id].mesa==mesa && !d[id].camarero){
+    ok=false;
+   }
+  });
+
+  if(!ok){
+   alert("Selecciona camarero");
+   return;
+  }
+
+  Object.keys(d).forEach(id=>{
+   if(d[id].mesa==mesa){
+    db.ref("comandas/"+id).remove();
+   }
+  });
+ });
+}
 
 // 🍽️ ADMIN CARTA
 function cargarCartaAdmin(){
