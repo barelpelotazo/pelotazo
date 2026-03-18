@@ -26,7 +26,6 @@
 Mesa: <span id="mesa">--</span>
 </div>
 
-<!-- CARTA -->
 <div id="carta"></div>
 
 <!-- TOTAL -->
@@ -56,15 +55,14 @@ Enviar pedido
 <script>
 // 🔥 FIREBASE
 const firebaseConfig = {
- apiKey: "AIzaSyAxI0dtf4RdxNDYlmk_dVYhF5NyZOg8B2w",
- databaseURL: "https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app",
- projectId: "bar-el-pelotazo-16c19"
+ apiKey: "TU_API_KEY",
+ databaseURL: "TU_DATABASE_URL",
+ projectId: "TU_PROJECT_ID"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// 🔧 VARIABLES
 let carrito=[];
 let mesa=new URLSearchParams(location.search).get("mesa");
 document.getElementById("mesa").innerText=mesa||"--";
@@ -77,7 +75,7 @@ const categorias=[
 "Otros"
 ];
 
-// 🔥 TAP LOGO ADMIN
+// 🔐 ADMIN
 let taps=0;
 function tapLogo(){
  taps++;
@@ -92,18 +90,21 @@ function tapLogo(){
  setTimeout(()=>taps=0,1500);
 }
 
+function cerrarAdmin(){
+ document.getElementById("admin").classList.add("hidden");
+}
+
+function tab(t){
+ ["pedidos","cartaTab","caja"].forEach(id=>document.getElementById(id).classList.add("hidden"));
+ document.getElementById(t).classList.remove("hidden");
+}
+
 // 🔽 TOGGLE
 function toggle(el){
  let cont = el.nextElementSibling;
  let flecha = el.querySelector(".flecha");
-
  cont.classList.toggle("hidden");
-
- if(cont.classList.contains("hidden")){
-   flecha.style.transform="rotate(0deg)";
- }else{
-   flecha.style.transform="rotate(180deg)";
- }
+ flecha.style.transform = cont.classList.contains("hidden") ? "rotate(0deg)" : "rotate(180deg)";
 }
 
 // 🍽️ CARTA CLIENTE
@@ -112,22 +113,18 @@ db.ref("carta").on("value",snap=>{
  let html="";
 
  categorias.forEach(cat=>{
-  let items=Object.values(data).filter(p=>p.categoria===cat && p.activo!==false);
+  let items=Object.entries(data).filter(([id,p])=>p.categoria===cat && p.activo!==false);
 
   html+=`<div class="m-2 bg-white rounded shadow">
-  
-  <div onclick="toggle(this)" class="p-2 font-bold bg-gray-200 flex justify-between items-center cursor-pointer">
-    ${cat}
-    <span class="flecha transition-transform">▼</span>
-  </div>
-  
+  <div onclick="toggle(this)" class="p-2 font-bold bg-gray-200 flex justify-between cursor-pointer">
+  ${cat} <span class="flecha">▼</span></div>
   <div class="hidden">`;
 
   if(items.length==0){
-    html+=`<div class="p-2 text-gray-400">Sin productos</div>`;
+   html+=`<div class="p-2 text-gray-400">Sin productos</div>`;
   }
 
-  items.forEach(p=>{
+  items.forEach(([id,p])=>{
    html+=`<div class="flex justify-between p-2 border-b">
    ${p.nombre} - ${p.precio}€
    <button onclick="add('${p.nombre}',${p.precio})">+</button>
@@ -140,18 +137,13 @@ db.ref("carta").on("value",snap=>{
  document.getElementById("carta").innerHTML=html;
 });
 
-// 🛒 CARRITO
+// 🛒
 function add(n,p){
  carrito.push({nombre:n,precio:p});
- updateTotal();
+ total.innerText=carrito.reduce((a,b)=>a+b.precio,0).toFixed(2)+"€";
 }
 
-function updateTotal(){
- let t=carrito.reduce((a,b)=>a+b.precio,0);
- total.innerText=t.toFixed(2)+"€";
-}
-
-// 📤 PEDIDO
+// 📤
 function enviarPedido(){
  if(!mesa) return alert("Escanea QR");
  if(!carrito.length) return;
@@ -166,129 +158,12 @@ function enviarPedido(){
  });
 
  carrito=[];
- updateTotal();
- alert("Pedido añadido");
+ total.innerText="0.00€";
 }
 
-// 🔧 ADMIN
-function cerrarAdmin(){
- document.getElementById("admin").classList.add("hidden");
-}
-
-function tab(t){
- ["pedidos","cartaTab","caja"].forEach(id=>document.getElementById(id).classList.add("hidden"));
- document.getElementById(t).classList.remove("hidden");
-}
-
-// 🔔 SONIDO
-let audio=new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
-
-// 📋 PEDIDOS
-db.ref("comandas").on("value",snap=>{
- let data=snap.val();
- let cont=document.getElementById("pedidos");
- cont.innerHTML="";
- if(!data) return;
-
- audio.play();
-
- let mesas={};
-
- Object.keys(data).forEach(id=>{
-  let p=data[id];
-  if(!mesas[p.mesa]) mesas[p.mesa]=[];
-  mesas[p.mesa].push({...p,id});
- });
-
- Object.keys(mesas).forEach(m=>{
-  let totalMesa=mesas[m].reduce((a,b)=>a+b.total,0);
-
-  cont.innerHTML+=`<div class="bg-white p-2 m-2 rounded shadow">
-  <div class="font-bold text-lg">Mesa ${m}</div>
-  <div class="text-red-600 font-black text-xl">TOTAL: ${totalMesa.toFixed(2)}€</div>`;
-
-  mesas[m].forEach((p,i)=>{
-   let itemsAgrupados={};
-   p.items.forEach(it=>{
-    itemsAgrupados[it.nombre]=(itemsAgrupados[it.nombre]||0)+1;
-   });
-
-   cont.innerHTML+=`
-   <div class="${i%2==0?'bg-gray-50':'bg-white'} border p-2 mt-2 rounded">
-   ${Object.keys(itemsAgrupados).map(k=>`- ${k} x${itemsAgrupados[k]}`).join("<br>")}
-   <br><b>${p.total.toFixed(2)}€</b>
-
-   <div class="mt-1">
-   Camarero:
-   <select onchange="setCamarero('${p.id}',this.value)">
-   <option value="">--</option>
-   <option>1</option><option>2</option><option>3</option>
-   <option>4</option><option>5</option><option>6</option><option>7</option>
-   </select>
-   </div>
-
-   <div class="mt-1">
-   <button onclick="estado('${p.id}','cocina')">🍳</button>
-   <button onclick="estado('${p.id}','servido')">✅</button>
-   </div>
-
-   </div>`;
-  });
-
-  cont.innerHTML+=`<button onclick="cobrarMesa('${m}')" class="bg-green-700 text-white w-full mt-2 p-2 rounded">
-  COBRAR MESA
-  </button></div>`;
- });
-});
-
-// 👨‍🍳 CAMARERO
-function setCamarero(id,v){
- db.ref("comandas/"+id+"/camarero").set(v);
-}
-
-// 🔄 ESTADO
-function estado(id,e){
- db.ref("comandas/"+id+"/estado").set(e);
-}
-
-// 💰 COBRAR
-function cobrarMesa(mesa){
- db.ref("comandas").once("value",snap=>{
-  let data=snap.val();
-  Object.keys(data).forEach(id=>{
-   if(data[id].mesa==mesa){
-    if(!data[id].camarero) return alert("Falta camarero");
-    db.ref("caja").push(data[id]);
-    db.ref("comandas/"+id).remove();
-   }
-  });
- });
-}
-
-// 📊 CAJA
-db.ref("caja").on("value",snap=>{
- let data=snap.val();
- let total=0;
- let camareros={};
-
- if(data){
-  Object.values(data).forEach(p=>{
-   total+=p.total;
-   camareros[p.camarero]=(camareros[p.camarero]||0)+p.total;
-  });
- }
-
- let html=`<div class="text-xl font-bold">Total: ${total.toFixed(2)}€</div>`;
- Object.keys(camareros).forEach(c=>{
-  html+=`<div>Camarero ${c}: ${camareros[c].toFixed(2)}€</div>`;
- });
-
- document.getElementById("caja").innerHTML=html;
-});
-
-// 🛠️ CARTA ADMIN (visual)
+// 🛠️ ADMIN CARTA
 function cargarCartaAdmin(){
- db.ref("carta").once("value",snap=>{
+ db.ref("carta").on("value",snap=>{
   let data=snap.val()||{};
   let html="";
 
@@ -296,21 +171,55 @@ function cargarCartaAdmin(){
    let items=Object.entries(data).filter(([id,p])=>p.categoria===cat);
 
    html+=`<div class="m-2 bg-white rounded shadow">
-   <div onclick="toggle(this)" class="p-2 font-bold bg-gray-300 flex justify-between">
-   ${cat} <span class="flecha">▼</span>
-   </div><div class="hidden">`;
+   <div onclick="toggle(this)" class="p-2 font-bold bg-gray-300 flex justify-between cursor-pointer">
+   ${cat} <span class="flecha">▼</span></div>
+   <div class="hidden p-2">
+
+   <button onclick="nuevoProducto('${cat}')" class="bg-green-600 text-white p-1 rounded mb-2">+ Nuevo</button>`;
 
    items.forEach(([id,p])=>{
-    html+=`<div class="flex justify-between p-2 border-b">
+    html+=`<div class="flex justify-between items-center border-b p-1">
     ${p.nombre} - ${p.precio}€
+    <div>
+    <button onclick="editar('${id}')">✏️</button>
+    <button onclick="borrar('${id}')">🗑️</button>
+    <button onclick="togglePub('${id}',${p.activo!==false})">${p.activo!==false?'👁️':'🚫'}</button>
+    </div>
     </div>`;
    });
 
    html+=`</div></div>`;
   });
 
-  document.getElementById("cartaTab").innerHTML=html;
+  cartaTab.innerHTML=html;
  });
+}
+
+// CRUD
+function nuevoProducto(cat){
+ let nombre=prompt("Nombre");
+ let precio=parseFloat(prompt("Precio"));
+ if(!nombre||!precio) return;
+
+ db.ref("carta").push({nombre,precio,categoria:cat,activo:true});
+}
+
+function editar(id){
+ let nombre=prompt("Nuevo nombre");
+ let precio=parseFloat(prompt("Nuevo precio"));
+ if(!nombre||!precio) return;
+
+ db.ref("carta/"+id).update({nombre,precio});
+}
+
+function borrar(id){
+ if(confirm("Borrar?")){
+  db.ref("carta/"+id).remove();
+ }
+}
+
+function togglePub(id,estado){
+ db.ref("carta/"+id).update({activo:!estado});
 }
 </script>
 
