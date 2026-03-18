@@ -7,7 +7,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-<script src="https://cdn.tailwindcss.com?v=3"></script>
+<script src="https://cdn.tailwindcss.com?v=4"></script>
 </head>
 
 <body class="bg-gray-100">
@@ -26,12 +26,15 @@
 Mesa: <span id="mesa">--</span>
 </div>
 
+<!-- TOTAL MESA -->
 <div class="text-center text-red-600 font-black text-xl">
 Total mesa: <span id="totalMesa">0.00€</span>
 </div>
 
+<!-- CARTA -->
 <div id="carta"></div>
 
+<!-- TOTAL PEDIDO -->
 <div class="fixed bottom-0 w-full bg-white p-3 border-t shadow-lg">
 <div class="text-center text-gray-500 text-sm">Pedido actual</div>
 <div id="total" class="text-3xl font-black text-center text-red-600">0.00€</div>
@@ -49,7 +52,7 @@ Enviar pedido
 <div id="admin" class="hidden fixed top-0 left-0 w-full h-full bg-white z-50 overflow-auto">
 
 <div class="flex bg-black text-white text-sm">
-<button onclick="tab('pedidos')" class="flex-1 p-2">Pedidos</button>
+<button class="flex-1 p-2">Pedidos</button>
 <button onclick="cerrarAdmin()" class="p-2">X</button>
 </div>
 
@@ -58,6 +61,7 @@ Enviar pedido
 </div>
 
 <script>
+// FIREBASE
 const firebaseConfig = {
  apiKey: "AIzaSyAxI0dtf4RdxNDYlmk_dVYhF5NyZOg8B2w",
  databaseURL: "https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app",
@@ -67,6 +71,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
+// VARIABLES
 let carrito=[];
 let mesa=new URLSearchParams(location.search).get("mesa");
 
@@ -95,17 +100,15 @@ function cerrarAdmin(){
  admin.classList.add("hidden");
 }
 
-function tab(id){
- document.getElementById("pedidos").style.display="block";
-}
-
 // TOTAL MESA
 db.ref("comandas").on("value",snap=>{
  let data=snap.val()||{};
  let total=0;
 
  Object.values(data).forEach(p=>{
-  if(p.mesa==mesa) total+=Number(p.total);
+  if(p.mesa==mesa){
+   total+=Number(p.total);
+  }
  });
 
  totalMesaEl.innerText=total.toFixed(2)+"€";
@@ -157,7 +160,6 @@ function enviarPedido(){
   mesa,
   items:carrito,
   total:carrito.reduce((a,b)=>a+Number(b.precio),0),
-  estado:"pendiente",
   camarero:""
  });
 
@@ -165,7 +167,7 @@ function enviarPedido(){
  totalEl.innerText="0.00€";
 }
 
-// PEDIDOS ADMIN PRO
+// ADMIN AGRUPADO POR MESA
 db.ref("comandas").on("value",snap=>{
  let data=snap.val();
  let cont=document.getElementById("pedidos");
@@ -176,60 +178,75 @@ db.ref("comandas").on("value",snap=>{
 
  Object.keys(data).forEach(id=>{
   let p=data[id];
-  if(!mesas[p.mesa]) mesas[p.mesa]=[];
-  mesas[p.mesa].push({...p,id});
+  if(!mesas[p.mesa]) mesas[p.mesa]={pedidos:[],total:0};
+  mesas[p.mesa].pedidos.push({...p,id});
+  mesas[p.mesa].total+=Number(p.total);
  });
 
  Object.keys(mesas).forEach(m=>{
-  let totalMesa=mesas[m].reduce((a,b)=>a+b.total,0);
 
-  cont.innerHTML+=`
-  <div class="bg-white p-3 m-2 rounded shadow">
-  <div class="font-bold text-lg">Mesa ${m}</div>
-  <div class="text-red-600 font-black text-xl">${totalMesa.toFixed(2)}€</div>`;
+  let productos={};
 
-  mesas[m].forEach(p=>{
-   let items=p.items.map(i=>`- ${i.nombre}`).join("<br>");
-
-   cont.innerHTML+=`
-   <div class="border p-2 mt-2 rounded">
-   ${items}
-
-   <select onchange="db.ref('comandas/${p.id}/camarero').set(this.value)">
-   <option value="">Camarero</option>
-   <option>1</option><option>2</option><option>3</option>
-   <option>4</option><option>5</option><option>6</option><option>7</option>
-   </select>
-
-   <div class="mt-1">
-   <button onclick="estado('${p.id}','cocina')" class="bg-yellow-500 px-2">🍳</button>
-   <button onclick="estado('${p.id}','servido')" class="bg-green-500 px-2">✅</button>
-   </div>
-
-   </div>`;
+  mesas[m].pedidos.forEach(p=>{
+   p.items.forEach(i=>{
+    productos[i.nombre]=(productos[i.nombre]||0)+1;
+   });
   });
 
   cont.innerHTML+=`
-  <button onclick="cobrar('${m}')" class="bg-green-700 text-white w-full mt-2 p-2 rounded">
+  <div class="bg-white p-3 m-2 rounded shadow">
+
+  <div class="font-bold text-lg">Mesa ${m}</div>
+
+  <div class="mt-2">
+  ${Object.keys(productos).map(k=>`- ${k} x${productos[k]}`).join("<br>")}
+  </div>
+
+  <div class="text-red-600 font-black text-xl mt-2">
+  TOTAL: ${mesas[m].total.toFixed(2)}€
+  </div>
+
+  <select onchange="setCamarero('${m}',this.value)" class="w-full mt-2 border p-1">
+  <option value="">Seleccionar camarero</option>
+  <option>1</option><option>2</option><option>3</option>
+  <option>4</option><option>5</option><option>6</option><option>7</option>
+  </select>
+
+  <button onclick="cobrar('${m}')" 
+  class="bg-green-700 text-white w-full mt-2 p-2 rounded">
   COBRAR
-  </button></div>`;
+  </button>
+
+  </div>`;
  });
 });
 
-function estado(id,e){
- db.ref("comandas/"+id+"/estado").set(e);
+// GUARDAR CAMARERO
+function setCamarero(mesa,camarero){
+ db.ref("comandas").once("value",snap=>{
+  let data=snap.val();
+
+  Object.keys(data).forEach(id=>{
+   if(data[id].mesa==mesa){
+    db.ref("comandas/"+id+"/camarero").set(camarero);
+   }
+  });
+ });
 }
 
+// COBRAR
 function cobrar(mesa){
  db.ref("comandas").once("value",snap=>{
   let data=snap.val();
 
   Object.keys(data).forEach(id=>{
    if(data[id].mesa==mesa){
+
     if(!data[id].camarero){
      alert("Selecciona camarero");
      return;
     }
+
     db.ref("comandas/"+id).remove();
    }
   });
