@@ -37,7 +37,6 @@ Mesa: <span id="mesa">--</span>
 Enviar pedido
 </button>
 
-<!-- ADMIN SUTIL -->
 <div onclick="abrirAdmin()" class="text-center text-[10px] text-gray-400 mt-2 cursor-pointer">
 · · ·
 </div>
@@ -101,7 +100,7 @@ function tab(t){
  document.getElementById(t).classList.remove("hidden");
 }
 
-// CARTA
+// CARTA CLIENTE
 db.ref("carta").on("value",snap=>{
  let data=snap.val()||{};
  let html="";
@@ -118,7 +117,7 @@ db.ref("carta").on("value",snap=>{
 
   items.forEach(([id,p])=>{
    html+=`<div class="flex justify-between items-center p-2 border-b">
-   ${p.nombre} - ${p.precio}€
+   <b>${p.nombre}</b> - ${p.precio}€
    <button onclick="add('${p.nombre}',${p.precio})" class="bg-blue-600 text-white px-4 py-1 text-lg rounded">+</button>
    </div>`;
   });
@@ -151,10 +150,9 @@ function enviarPedido(){
 
  carrito=[];
  total.innerText="0.00€";
- alert("Pedido enviado");
 }
 
-// PEDIDOS ADMIN
+// PEDIDOS
 db.ref("comandas").on("value",snap=>{
  let data=snap.val();
  let cont=document.getElementById("pedidos");
@@ -204,7 +202,7 @@ function cobrarMesa(mesa){
  });
 }
 
-// CARTA ADMIN
+// ADMIN CARTA (PRO)
 function cargarCartaAdmin(){
  db.ref("carta").on("value",snap=>{
   let data=snap.val()||{};
@@ -221,7 +219,14 @@ function cargarCartaAdmin(){
    <button onclick="nuevoProducto('${cat}')" class="bg-green-600 text-white p-1 rounded mb-2">+ Nuevo</button>`;
 
    items.forEach(([id,p])=>{
-    html+=`${p.nombre} - ${p.precio}€<br>`;
+    html+=`<div class="flex justify-between items-center border-b p-1">
+    <b>${p.nombre}</b> - ${p.precio}€
+    <div class="flex gap-1">
+    <button onclick="editar('${id}')">✏️</button>
+    <button onclick="borrar('${id}')">🗑️</button>
+    <button onclick="togglePub('${id}',${p.activo!==false})">${p.activo!==false?'👁️':'🚫'}</button>
+    </div>
+    </div>`;
    });
 
    html+=`</div></div>`;
@@ -231,12 +236,27 @@ function cargarCartaAdmin(){
  });
 }
 
-// CREAR
+// CRUD
 function nuevoProducto(cat){
  let nombre=prompt("Nombre");
  let precio=parseFloat(prompt("Precio"));
  if(!nombre||!precio) return;
  db.ref("carta").push({nombre,precio,categoria:cat,activo:true});
+}
+
+function editar(id){
+ let nombre=prompt("Nuevo nombre");
+ let precio=parseFloat(prompt("Nuevo precio"));
+ if(!nombre||!precio) return;
+ db.ref("carta/"+id).update({nombre,precio});
+}
+
+function borrar(id){
+ if(confirm("¿Borrar?")) db.ref("carta/"+id).remove();
+}
+
+function togglePub(id,estado){
+ db.ref("carta/"+id).update({activo:!estado});
 }
 </script>
 
