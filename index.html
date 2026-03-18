@@ -7,7 +7,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-<script src="https://cdn.tailwindcss.com?v=60"></script>
+<script src="https://cdn.tailwindcss.com?v=70"></script>
 </head>
 
 <body class="bg-gray-100">
@@ -79,6 +79,15 @@ document.getElementById("mesa").innerText=mesa||"--";
 let totalEl=document.getElementById("total");
 let totalMesaEl=document.getElementById("totalMesa");
 
+// CATEGORÍAS FIJAS
+const categorias=[
+"Tapas/Ración/Menú",
+"Café/repostería/Postres",
+"Bebidas/Refrescos",
+"Tapas del día",
+"Otros"
+];
+
 // ADMIN
 function abrirAdmin(){
  let pass=prompt("Clave");
@@ -105,28 +114,26 @@ db.ref("comandas").on("value",snap=>{
  totalMesaEl.innerText=total.toFixed(2)+"€";
 });
 
-// CARTA (ARREGLADA)
+// CARTA CORREGIDA
 db.ref("carta").on("value",snap=>{
  let data=snap.val()||{};
  let html="";
 
- const categorias=[
- "Tapas/Ración/Menú",
- "Café/repostería/Postres",
- "Bebidas/Refrescos",
- "Tapas del día",
- "Otros"
- ];
-
  categorias.forEach(cat=>{
-  let items=Object.values(data).filter(p=>p.categoria===cat && p.activo!==false);
+
+  let items=Object.values(data).filter(p=>{
+    let categoria = p.categoria || "Otros";
+    return categoria === cat && p.activo !== false;
+  });
 
   if(items.length===0) return;
 
   html+=`
   <div class="m-2 bg-white rounded shadow">
-  <div onclick="this.nextElementSibling.classList.toggle('hidden')" class="p-2 font-bold bg-gray-200 flex justify-between cursor-pointer">
+  <div onclick="this.nextElementSibling.classList.toggle('hidden')" 
+  class="p-2 font-bold bg-gray-200 flex justify-between cursor-pointer">
   ${cat} <span>▼</span></div>
+
   <div class="hidden">`;
 
   items.forEach(p=>{
@@ -134,8 +141,9 @@ db.ref("carta").on("value",snap=>{
    <div class="flex justify-between p-2 border-b">
    <b>${p.nombre}</b>
    <div>
-   ${p.precio}€
-   <button onclick="add('${p.nombre}',${p.precio})" class="bg-blue-600 text-white px-2 ml-2 rounded">+</button>
+   ${Number(p.precio).toFixed(2)}€
+   <button onclick="add('${p.nombre}',${p.precio})" 
+   class="bg-blue-600 text-white px-2 ml-2 rounded">+</button>
    </div>
    </div>`;
   });
@@ -169,7 +177,7 @@ function enviarPedido(){
  totalEl.innerText="0.00€";
 }
 
-// PEDIDOS AGRUPADOS POR MESA
+// PEDIDOS ADMIN AGRUPADOS
 db.ref("comandas").on("value",snap=>{
  let data=snap.val();
  let cont=document.getElementById("pedidos");
@@ -180,9 +188,8 @@ db.ref("comandas").on("value",snap=>{
 
  Object.keys(data).forEach(id=>{
   let p=data[id];
-  if(!mesas[p.mesa]) mesas[p.mesa]={total:0,prod:{},ids:[]};
+  if(!mesas[p.mesa]) mesas[p.mesa]={total:0,prod:{}};
   mesas[p.mesa].total+=Number(p.total);
-  mesas[p.mesa].ids.push(id);
 
   p.items.forEach(i=>{
    mesas[p.mesa].prod[i.nombre]=(mesas[p.mesa].prod[i.nombre]||0)+1;
@@ -205,7 +212,8 @@ db.ref("comandas").on("value",snap=>{
   <option>4</option><option>5</option><option>6</option><option>7</option>
   </select>
 
-  <button onclick="cobrar('${m}')" class="bg-green-700 text-white w-full mt-2 p-2 rounded">
+  <button onclick="cobrar('${m}')" 
+  class="bg-green-700 text-white w-full mt-2 p-2 rounded">
   COBRAR
   </button>
 
@@ -225,7 +233,7 @@ function setCamarero(m,c){
  });
 }
 
-// COBRAR CON VALIDACIÓN
+// COBRAR
 function cobrar(m){
  db.ref("comandas").once("value",snap=>{
   let d=snap.val();
