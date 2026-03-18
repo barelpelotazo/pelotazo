@@ -93,7 +93,7 @@ function enviarPedido() {
  if(!mesa) return alert("Escanea QR de mesa");
  if(carrito.length==0) return alert("Sin productos");
 
- db.ref("pedidos").push({
+ db.ref("comandas").push({
    mesa,
    items: carrito,
    total: carrito.reduce((a,b)=>a+b.precio,0),
@@ -119,13 +119,13 @@ function cerrarAdmin(){
 }
 
 // PEDIDOS EN TIEMPO REAL
-db.ref("pedidos").on("value", snap => {
+db.ref("comandas").on("value", snap => {
  const data = snap.val();
  const div = document.getElementById("listaPedidos");
  div.innerHTML="";
 
  if(!data) {
-   div.innerHTML = "<p>No hay pedidos</p>";
+   div.innerHTML = "<p>No hay comandas</p>";
    return;
  }
 
@@ -142,7 +142,7 @@ db.ref("pedidos").on("value", snap => {
 });
 
 function cobrar(id){
- db.ref("pedidos/"+id).remove();
+ db.ref("comandas/"+id).remove();
 }
 </script>
 
