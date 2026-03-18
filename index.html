@@ -54,7 +54,7 @@ Enviar pedido
 </div>
 
 <script>
-// 🔥 FIREBASE (TU CONFIG REAL)
+// FIREBASE
 const firebaseConfig = {
  apiKey: "AIzaSyAxI0dtf4RdxNDYlmk_dVYhF5NyZOg8B2w",
  databaseURL: "https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app",
@@ -158,7 +158,94 @@ function enviarPedido(){
  alert("Pedido enviado");
 }
 
-// ADMIN CARTA
+// 🔔 SONIDO
+let audio=new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+
+// 📋 PEDIDOS
+db.ref("comandas").on("value",snap=>{
+ let data=snap.val();
+ let cont=document.getElementById("pedidos");
+ cont.innerHTML="";
+ if(!data) return;
+
+ audio.play();
+
+ let mesas={};
+
+ Object.keys(data).forEach(id=>{
+  let p=data[id];
+  if(!mesas[p.mesa]) mesas[p.mesa]=[];
+  mesas[p.mesa].push({...p,id});
+ });
+
+ Object.keys(mesas).forEach(m=>{
+  let totalMesa=mesas[m].reduce((a,b)=>a+b.total,0);
+
+  cont.innerHTML+=`
+  <div class="bg-white p-3 m-2 rounded shadow">
+    <div class="font-bold text-lg">Mesa ${m}</div>
+    <div class="text-red-600 font-black text-xl">TOTAL: ${totalMesa.toFixed(2)}€</div>
+  `;
+
+  mesas[m].forEach((p,i)=>{
+    let itemsAgrupados={};
+    p.items.forEach(it=>{
+      itemsAgrupados[it.nombre]=(itemsAgrupados[it.nombre]||0)+1;
+    });
+
+    cont.innerHTML+=`
+    <div class="${i%2==0?'bg-gray-50':'bg-white'} border p-2 mt-2 rounded">
+      ${Object.keys(itemsAgrupados).map(k=>`- ${k} x${itemsAgrupados[k]}`).join("<br>")}
+      <br><b>${p.total.toFixed(2)}€</b>
+
+      <div class="mt-1">
+        Camarero:
+        <select onchange="setCamarero('${p.id}',this.value)">
+          <option value="">--</option>
+          <option>1</option><option>2</option><option>3</option>
+          <option>4</option><option>5</option><option>6</option><option>7</option>
+        </select>
+      </div>
+
+      <div class="mt-1">
+        <button onclick="estado('${p.id}','cocina')">🍳</button>
+        <button onclick="estado('${p.id}','servido')">✅</button>
+      </div>
+    </div>
+    `;
+  });
+
+  cont.innerHTML+=`
+    <button onclick="cobrarMesa('${m}')" class="bg-green-700 text-white w-full mt-2 p-2 rounded">
+      COBRAR MESA
+    </button>
+  </div>`;
+ });
+});
+
+// FUNCIONES PEDIDOS
+function setCamarero(id,v){
+ db.ref("comandas/"+id+"/camarero").set(v);
+}
+
+function estado(id,e){
+ db.ref("comandas/"+id+"/estado").set(e);
+}
+
+function cobrarMesa(mesa){
+ db.ref("comandas").once("value",snap=>{
+  let data=snap.val();
+  Object.keys(data).forEach(id=>{
+   if(data[id].mesa==mesa){
+    if(!data[id].camarero) return alert("Falta camarero");
+    db.ref("caja").push(data[id]);
+    db.ref("comandas/"+id).remove();
+   }
+  });
+ });
+}
+
+// CARTA ADMIN
 function cargarCartaAdmin(){
  db.ref("carta").on("value",snap=>{
   let data=snap.val()||{};
@@ -218,7 +305,6 @@ function togglePub(id,estado){
 }
 </script>
 
-<!-- FOOTER -->
 <footer class="text-center text-xs p-8 text-blue-600">
 <div>creación y diseño <a href="https://rodante.es" target="_blank">rodante</a></div>
 <div class="text-gray-400 mt-2 cursor-pointer" onclick="abrirAdmin()">admin</div>
