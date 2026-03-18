@@ -1,4 +1,4 @@
-<!-- VERSION 24 - QR ELEGANTE + COLORES CATEGORIAS + HORA PEDIDO -->
+<!-- VERSION 25 - FIX COCINA + BORDE NARANJA PEDIDOS -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -95,6 +95,7 @@ const adminEl = document.getElementById("admin");
 // VARIABLES
 let mesa = new URLSearchParams(location.search).get("mesa");
 let carrito = [];
+let cartaCache = {};
 
 mesaEl.innerText = mesa || "--";
 
@@ -157,6 +158,10 @@ function formatHora(timestamp){
   return h + ":" + m;
 }
 
+function esCocina(valor){
+  return valor === true || valor === "true" || valor === 1 || valor === "1";
+}
+
 // TOTAL MESA
 db.ref("comandas").on("value", snap => {
   let total = 0;
@@ -174,6 +179,7 @@ db.ref("comandas").on("value", snap => {
 // CLIENTE / CARTA
 db.ref("carta").on("value", snap => {
   let data = snap.val() || {};
+  cartaCache = data;
   let html = "";
 
   categorias.forEach(cat => {
@@ -193,7 +199,7 @@ db.ref("carta").on("value", snap => {
     items.forEach(p => {
       const nombreSeguro = String(p.nombre).replace(/'/g,"\\'");
       const precioSeguro = Number(p.precio || 0);
-      const cocinaSeguro = p.cocina ? "true" : "false";
+      const cocinaSeguro = esCocina(p.cocina) ? "true" : "false";
 
       html += `
         <div class="flex justify-between items-center p-3 border-b">
@@ -220,7 +226,7 @@ function add(n,p,cocina){
   carrito.push({
     nombre:n,
     precio:Number(p),
-    cocina:!!cocina,
+    cocina:esCocina(cocina),
     cocinaHecho:false
   });
   totalEl.innerText = carrito.reduce((a,b)=>a+Number(b.precio),0).toFixed(2) + "€";
@@ -267,7 +273,8 @@ db.ref("comandas").on("value", snap => {
         productos: {},
         ids: [],
         camarero: p.camarero || "",
-        hora: p.timestamp || 0
+        hora: p.timestamp || 0,
+        cocinaPendiente: false
       };
     }
 
@@ -284,16 +291,27 @@ db.ref("comandas").on("value", snap => {
 
     (p.items || []).forEach(i => {
       mesas[m].productos[i.nombre] = (mesas[m].productos[i.nombre] || 0) + 1;
+
+      if(esCocina(i.cocina) && i.cocinaHecho !== true){
+        mesas[m].cocinaPendiente = true;
+      }
     });
   });
 
   Object.keys(mesas).forEach(m => {
+    const borde = mesas[m].cocinaPendiente ? "border-2 border-orange-500" : "border";
+    const etiquetaCocina = mesas[m].cocinaPendiente
+      ? `<div class="mt-2 inline-block bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs font-bold">COCINA PENDIENTE</div>`
+      : "";
+
     pedidosEl.innerHTML += `
-      <div class="p-4 m-3 rounded-xl bg-white shadow-md border">
+      <div class="p-4 m-3 rounded-xl bg-white shadow-md ${borde}">
         <div class="flex justify-between items-center gap-3">
           <b class="text-lg">Mesa ${m}</b>
           <span class="text-sm text-gray-500 font-semibold">Hora ${formatHora(mesas[m].hora)}</span>
         </div>
+
+        ${etiquetaCocina}
 
         <div class="mt-2 text-sm">
           ${Object.keys(mesas[m].productos).map(k => `• ${k} x${mesas[m].productos[k]}`).join("<br>")}
@@ -379,7 +397,7 @@ function renderCocina(data){
     let items = pedido.items || [];
 
     items.forEach((item, index) => {
-      if(item.cocina === true && item.cocinaHecho !== true){
+      if(esCocina(item.cocina) && item.cocinaHecho !== true){
         if(!mesas[mesaPedido]){
           mesas[mesaPedido] = {
             items: [],
@@ -410,7 +428,7 @@ function renderCocina(data){
     });
 
     html += `
-      <div class="p-4 m-3 rounded-xl bg-white shadow-md border">
+      <div class="p-4 m-3 rounded-xl bg-white shadow-md border-2 border-orange-400">
         <div class="flex justify-between items-center gap-3 mb-3">
           <div class="text-orange-600 font-black text-xl">Mesa ${m}</div>
           <span class="text-sm text-gray-500 font-semibold">Hora ${formatHora(mesas[m].hora)}</span>
@@ -444,7 +462,7 @@ function marcarCocinaMesa(mesaObjetivo){
       if(String(pedido.mesa) !== String(mesaObjetivo)) return;
 
       (pedido.items || []).forEach((item, index) => {
-        if(item.cocina === true && item.cocinaHecho !== true){
+        if(esCocina(item.cocina) && item.cocinaHecho !== true){
           db.ref("comandas/" + idPedido + "/items/" + index + "/cocinaHecho").set(true);
         }
       });
@@ -525,8 +543,8 @@ function cargarCartaAdmin(){
                   ${p.activo ? 'ON' : 'OFF'}
                 </button>
 
-                <button onclick="toggleCocina('${id}',${p.cocina ? 'true' : 'false'})" class="px-2 py-1 rounded text-xs ${p.cocina ? 'bg-orange-600' : 'bg-gray-400'} text-white">
-                  ${p.cocina ? 'COCINA SI' : 'COCINA NO'}
+                <button onclick="toggleCocina('${id}',${esCocina(p.cocina) ? 'true' : 'false'})" class="px-2 py-1 rounded text-xs ${esCocina(p.cocina) ? 'bg-orange-600' : 'bg-gray-400'} text-white">
+                  ${esCocina(p.cocina) ? 'COCINA SI' : 'COCINA NO'}
                 </button>
 
                 <button onclick="borrar('${id}')" class="bg-red-600 text-white px-2 py-1 rounded text-xs">
