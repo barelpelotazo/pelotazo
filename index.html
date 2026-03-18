@@ -387,7 +387,16 @@ db.ref("comandas").on("value", snap => {
 
     let productos = {};
     (p.items || []).forEach(i => {
-      productos[i.nombre] = (productos[i.nombre] || 0) + 1;
+      const esDeCocina = esCocina(i.cocina) || productoMarcadoEnCarta(i.nombre);
+
+      if(!productos[i.nombre]){
+        productos[i.nombre] = {
+          cantidad: 0,
+          cocina: esDeCocina
+        };
+      }
+
+      productos[i.nombre].cantidad += 1;
     });
 
     mesas[m].comandas.push({
@@ -421,7 +430,18 @@ db.ref("comandas").on("value", snap => {
         ${c.cocinaPendiente ? `<div class="mt-2 inline-block bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs font-bold">Cocina pendiente</div>` : ""}
 
         <div class="mt-2 text-base leading-7">
-          ${Object.keys(c.productos).map(k => `• <span class="font-semibold">${k}</span> x${c.productos[k]}`).join("<br>")}
+          ${Object.keys(c.productos).map(k => `
+            <div class="flex items-center justify-between gap-2 py-1">
+              <div>
+                • <span class="font-semibold">${k}</span> x${c.productos[k].cantidad}
+              </div>
+              ${
+                c.productos[k].cocina
+                ? `<span class="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs font-bold">COCINA</span>`
+                : `<span class="bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs font-bold">BARRA</span>`
+              }
+            </div>
+          `).join("")}
         </div>
 
         <div class="text-red-600 font-black text-lg mt-2">
