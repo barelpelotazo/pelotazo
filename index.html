@@ -4,13 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bar El Pelotazo</title>
+
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
+
 </head>
 <body class="bg-gray-100">
 
-<div class="p-4 text-center bg-blue-900 text-white font-black">BAR EL PELOTAZO</div>
+<div class="p-4 text-center bg-blue-900 text-white font-black">
+BAR EL PELOTAZO
+</div>
 
 <div class="p-3 text-center">
 Mesa: <span id="mesa">--</span>
@@ -20,8 +24,14 @@ Mesa: <span id="mesa">--</span>
 
 <div class="fixed bottom-0 w-full bg-white p-4 border-t">
 <div id="total" class="text-3xl font-black text-center">0.00€</div>
-<button onclick="enviarPedido()" class="w-full bg-green-600 text-white p-3 rounded mt-2">ENVIAR PEDIDO</button>
-<button onclick="abrirAdmin()" class="w-full bg-gray-800 text-white p-2 rounded mt-2 text-xs">ADMIN</button>
+
+<button onclick="enviarPedido()" class="w-full bg-green-600 text-white p-3 rounded mt-2">
+ENVIAR PEDIDO
+</button>
+
+<button onclick="abrirAdmin()" class="w-full bg-gray-800 text-white p-2 rounded mt-2 text-xs">
+ADMIN
+</button>
 </div>
 
 <!-- ADMIN -->
@@ -56,7 +66,8 @@ db.ref("carta").on("value", snap => {
 function renderCarta(data) {
  const div = document.getElementById("carta");
  div.innerHTML = "";
- data.filter(p=>p.activo!==false).forEach(p => {
+
+ data.filter(p => p.activo !== false).forEach(p => {
  div.innerHTML += `
  <div class="bg-white p-3 m-2 rounded flex justify-between">
    <div>
@@ -112,7 +123,12 @@ db.ref("pedidos").on("value", snap => {
  const data = snap.val();
  const div = document.getElementById("listaPedidos");
  div.innerHTML="";
- if(!data) return;
+
+ if(!data) {
+   div.innerHTML = "<p>No hay pedidos</p>";
+   return;
+ }
+
  Object.keys(data).forEach(id=>{
   const p = data[id];
   div.innerHTML += `
@@ -120,12 +136,12 @@ db.ref("pedidos").on("value", snap => {
     <b>Mesa ${p.mesa}</b> - ${p.hora}<br>
     ${p.items.map(i=>i.nombre).join(", ")}<br>
     <b>${p.total.toFixed(2)}€</b>
-    <button onclick="cobrar('${id}', ${p.total})" class="bg-green-600 text-white px-2 ml-2">COBRAR</button>
+    <button onclick="cobrar('${id}')" class="bg-green-600 text-white px-2 ml-2">COBRAR</button>
   </div>`;
  });
 });
 
-function cobrar(id, total){
+function cobrar(id){
  db.ref("pedidos/"+id).remove();
 }
 </script>
