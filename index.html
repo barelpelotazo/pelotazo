@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bar App PRO Integrado</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+:root{--bg:#f3f4f6;--card:#fff;--text:#111827;--muted:#6b7280;--blue:#1d4ed8;--green:#15803d;--red:#dc2626;--orange:#ea580c;--sky:#0369a1;--gray:#374151}
+*{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--text)}
+.top{background:#0f172a;color:#fff;padding:14px;text-align:center;font-weight:700;font-size:18px}.wrap{max-width:1280px;margin:0 auto;padding-bottom:100px}
+.title{font-size:28px;font-weight:800;text-align:center;margin:16px 0}.sub{font-size:14px;color:var(--muted)}
+.card{background:var(--card);border-radius:14px;padding:14px;margin:10px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.product{background:#fff;border-radius:14px;padding:12px;text-align:center;box-shadow:0 1px 6px rgba(0,0,0,.08)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}
+.ticket{background:#fff;border-radius:14px;padding:14px;margin:10px;border-left:8px solid var(--blue);box-shadow:0 1px 6px rgba(0,0,0,.08)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.right{margin-left:auto}
+.input,.select{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:12px;background:#fff;font-size:16px}
+.btn{border:none;border-radius:12px;padding:12px 14px;font-weight:700;cursor:pointer}
+.btn-blue{background:var(--blue);color:#fff}.btn-green{background:var(--green);color:#fff}.btn-red{background:var(--red);color:#fff}.btn-orange{background:var(--orange);color:#fff}.btn-sky{background:var(--sky);color:#fff}.btn-gray{background:var(--gray);color:#fff}.btn-light{background:#e5e7eb;color:#111827}
+.pill{display:inline-block;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700}.pill-green{background:#dcfce7;color:#166534}.pill-red{background:#fee2e2;color:#991b1b}.pill-orange{background:#ffedd5;color:#9a3412}.pill-sky{background:#e0f2fe;color:#075985}
+.tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;padding:10px}.hidden{display:none!important}.separator{height:1px;background:#e5e7eb;margin:12px 0}
+.sticky-bottom{position:sticky;bottom:0;background:#111827;color:#fff;padding:14px;text-align:center;font-size:22px;font-weight:800}
+.small{font-size:12px;color:var(--muted)} .mono{font-family:monospace}
+</style>
+</head>
+<body>
+<div class="top">BAR APP PRO</div>
+<div id="app" class="wrap"></div>
+<script>
+const params = new URLSearchParams(location.search);
+const modo = params.get("modo") || "cliente";
+const mesa = params.get("mesa") || "0";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAxI0dtf4RdxNDYlmk_dVYhF5NyZOg8B2w",
+  authDomain: "bar-el-pelotazo-16c19.firebaseapp.com",
+  databaseURL: "https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "bar-el-pelotazo-16c19",
+  storageBucket: "bar-el-pelotazo-16c19.firebasestorage.app",
+  messagingSenderId: "209747310104",
+  appId: "1:209747310104:web:aea60ec14671e302f9f56d"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const ADMIN_PASS = "1234";
+let logged = false, adminTab = "dashboard";
+let carta = {}, camareros = {}, pedidos = {}, mesasEstado = {}, config = {}, historialCaja = {};
+let carrito = [], camareroActual = null;
+
+function money(n){ return Number(n||0).toFixed(2)+"€"; }
+function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
+function byName(a,b){ return String(a.nombre||"").localeCompare(String(b.nombre||""),"es"); }
+function mesaAbierta(n){ return mesasEstado[String(n)] === false ? false : true; }
+function allPedidos(){ return Object.entries(pedidos).map(([id,p])=>({id,...p})); }
+function ensureDefaults(){ db.ref("config").once("value", s=>{const v=s.val()||{}; if(v.pedidosAbiertos===undefined) db.ref("config/pedidosAbiertos").set(true);});}
+ensureDefaults();
+
+db.ref("carta").on("value", s=>{ carta=s.val()||{}; rerender(); });
+db.ref("camareros").on("value", s=>{ camareros=s.val()||{}; rerender(); });
+db.ref("pedidos").on("value", s=>{ pedidos=s.val()||{}; rerender(); });
+db.ref("mesasEstado").on("value", s=>{ mesasEstado=s.val()||{}; rerender(); });
+db.ref("config").on("value", s=>{ config=s.val()||{}; rerender(); });
+db.ref("historialCaja").on("value", s=>{ historialCaja=s.val()||{}; rerender(); });
+
+function rerender(){
+  if(modo==="cliente") renderCliente();
+  else if(modo==="camarero") renderCamarero();
+  else if(modo==="cocina") renderProduccion(true);
+  else if(modo==="barra") renderProduccion(false);
+  else if(modo==="caja") renderCaja();
+  else if(modo==="admin") logged ? renderAdmin() : renderAdminLogin();
+}
+
+function renderCliente(){
+  const list = Object.values(carta).filter(p=>p.activo!==false).sort(byName);
+  app.innerHTML = `
+    <div class="title">Mesa ${esc(mesa)}</div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <div style="font-size:22px;font-weight:800">Carta</div>
+          <div class="sub">El cliente solo ve la carta. El camarero toma el pedido.</div>
+        </div>
+        <button class="btn btn-blue" onclick="location.href='?modo=camarero&mesa=${mesa}'">Entrar como camarero</button>
+      </div>
+      <div style="margin-top:10px">
+        ${config.pedidosAbiertos===false?'<span class="pill pill-red">PEDIDOS BLOQUEADOS</span>':'<span class="pill pill-green">PEDIDOS ACTIVOS</span>'}
+        ${mesaAbierta(mesa)?'<span class="pill pill-green">MESA ABIERTA</span>':'<span class="pill pill-red">MESA CERRADA</span>'}
+      </div>
+    </div>
+    <div class="grid">
+      ${list.map(p=>`<div class="product"><div style="font-weight:800">${esc(p.nombre)}</div><div class="small">${esc(p.categoria||"")}</div><div style="margin-top:8px;font-size:22px;font-weight:800">${money(p.precio)}</div></div>`).join("")}
+    </div>`;
+}
+
+function loginCamarero(){
+  const input = document.getElementById("pinCam");
+  const pin = String((input && input.value) || "").trim();
+  const lista = Object.entries(camareros || {}).map(([id,c])=>({id, ...(c||{})}));
+
+  if(!pin){
+    alert("Introduce el PIN");
+    return;
+  }
+
+  if(!lista.length){
+    alert("Aún no se han cargado los camareros. Prueba otra vez en 1 segundo.");
+    return;
+  }
+
+  const found = lista.find(c => String(c.pin ?? "").trim() === pin && c.activo !== false);
+
+  if(!found){
+    alert("PIN incorrecto");
+    return;
+  }
+
+  camareroActual = {
+    id: found.id,
+    nombre: String(found.nombre || ""),
+    pin: String(found.pin || "")
+  };
+  renderCamarero();
+}
+function addItem(nombre, precio, cocina){
+  carrito.push({nombre, precio:Number(precio||0), cocina:!!cocina, hecho:false});
+  renderCamarero();
+}
+function delItem(i){ carrito.splice(i,1); renderCamarero(); }
+function extraItem(){
+  const n = prompt("Nombre del extra"); if(!n) return;
+  const p = parseFloat(prompt("Precio")); if(isNaN(p)) return alert("Precio incorrecto");
+  const c = confirm("Aceptar = cocina. Cancelar = barra.");
+  carrito.push({nombre:n, precio:Number(p), cocina:c, hecho:false});
+  renderCamarero();
+}
+function enviarPedido(){
+  if(!camareroActual) return alert("Falta camarero");
+  if(config.pedidosAbiertos===false) return alert("Pedidos bloqueados");
+  if(!mesaAbierta(mesa)) return alert("Mesa cerrada");
+  if(!carrito.length) return alert("Añade productos");
+  db.ref("pedidos").push({mesa:String(mesa), camarero:camareroActual.nombre, items:carrito, timestamp:Date.now()}).then(()=>{
+    carrito=[]; renderCamarero(); alert("Pedido enviado");
+  });
+}
+function renderCamarero(){
+  if(!camareroActual){
+    app.innerHTML = `
+      <div class="title">Mesa ${esc(mesa)}</div>
+      <div class="card" style="max-width:430px;margin:20px auto">
+        <div style="font-size:22px;font-weight:800">Acceso camarero</div>
+        <div class="sub">Introduce tu PIN para tomar el pedido.</div>
+        <div class="small">Camareros cargados: ${Object.keys(camareros||{}).length}</div>
+        <div class="row" style="margin-top:12px">
+          <input id="pinCam" class="input" placeholder="PIN camarero" inputmode="numeric">
+          <button class="btn btn-blue" onclick="loginCamarero()">Entrar</button>
+        </div>
+        <button class="btn btn-light" style="margin-top:10px" onclick="location.href='?mesa=${mesa}'">Volver a carta</button>
+      </div>`;
+    return;
+  }
+  const list = Object.values(carta).filter(p=>p.activo!==false).sort(byName);
+  const total = carrito.reduce((a,b)=>a+Number(b.precio||0),0);
+  app.innerHTML = `
+    <div class="title">Mesa ${esc(mesa)}</div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div><div style="font-size:20px;font-weight:800">Camarero: ${esc(camareroActual.nombre)}</div><div class="sub">${config.pedidosAbiertos===false?'Pedidos bloqueados':'Pedidos activos'} · ${mesaAbierta(mesa)?'Mesa abierta':'Mesa cerrada'}</div></div>
+        <div class="row">
+          <button class="btn btn-orange" onclick="extraItem()">+ EXTRA</button>
+          <button class="btn btn-light" onclick="location.href='?mesa=${mesa}'">Volver</button>
+        </div>
+      </div>
+    </div>
+    <div class="grid">
+      ${list.map(p=>`<div class="product"><div style="font-weight:800">${esc(p.nombre)}</div><div class="small">${esc(p.categoria||"")} · ${p.cocina?'Cocina':'Barra'}</div><div style="margin:10px 0;font-size:22px;font-weight:800">${money(p.precio)}</div><button class="btn btn-blue" onclick="addItem('${String(p.nombre).replace(/'/g,"\\'")}', ${Number(p.precio||0)}, ${!!p.cocina})">+</button></div>`).join("")}
+    </div>
+    <div class="card">
+      <div style="font-size:22px;font-weight:800">Carrito</div>
+      <div class="separator"></div>
+      ${carrito.length ? carrito.map((p,i)=>`<div class="row" style="justify-content:space-between;margin:8px 0"><div>${esc(p.nombre)} <span class="small">(${p.cocina?'Cocina':'Barra'})</span></div><div class="row"><div style="font-weight:800">${money(p.precio)}</div><button class="btn btn-red" onclick="delItem(${i})">✕</button></div></div>`).join("") : '<div class="sub">Carrito vacío</div>'}
+      <div class="separator"></div>
+      <button class="btn btn-green" style="width:100%" onclick="enviarPedido()">Enviar pedido</button>
+    </div>
+    <div class="sticky-bottom">TOTAL ${money(total)}</div>`;
+}
+
+function marcarHecho(id, cocina){
+  db.ref("pedidos/"+id+"/items").once("value", s=>{
+    const items = s.val() || [];
+    items.forEach(i=>{ if(!!i.cocina===cocina && !i.hecho) i.hecho=true; });
+    db.ref("pedidos/"+id+"/items").set(items);
+  });
+}
+function renderProduccion(cocinaMode){
+  const titulo = cocinaMode ? "COCINA" : "BARRA";
+  app.innerHTML = `<div class="title">${titulo}</div><div id="tickets"></div>`;
+  const html = Object.entries(pedidos).map(([id,p])=>{
+    const items = (p.items||[]).filter(i => (!!i.cocina===cocinaMode) && !i.hecho);
+    if(!items.length) return "";
+    const subtotal = items.reduce((a,b)=>a+Number(b.precio||0),0);
+    return `<div class="ticket" style="border-left-color:${cocinaMode?'#ea580c':'#0369a1'}"><div class="row" style="justify-content:space-between"><div style="font-size:28px;font-weight:800">Mesa ${esc(p.mesa)}</div><div class="pill ${cocinaMode?'pill-orange':'pill-sky'}">${titulo}</div></div><div class="sub">Camarero: ${esc(p.camarero||"")}</div><div class="sub">Hora: ${new Date(p.timestamp||0).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}</div><div class="separator"></div><div style="font-size:22px;line-height:1.5">${items.map(i=>`• ${esc(i.nombre)} - ${money(i.precio)}`).join("<br>")}</div><div class="separator"></div><div style="font-size:22px;font-weight:800">Subtotal ${money(subtotal)}</div><button class="btn ${cocinaMode?'btn-orange':'btn-sky'}" style="width:100%;margin-top:10px" onclick="marcarHecho('${id}', ${cocinaMode})">✔ HECHO</button></div>`;
+  }).join("") || `<div class="card"><div class="sub">Sin pedidos pendientes</div></div>`;
+  document.getElementById("tickets").innerHTML = html;
+}
+
+function totalMesa(m){
+  return allPedidos().filter(p=>String(p.mesa)===String(m)).reduce((a,p)=>a+(p.items||[]).reduce((x,i)=>x+Number(i.precio||0),0),0);
+}
+function cerrarMesa(mesaCerrar){
+  if(!confirm("¿Cerrar mesa " + mesaCerrar + "?")) return;
+  db.ref("pedidos").once("value", s=>{
+    const data=s.val()||{};
+    const seleccion=Object.entries(data).filter(([_,p])=>String(p.mesa)===String(mesaCerrar));
+    if(!seleccion.length) return;
+    const payload={mesa:String(mesaCerrar),timestamp:Date.now(),total:seleccion.reduce((a,[_,p])=>a+(p.items||[]).reduce((x,i)=>x+Number(i.precio||0),0),0),pedidos:seleccion.map(([id,p])=>({id,...p}))};
+    db.ref("historialCaja").push(payload).then(()=>seleccion.forEach(([id])=>db.ref("pedidos/"+id).remove()));
+  });
+}
+function renderCaja(){
+  const mesas = [...new Set(allPedidos().map(p=>String(p.mesa||"0")))].sort((a,b)=>Number(a)-Number(b));
+  app.innerHTML = `<div class="title">CAJA</div>` + (mesas.length ? mesas.map(m=>`<div class="card"><div class="row" style="justify-content:space-between"><div><div style="font-size:26px;font-weight:800">Mesa ${m}</div><div class="sub">${allPedidos().filter(p=>String(p.mesa)===String(m)).length} pedido(s)</div></div><div style="font-size:26px;font-weight:800">${money(totalMesa(m))}</div></div><button class="btn btn-green" style="width:100%;margin-top:10px" onclick="cerrarMesa('${m}')">Cerrar mesa</button></div>`).join("") : '<div class="card"><div class="sub">No hay mesas pendientes</div></div>');
+}
+
+/* ADMIN */
+function renderAdminLogin(){
+  app.innerHTML = `<div class="title">ADMIN</div><div class="card" style="max-width:430px;margin:20px auto"><div style="font-size:22px;font-weight:800">Entrar</div><div class="sub">Contraseña temporal: 1234</div><input id="adminPass" class="input" type="password" placeholder="Contraseña"><button class="btn btn-blue" style="width:100%;margin-top:10px" onclick="loginAdmin()">Entrar</button></div>`;
+}
+function loginAdmin(){
+  const pass = document.getElementById("adminPass").value;
+  if(pass !== ADMIN_PASS) return alert("Contraseña incorrecta");
+  logged = true; renderAdmin();
+}
+function logoutAdmin(){ logged = false; renderAdminLogin(); }
+function dashboardStats(){
+  return {
+    productos:Object.keys(carta).length,
+    cams:Object.keys(camareros).length,
+    vivos:Object.keys(pedidos).length,
+    cerradas:Array.from({length:100},(_,i)=>i+1).filter(n=>!mesaAbierta(n)).length,
+    pendiente:allPedidos().reduce((a,p)=>a+(p.items||[]).reduce((x,i)=>x+Number(i.precio||0),0),0)
+  };
+}
+function openTab(t){ adminTab=t; renderAdmin(); }
+
+function crearProducto(){
+  const nombre=document.getElementById("nuevoNombre").value.trim();
+  const precio=parseFloat(document.getElementById("nuevoPrecio").value);
+  const categoria=document.getElementById("nuevoCategoria").value.trim()||"General";
+  const cocina=document.getElementById("nuevoDestino").value==="cocina";
+  const activo=document.getElementById("nuevoActivo").checked;
+  if(!nombre||isNaN(precio)) return alert("Datos incorrectos");
+  db.ref("carta").push({nombre,precio:Number(precio),categoria,cocina,activo});
+  document.getElementById("nuevoNombre").value=""; document.getElementById("nuevoPrecio").value=""; document.getElementById("nuevoCategoria").value=""; document.getElementById("nuevoActivo").checked=true;
+}
+function cambiarNombreProducto(id,val){ db.ref("carta/"+id+"/nombre").set(val); }
+function cambiarPrecioProducto(id,val){ db.ref("carta/"+id+"/precio").set(Number(val||0)); }
+function cambiarCategoriaProducto(id,val){ db.ref("carta/"+id+"/categoria").set(val); }
+function toggleActivoProducto(id,val){ db.ref("carta/"+id+"/activo").set(!val); }
+function toggleDestinoProducto(id,val){ db.ref("carta/"+id+"/cocina").set(!val); }
+function borrarProducto(id){ if(confirm("¿Borrar producto?")) db.ref("carta/"+id).remove(); }
+
+function crearCamarero(){
+  const nombre=document.getElementById("camNombre").value.trim();
+  const pin=document.getElementById("camPin").value.trim();
+  if(!nombre||!pin) return alert("Datos incorrectos");
+  db.ref("camareros").push({nombre,pin,activo:true});
+  document.getElementById("camNombre").value=""; document.getElementById("camPin").value="";
+}
+function cambiarNombreCamarero(id,val){ db.ref("camareros/"+id+"/nombre").set(val); }
+function cambiarPinCamarero(id,val){ db.ref("camareros/"+id+"/pin").set(val); }
+function toggleActivoCamarero(id,val){ db.ref("camareros/"+id+"/activo").set(!val); }
+function borrarCamarero(id){ if(confirm("¿Borrar camarero?")) db.ref("camareros/"+id).remove(); }
+
+function toggleMesa(n){ db.ref("mesasEstado/"+n).set(!mesaAbierta(n)); }
+function resetMesas(){ const updates={}; for(let i=1;i<=100;i++) updates["mesasEstado/"+i]=true; db.ref().update(updates); }
+function togglePedidosGlobal(){ db.ref("config/pedidosAbiertos").set(config.pedidosAbiertos===false?true:false); }
+
+function renderAdmin(){
+  const stats=dashboardStats();
+  const productos=Object.entries(carta).map(([id,p])=>({id,...p})).sort(byName);
+  const cams=Object.entries(camareros).map(([id,c])=>({id,...c})).sort(byName);
+  const historial=Object.entries(historialCaja).map(([id,h])=>({id,...h})).sort((a,b)=>Number(b.timestamp||0)-Number(a.timestamp||0));
+  const mesasConPedidos=[...new Set(allPedidos().map(p=>String(p.mesa||"0")))].sort((a,b)=>Number(a)-Number(b));
+
+  app.innerHTML = `
+    <div class="title">Administración completa</div>
+    <div class="tabs">
+      <button class="btn ${adminTab==='dashboard'?'btn-blue':'btn-light'}" onclick="openTab('dashboard')">Dashboard</button>
+      <button class="btn ${adminTab==='carta'?'btn-blue':'btn-light'}" onclick="openTab('carta')">Carta</button>
+      <button class="btn ${adminTab==='camareros'?'btn-blue':'btn-light'}" onclick="openTab('camareros')">Camareros</button>
+      <button class="btn ${adminTab==='mesas'?'btn-blue':'btn-light'}" onclick="openTab('mesas')">Mesas</button>
+      <button class="btn ${adminTab==='config'?'btn-blue':'btn-light'}" onclick="openTab('config')">Config</button>
+      <button class="btn ${adminTab==='pedidos'?'btn-blue':'btn-light'}" onclick="openTab('pedidos')">Pedidos</button>
+      <button class="btn ${adminTab==='caja'?'btn-blue':'btn-light'}" onclick="openTab('caja')">Caja</button>
+      <button class="btn ${adminTab==='historial'?'btn-blue':'btn-light'}" onclick="openTab('historial')">Historial</button>
+      <button class="btn btn-red" onclick="logoutAdmin()">Salir</button>
+    </div>
+
+    <div class="${adminTab==='dashboard'?'':'hidden'}">
+      <div class="grid">
+        <div class="product"><div class="sub">Productos</div><div style="font-size:32px;font-weight:800">${stats.productos}</div></div>
+        <div class="product"><div class="sub">Camareros</div><div style="font-size:32px;font-weight:800">${stats.cams}</div></div>
+        <div class="product"><div class="sub">Pedidos vivos</div><div style="font-size:32px;font-weight:800">${stats.vivos}</div></div>
+        <div class="product"><div class="sub">Mesas cerradas</div><div style="font-size:32px;font-weight:800">${stats.cerradas}</div></div>
+        <div class="product"><div class="sub">Pendiente total</div><div style="font-size:32px;font-weight:800">${money(stats.pendiente)}</div></div>
+      </div>
+    </div>
+
+    <div class="${adminTab==='carta'?'':'hidden'}">
+      <div class="card">
+        <div style="font-size:22px;font-weight:800">Nuevo producto</div>
+        <div class="grid2">
+          <input id="nuevoNombre" class="input" placeholder="Nombre">
+          <input id="nuevoPrecio" class="input" type="number" step="0.01" placeholder="Precio">
+          <input id="nuevoCategoria" class="input" placeholder="Categoría">
+          <select id="nuevoDestino" class="select"><option value="cocina">Cocina</option><option value="barra">Barra</option></select>
+        </div>
+        <div class="row" style="margin-top:8px"><label class="row small"><input id="nuevoActivo" type="checkbox" checked> Activo</label><button class="btn btn-green right" onclick="crearProducto()">Crear producto</button></div>
+      </div>
+      ${productos.map(p=>`<div class="card"><div class="grid2"><input class="input" value="${esc(p.nombre)}" onchange="cambiarNombreProducto('${p.id}', this.value)"><input class="input" type="number" step="0.01" value="${Number(p.precio||0)}" onchange="cambiarPrecioProducto('${p.id}', this.value)"><input class="input" value="${esc(p.categoria||'')}" onchange="cambiarCategoriaProducto('${p.id}', this.value)"><div class="row"><span class="pill ${p.activo!==false?'pill-green':'pill-red'}">${p.activo!==false?'ACTIVO':'INACTIVO'}</span><span class="pill ${p.cocina?'pill-orange':'pill-sky'}">${p.cocina?'COCINA':'BARRA'}</span></div></div><div class="row" style="margin-top:10px"><button class="btn btn-gray" onclick="toggleActivoProducto('${p.id}', ${p.activo!==false})">${p.activo!==false?'Desactivar':'Activar'}</button><button class="btn btn-sky" onclick="toggleDestinoProducto('${p.id}', ${!!p.cocina})">Cambiar destino</button><button class="btn btn-red" onclick="borrarProducto('${p.id}')">Borrar</button></div></div>`).join("")}
+    </div>
+
+    <div class="${adminTab==='camareros'?'':'hidden'}">
+      <div class="card"><div style="font-size:22px;font-weight:800">Nuevo camarero</div><div class="grid2"><input id="camNombre" class="input" placeholder="Nombre"><input id="camPin" class="input" placeholder="PIN"></div><button class="btn btn-green" style="margin-top:10px" onclick="crearCamarero()">Crear camarero</button></div>
+      ${cams.map(c=>`<div class="card"><div class="grid2"><input class="input" value="${esc(c.nombre)}" onchange="cambiarNombreCamarero('${c.id}', this.value)"><input class="input mono" value="${esc(c.pin)}" onchange="cambiarPinCamarero('${c.id}', this.value)"></div><div class="row" style="margin-top:10px"><span class="pill ${c.activo!==false?'pill-green':'pill-red'}">${c.activo!==false?'ACTIVO':'INACTIVO'}</span><button class="btn btn-gray" onclick="toggleActivoCamarero('${c.id}', ${c.activo!==false})">${c.activo!==false?'Desactivar':'Activar'}</button><button class="btn btn-red" onclick="borrarCamarero('${c.id}')">Borrar</button></div></div>`).join("")}
+    </div>
+
+    <div class="${adminTab==='mesas'?'':'hidden'}">
+      <div class="card"><div class="row" style="justify-content:space-between"><div><div style="font-size:22px;font-weight:800">Control de mesas</div><div class="sub">Abrir o cerrar mesas manualmente.</div></div><button class="btn btn-red" onclick="resetMesas()">Abrir todas</button></div></div>
+      <div class="grid">${Array.from({length:100},(_,i)=>i+1).map(n=>`<div class="product"><div style="font-size:22px;font-weight:800">Mesa ${n}</div><div style="margin:8px 0"><span class="pill ${mesaAbierta(n)?'pill-green':'pill-red'}">${mesaAbierta(n)?'ABIERTA':'CERRADA'}</span></div><button class="btn ${mesaAbierta(n)?'btn-red':'btn-green'}" onclick="toggleMesa(${n})">${mesaAbierta(n)?'Cerrar':'Abrir'}</button></div>`).join("")}</div>
+    </div>
+
+    <div class="${adminTab==='config'?'':'hidden'}">
+      <div class="card"><div style="font-size:22px;font-weight:800">Configuración general</div><div class="separator"></div><div class="row" style="justify-content:space-between"><div><div style="font-weight:800">Pedidos del sistema</div><div class="sub">Activa o bloquea pedidos nuevos.</div></div><div class="row"><span class="pill ${config.pedidosAbiertos===false?'pill-red':'pill-green'}">${config.pedidosAbiertos===false?'BLOQUEADOS':'ACTIVOS'}</span><button class="btn ${config.pedidosAbiertos===false?'btn-green':'btn-red'}" onclick="togglePedidosGlobal()">${config.pedidosAbiertos===false?'Activar':'Bloquear'}</button></div></div></div>
+    </div>
+
+    <div class="${adminTab==='pedidos'?'':'hidden'}">
+      ${allPedidos().length ? allPedidos().sort((a,b)=>Number(a.mesa)-Number(b.mesa)).map(p=>`<div class="ticket"><div class="row" style="justify-content:space-between"><div style="font-size:24px;font-weight:800">Mesa ${esc(p.mesa)}</div><div class="sub">${new Date(p.timestamp||0).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}</div></div><div class="sub">Camarero: ${esc(p.camarero||'')}</div><div class="separator"></div><div style="line-height:1.6">${(p.items||[]).map(i=>`• ${esc(i.nombre)} - ${money(i.precio)} <span class="small">(${i.cocina?'Cocina':'Barra'}${i.hecho?' · Hecho':''})</span>`).join("<br>")}</div><div class="separator"></div><div style="font-size:22px;font-weight:800">Total ${money((p.items||[]).reduce((a,i)=>a+Number(i.precio||0),0))}</div></div>`).join("") : '<div class="card"><div class="sub">No hay pedidos vivos</div></div>'}
+    </div>
+
+    <div class="${adminTab==='caja'?'':'hidden'}">
+      ${mesasConPedidos.length ? mesasConPedidos.map(m=>`<div class="card"><div class="row" style="justify-content:space-between"><div><div style="font-size:26px;font-weight:800">Mesa ${m}</div><div class="sub">${allPedidos().filter(p=>String(p.mesa)===String(m)).length} pedido(s)</div></div><div style="font-size:26px;font-weight:800">${money(totalMesa(m))}</div></div><button class="btn btn-green" style="width:100%;margin-top:10px" onclick="cerrarMesa('${m}')">Cerrar mesa</button></div>`).join("") : '<div class="card"><div class="sub">No hay mesas pendientes</div></div>'}
+    </div>
+
+    <div class="${adminTab==='historial'?'':'hidden'}">
+      ${historial.length ? historial.map(h=>`<div class="ticket"><div class="row" style="justify-content:space-between"><div style="font-size:24px;font-weight:800">Mesa ${esc(h.mesa)}</div><div class="sub">${new Date(h.timestamp||0).toLocaleString('es-ES')}</div></div><div class="separator"></div><div style="font-size:22px;font-weight:800">Total ${money(h.total)}</div><div class="sub">${(h.pedidos||[]).length} pedido(s) guardado(s)</div></div>`).join("") : '<div class="card"><div class="sub">Sin historial todavía</div></div>'}
+    </div>`;
+}
+
+rerender();
+</script>
+</body>
+</html>
