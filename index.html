@@ -3,77 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bar App V5</title>
+
+<title>Bar App PRO</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
 <style>
 body{font-family:Arial;margin:0;background:#f5f5f5}
-button{padding:10px;margin:5px;border:none;border-radius:8px;font-weight:bold}
-.producto{background:white;padding:10px;margin:5px;border-radius:10px}
-.pedido{background:#fff;padding:10px;margin:10px;border-radius:10px;border-left:5px solid #333}
+button{padding:12px;margin:5px;border:none;border-radius:10px;font-weight:bold;font-size:16px}
+.producto{background:white;padding:12px;margin:6px;border-radius:12px;font-size:18px}
+.pedido{background:#fff;padding:15px;margin:10px;border-radius:12px;border-left:6px solid #333;font-size:18px}
 </style>
 </head>
 
 <body>
 
-<h2 style="text-align:center">BAR APP V5</h2>
-
-<div style="text-align:center">
-  <button onclick="vista('cliente')">Cliente</button>
-  <button onclick="vista('cocina')">Cocina</button>
-  <button onclick="vista('barra')">Barra</button>
-</div>
-
-<div id="cliente">
-  <h3 style="text-align:center">Carta</h3>
-  <div id="cartaCliente"></div>
-  <button onclick="abrirLogin()">Acceso camarero</button>
-</div>
-
-<div id="loginModal" style="display:none;text-align:center;">
-  <input id="pinLogin" placeholder="PIN">
-  <button onclick="loginCamarero()">Entrar</button>
-</div>
-
-<div id="camareroPanel" style="display:none;">
-  <button onclick="vista('cliente')">← Volver</button>
-  <button onclick="abrirExtra()">+ EXTRA</button>
-
-  <div id="cartaCamarero"></div>
-
-  <h3>Carrito</h3>
-  <div id="carrito"></div>
-  <h3 id="total"></h3>
-
-  <button onclick="enviarPedido()">Enviar pedido</button>
-</div>
-
-<div id="extraModal" style="display:none;text-align:center;">
-  <input id="extraNombre" placeholder="Nombre">
-  <input id="extraPrecio" type="number" placeholder="Precio">
-  <select id="extraDestino">
-    <option value="cocina">Cocina</option>
-    <option value="barra">Barra</option>
-  </select>
-  <button onclick="agregarExtra()">Añadir</button>
-</div>
-
-<div id="cocina" style="display:none">
-  <h3>Cocina</h3>
-  <div id="listaCocina"></div>
-</div>
-
-<div id="barra" style="display:none">
-  <h3>Barra</h3>
-  <div id="listaBarra"></div>
-</div>
+<div id="app"></div>
 
 <script>
 
+const modo = new URLSearchParams(window.location.search).get("modo") || "cliente";
+
 const firebaseConfig = {
-  apiKey: "AIzaSyAx...",
+  apiKey: "AIzaSyAxI0dtf4RdxNDYlmk_dVYhF5NyZOg8B2w",
   authDomain: "bar-el-pelotazo-16c19.firebaseapp.com",
   databaseURL: "https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "bar-el-pelotazo-16c19"
@@ -82,125 +35,156 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-let camareros = {};
 let carrito = [];
+let camareros = {};
 let camareroActual = null;
 
-function vista(v){
-  ["cliente","cocina","barra"].forEach(x=>{
-    document.getElementById(x).style.display="none";
-  });
-  document.getElementById(v).style.display="block";
-}
+// ===================== CLIENTE =====================
+if(modo==="cliente"){
+  app.innerHTML = `
+    <h2 style="text-align:center">Carta</h2>
+    <div id="carta"></div>
+  `;
 
-db.ref("carta").on("value", snap=>{
-  let html="";
-  Object.values(snap.val()||{}).forEach(p=>{
-    html+=`<div class="producto">${p.nombre} - ${Number(p.precio||0).toFixed(2)}€</div>`;
-  });
-  cartaCliente.innerHTML=html;
-});
-
-db.ref("camareros").on("value", snap=>{
-  camareros=snap.val()||{};
-});
-
-function abrirLogin(){ loginModal.style.display="block"; }
-
-function loginCamarero(){
-  const pin=pinLogin.value;
-  const c=Object.values(camareros).find(x=>x.pin===pin);
-  if(!c){alert("PIN incorrecto");return;}
-
-  camareroActual=c;
-  cliente.style.display="none";
-  camareroPanel.style.display="block";
-  loginModal.style.display="none";
-  cargarCartaCamarero();
-}
-
-function cargarCartaCamarero(){
-  db.ref("carta").once("value", snap=>{
+  db.ref("carta").on("value", snap=>{
     let html="";
     Object.values(snap.val()||{}).forEach(p=>{
-      html+=`
-        <div class="producto">
-          ${p.nombre} - ${Number(p.precio||0).toFixed(2)}€
-          <button onclick="add('${p.nombre}',${Number(p.precio||0)},${!!p.cocina})">+</button>
-        </div>`;
+      html+=`<div class="producto">${p.nombre} - ${Number(p.precio||0).toFixed(2)}€</div>`;
     });
-    cartaCamarero.innerHTML=html;
+    document.getElementById("carta").innerHTML=html;
   });
 }
 
-function add(n,p,c){ carrito.push({nombre:n,precio:p,cocina:c}); render(); }
+// ===================== CAMARERO =====================
+if(modo==="camarero"){
 
-function abrirExtra(){ extraModal.style.display="block"; }
-function agregarExtra(){
-  carrito.push({
-    nombre:extraNombre.value,
-    precio:Number(extraPrecio.value||0),
-    cocina:extraDestino.value==="cocina"
-  });
-  extraModal.style.display="none";
-  render();
+  app.innerHTML = `
+    <h2>PIN Camarero</h2>
+    <input id="pin">
+    <button onclick="login()">Entrar</button>
+    <div id="panel" style="display:none"></div>
+  `;
+
+  db.ref("camareros").on("value", s=>camareros=s.val()||{});
+
+  window.login = function(){
+    const pin = document.getElementById("pin").value;
+    const c = Object.values(camareros).find(x=>x.pin===pin);
+    if(!c){alert("PIN incorrecto");return;}
+
+    camareroActual=c;
+
+    panel.style.display="block";
+    panel.innerHTML=`
+      <button onclick="extra()">+ EXTRA</button>
+      <div id="carta"></div>
+      <h3>Carrito</h3>
+      <div id="carrito"></div>
+      <h3 id="total"></h3>
+      <button onclick="enviar()">Enviar pedido</button>
+    `;
+
+    db.ref("carta").once("value", snap=>{
+      let html="";
+      Object.values(snap.val()||{}).forEach(p=>{
+        html+=`
+          <div class="producto">
+            ${p.nombre} ${Number(p.precio||0).toFixed(2)}€
+            <button onclick="add('${p.nombre}',${Number(p.precio||0)},${!!p.cocina})">+</button>
+          </div>`;
+      });
+      document.getElementById("carta").innerHTML=html;
+    });
+  }
+
+  window.add = function(n,p,c){
+    carrito.push({nombre:n,precio:p,cocina:c});
+    render();
+  }
+
+  window.render = function(){
+    let html="",total=0;
+    carrito.forEach((p,i)=>{
+      total+=p.precio;
+      html+=`${p.nombre} ${p.precio}€ <button onclick="del(${i})">❌</button><br>`;
+    });
+    carritoEl.innerHTML=html;
+    totalEl.innerText="TOTAL "+total.toFixed(2)+"€";
+  }
+
+  window.del = function(i){
+    carrito.splice(i,1);render();
+  }
+
+  window.extra = function(){
+    const n=prompt("Nombre");
+    const p=parseFloat(prompt("Precio"));
+    const c=confirm("Aceptar = cocina, Cancelar = barra");
+
+    if(!n||isNaN(p)) return;
+
+    carrito.push({nombre:n,precio:p,cocina:c});
+    render();
+  }
+
+  window.enviar = function(){
+    db.ref("pedidos").push({
+      camarero:camareroActual.nombre,
+      items:carrito,
+      timestamp:Date.now()
+    });
+    carrito=[];render();
+  }
 }
 
-function render(){
-  let html="",total=0;
-  carrito.forEach((p,i)=>{
-    total+=p.precio;
-    html+=`${p.nombre} ${p.precio}€ <button onclick="del(${i})">❌</button><br>`;
+// ===================== COCINA =====================
+if(modo==="cocina"){
+  app.innerHTML = `<h2 style="text-align:center">COCINA</h2><div id="lista"></div>`;
+
+  db.ref("pedidos").on("value", snap=>{
+    let html="";
+    Object.entries(snap.val()||{}).forEach(([id,p])=>{
+      const items=p.items.filter(i=>i.cocina && !i.hecho);
+
+      if(items.length){
+        html+=`
+          <div class="pedido">
+            <b>${p.camarero}</b><br>
+            ${items.map(i=>i.nombre).join("<br>")}
+            <br><button onclick="hecho('${id}',true)">✔ HECHO</button>
+          </div>`;
+      }
+    });
+    lista.innerHTML=html;
   });
-  document.getElementById("carrito").innerHTML=html;
-  totalEl.innerText="TOTAL "+total.toFixed(2)+"€";
 }
 
-function del(i){ carrito.splice(i,1); render(); }
+// ===================== BARRA =====================
+if(modo==="barra"){
+  app.innerHTML = `<h2 style="text-align:center">BARRA</h2><div id="lista"></div>`;
 
-function enviarPedido(){
-  db.ref("pedidos").push({
-    camarero:camareroActual.nombre,
-    items:carrito,
-    timestamp:Date.now()
+  db.ref("pedidos").on("value", snap=>{
+    let html="";
+    Object.entries(snap.val()||{}).forEach(([id,p])=>{
+      const items=p.items.filter(i=>!i.cocina && !i.hecho);
+
+      if(items.length){
+        html+=`
+          <div class="pedido">
+            <b>${p.camarero}</b><br>
+            ${items.map(i=>i.nombre).join("<br>")}
+            <br><button onclick="hecho('${id}',false)">✔ HECHO</button>
+          </div>`;
+      }
+    });
+    lista.innerHTML=html;
   });
-  carrito=[]; render();
 }
 
-// COCINA + BARRA CON HECHO
-db.ref("pedidos").on("value", snap=>{
-  let htmlC="", htmlB="";
-
-  Object.entries(snap.val()||{}).forEach(([id,p])=>{
-    const cocinaItems=p.items.filter(i=>i.cocina && !i.hecho);
-    const barraItems=p.items.filter(i=>!i.cocina && !i.hecho);
-
-    if(cocinaItems.length){
-      htmlC+=`
-      <div class="pedido">
-        <b>${p.camarero}</b><br>
-        ${cocinaItems.map(i=>i.nombre).join("<br>")}
-        <br><button onclick="hecho('${id}',true)">✔ HECHO</button>
-      </div>`;
-    }
-
-    if(barraItems.length){
-      htmlB+=`
-      <div class="pedido">
-        <b>${p.camarero}</b><br>
-        ${barraItems.map(i=>i.nombre).join("<br>")}
-        <br><button onclick="hecho('${id}',false)">✔ HECHO</button>
-      </div>`;
-    }
-  });
-
-  listaCocina.innerHTML=htmlC;
-  listaBarra.innerHTML=htmlB;
-});
-
-function hecho(id, cocina){
+// ===================== HECHO =====================
+window.hecho = function(id,cocina){
   db.ref("pedidos/"+id+"/items").once("value", snap=>{
-    const items=snap.val()||[];
+    const items=snap.val();
     items.forEach(i=>{
       if(i.cocina===cocina){
         i.hecho=true;
