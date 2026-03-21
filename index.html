@@ -10,10 +10,83 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
 <style>
-body{font-family:Arial;margin:0;background:#f5f5f5}
-button{padding:12px;margin:5px;border:none;border-radius:10px;font-weight:bold;font-size:16px}
-.producto{background:white;padding:12px;margin:6px;border-radius:12px;font-size:18px}
-.pedido{background:#fff;padding:15px;margin:10px;border-radius:12px;border-left:6px solid #333;font-size:18px}
+
+body{
+  font-family:Arial;
+  margin:0;
+  background:#f0f2f5;
+}
+
+/* CLIENTE */
+.card{
+  background:white;
+  padding:15px;
+  margin:10px;
+  border-radius:12px;
+  box-shadow:0 2px 5px rgba(0,0,0,0.1);
+  font-size:18px;
+}
+
+/* CAMARERO GRID */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:10px;
+  padding:10px;
+}
+
+.producto{
+  background:white;
+  border-radius:12px;
+  padding:10px;
+  text-align:center;
+  box-shadow:0 2px 4px rgba(0,0,0,0.1);
+}
+
+.producto button{
+  background:#2563eb;
+  color:white;
+  font-size:20px;
+  width:100%;
+}
+
+/* CARRITO */
+.carrito{
+  background:white;
+  padding:10px;
+  margin:10px;
+  border-radius:12px;
+}
+
+/* TOTAL */
+.total{
+  position:fixed;
+  bottom:0;
+  width:100%;
+  background:#111;
+  color:white;
+  text-align:center;
+  font-size:22px;
+  padding:15px;
+}
+
+/* PEDIDOS */
+.pedido{
+  background:white;
+  margin:10px;
+  padding:15px;
+  border-radius:12px;
+  border-left:8px solid #2563eb;
+  font-size:20px;
+}
+
+.hecho{
+  background:#16a34a;
+  color:white;
+  font-size:18px;
+  width:100%;
+}
+
 </style>
 </head>
 
@@ -23,7 +96,7 @@ button{padding:12px;margin:5px;border:none;border-radius:10px;font-weight:bold;f
 
 <script>
 
-const modo = new URLSearchParams(window.location.search).get("modo") || "cliente";
+const modo = new URLSearchParams(location.search).get("modo") || "cliente";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAxI0dtf4RdxNDYlmk_dVYhF5NyZOg8B2w",
@@ -35,53 +108,48 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-let carrito = [];
-let camareros = {};
-let camareroActual = null;
+let carrito=[];
+let camareros={};
+let camareroActual=null;
 
-// ===================== CLIENTE =====================
+// ================= CLIENTE =================
 if(modo==="cliente"){
-  app.innerHTML = `
-    <h2 style="text-align:center">Carta</h2>
-    <div id="carta"></div>
-  `;
+  app.innerHTML=`<h2 style="text-align:center">Carta</h2><div id="carta"></div>`;
 
   db.ref("carta").on("value", snap=>{
     let html="";
     Object.values(snap.val()||{}).forEach(p=>{
-      html+=`<div class="producto">${p.nombre} - ${Number(p.precio||0).toFixed(2)}€</div>`;
+      html+=`<div class="card">${p.nombre}<br><b>${Number(p.precio||0).toFixed(2)}€</b></div>`;
     });
-    document.getElementById("carta").innerHTML=html;
+    carta.innerHTML=html;
   });
 }
 
-// ===================== CAMARERO =====================
+// ================= CAMARERO =================
 if(modo==="camarero"){
 
-  app.innerHTML = `
+  app.innerHTML=`
     <h2>PIN Camarero</h2>
     <input id="pin">
     <button onclick="login()">Entrar</button>
-    <div id="panel" style="display:none"></div>
+    <div id="panel"></div>
   `;
 
   db.ref("camareros").on("value", s=>camareros=s.val()||{});
 
-  window.login = function(){
-    const pin = document.getElementById("pin").value;
-    const c = Object.values(camareros).find(x=>x.pin===pin);
+  window.login=function(){
+    const pin=pin.value;
+    const c=Object.values(camareros).find(x=>x.pin===pin);
     if(!c){alert("PIN incorrecto");return;}
 
     camareroActual=c;
 
-    panel.style.display="block";
     panel.innerHTML=`
       <button onclick="extra()">+ EXTRA</button>
-      <div id="carta"></div>
-      <h3>Carrito</h3>
-      <div id="carrito"></div>
-      <h3 id="total"></h3>
+      <div id="carta" class="grid"></div>
+      <div class="carrito" id="carrito"></div>
       <button onclick="enviar()">Enviar pedido</button>
+      <div class="total" id="total"></div>
     `;
 
     db.ref("carta").once("value", snap=>{
@@ -89,45 +157,41 @@ if(modo==="camarero"){
       Object.values(snap.val()||{}).forEach(p=>{
         html+=`
           <div class="producto">
-            ${p.nombre} ${Number(p.precio||0).toFixed(2)}€
+            ${p.nombre}<br>${Number(p.precio||0).toFixed(2)}€
             <button onclick="add('${p.nombre}',${Number(p.precio||0)},${!!p.cocina})">+</button>
           </div>`;
       });
-      document.getElementById("carta").innerHTML=html;
+      carta.innerHTML=html;
     });
   }
 
-  window.add = function(n,p,c){
+  window.add=function(n,p,c){
     carrito.push({nombre:n,precio:p,cocina:c});
     render();
   }
 
-  window.render = function(){
+  window.render=function(){
     let html="",total=0;
     carrito.forEach((p,i)=>{
       total+=p.precio;
-      html+=`${p.nombre} ${p.precio}€ <button onclick="del(${i})">❌</button><br>`;
+      html+=`${p.nombre} ${p.precio}€ ❌<br>`;
     });
-    carritoEl.innerHTML=html;
+    carrito.innerHTML=html;
     totalEl.innerText="TOTAL "+total.toFixed(2)+"€";
   }
 
-  window.del = function(i){
-    carrito.splice(i,1);render();
-  }
-
-  window.extra = function(){
+  window.extra=function(){
     const n=prompt("Nombre");
     const p=parseFloat(prompt("Precio"));
-    const c=confirm("Aceptar = cocina, Cancelar = barra");
+    const c=confirm("Aceptar = cocina");
 
-    if(!n||isNaN(p)) return;
+    if(!n||isNaN(p))return;
 
     carrito.push({nombre:n,precio:p,cocina:c});
     render();
   }
 
-  window.enviar = function(){
+  window.enviar=function(){
     db.ref("pedidos").push({
       camarero:camareroActual.nombre,
       items:carrito,
@@ -137,9 +201,9 @@ if(modo==="camarero"){
   }
 }
 
-// ===================== COCINA =====================
+// ================= COCINA =================
 if(modo==="cocina"){
-  app.innerHTML = `<h2 style="text-align:center">COCINA</h2><div id="lista"></div>`;
+  app.innerHTML=`<h2 style="text-align:center">COCINA</h2><div id="lista"></div>`;
 
   db.ref("pedidos").on("value", snap=>{
     let html="";
@@ -148,20 +212,20 @@ if(modo==="cocina"){
 
       if(items.length){
         html+=`
-          <div class="pedido">
-            <b>${p.camarero}</b><br>
-            ${items.map(i=>i.nombre).join("<br>")}
-            <br><button onclick="hecho('${id}',true)">✔ HECHO</button>
-          </div>`;
+        <div class="pedido">
+          <b>${p.camarero}</b><br>
+          ${items.map(i=>i.nombre).join("<br>")}
+          <button class="hecho" onclick="hecho('${id}',true)">✔ HECHO</button>
+        </div>`;
       }
     });
     lista.innerHTML=html;
   });
 }
 
-// ===================== BARRA =====================
+// ================= BARRA =================
 if(modo==="barra"){
-  app.innerHTML = `<h2 style="text-align:center">BARRA</h2><div id="lista"></div>`;
+  app.innerHTML=`<h2 style="text-align:center">BARRA</h2><div id="lista"></div>`;
 
   db.ref("pedidos").on("value", snap=>{
     let html="";
@@ -170,19 +234,19 @@ if(modo==="barra"){
 
       if(items.length){
         html+=`
-          <div class="pedido">
-            <b>${p.camarero}</b><br>
-            ${items.map(i=>i.nombre).join("<br>")}
-            <br><button onclick="hecho('${id}',false)">✔ HECHO</button>
-          </div>`;
+        <div class="pedido">
+          <b>${p.camarero}</b><br>
+          ${items.map(i=>i.nombre).join("<br>")}
+          <button class="hecho" onclick="hecho('${id}',false)">✔ HECHO</button>
+        </div>`;
       }
     });
     lista.innerHTML=html;
   });
 }
 
-// ===================== HECHO =====================
-window.hecho = function(id,cocina){
+// ================= HECHO =================
+window.hecho=function(id,cocina){
   db.ref("pedidos/"+id+"/items").once("value", snap=>{
     const items=snap.val();
     items.forEach(i=>{
