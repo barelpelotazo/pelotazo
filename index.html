@@ -14,13 +14,14 @@ body{font-family:Arial;margin:0;background:#f5f5f5}
 .active{display:block}
 button{padding:10px;margin:5px;border:none;border-radius:8px;font-weight:bold}
 .admin-btn{background:#1e3a8a;color:white}
+input{padding:10px;margin:5px;border-radius:8px;border:1px solid #ccc}
 </style>
 </head>
 <body>
 
 <h2 style="text-align:center">BAR APP V1 LIMPIO</h2>
 
-<div id="adminLogin">
+<div id="adminLogin" style="text-align:center">
   <input id="pass" placeholder="Password admin">
   <button onclick="login()">Entrar</button>
 </div>
@@ -47,10 +48,13 @@ button{padding:10px;margin:5px;border:none;border-radius:8px;font-weight:bold}
 
 <script>
 const firebaseConfig = {
-  apiKey: "test",
-  authDomain: "test",
-  databaseURL: "https://test.firebaseio.com",
-  projectId: "test"
+  apiKey: "AIzaSyAxI0dtf4RdxNDYlmk_dVYhF5NyZOg8B2w",
+  authDomain: "bar-el-pelotazo-16c19.firebaseapp.com",
+  databaseURL: "https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "bar-el-pelotazo-16c19",
+  storageBucket: "bar-el-pelotazo-16c19.firebasestorage.app",
+  messagingSenderId: "209747310104",
+  appId: "1:209747310104:web:aea60ec14671e302f9f56d"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -74,8 +78,8 @@ function show(tab){
 }
 
 function crearCamarero(){
-  const nombre=document.getElementById("nombre").value;
-  const pin=document.getElementById("pin").value;
+  const nombre=document.getElementById("nombre").value.trim();
+  const pin=document.getElementById("pin").value.trim();
 
   if(!nombre||!pin){alert("faltan datos");return;}
 
