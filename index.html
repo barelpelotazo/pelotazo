@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bar App V4 Arreglado</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+<style>
+body{font-family:Arial;margin:0;background:#f5f5f5}
+button{padding:10px;margin:5px;border:none;border-radius:8px;font-weight:bold}
+input,select{padding:10px;margin:5px;border-radius:8px;border:1px solid #ccc}
+.producto{background:white;padding:10px;margin:5px;border-radius:10px}
+.pedido{background:#fff;padding:10px;margin:10px;border-radius:10px;border-left:5px solid #333}
+.panel{padding:10px}
+</style>
+</head>
+
+<body>
+
+<h2 style="text-align:center">BAR APP V4 ARREGLADO</h2>
+
+<div style="text-align:center">
+  <button onclick="vista('cliente')">Cliente</button>
+  <button onclick="vista('cocina')">Cocina</button>
+  <button onclick="vista('barra')">Barra</button>
+</div>
+
+<div id="cliente" class="panel">
+  <h3 style="text-align:center">Carta</h3>
+  <div id="cartaCliente"></div>
+  <div style="text-align:center">
+    <button onclick="abrirLogin()">Acceso camarero</button>
+  </div>
+</div>
+
+<div id="loginModal" style="display:none;text-align:center" class="panel">
+  <h3>PIN</h3>
+  <input id="pinLogin">
+  <button onclick="loginCamarero()">Entrar</button>
+</div>
+
+<div id="camareroPanel" style="display:none" class="panel">
+  <button onclick="volverCliente()">← Volver</button>
+  <h3>Pedido</h3>
+  <button onclick="abrirExtra()" style="background:purple;color:white">+ EXTRA</button>
+  <div id="cartaCamarero"></div>
+  <h3>Carrito</h3>
+  <div id="carrito"></div>
+  <h3 id="total">TOTAL 0.00€</h3>
+  <button onclick="enviarPedido()">Enviar pedido</button>
+</div>
+
+<div id="extraModal" style="display:none;text-align:center" class="panel">
+  <h3>Nuevo producto</h3>
+  <input id="extraNombre" placeholder="Nombre">
+  <input id="extraPrecio" type="number" step="0.01" placeholder="Precio">
+  <select id="extraDestino">
+    <option value="cocina">Cocina</option>
+    <option value="barra">Barra</option>
+  </select>
+  <button onclick="agregarExtra()">Añadir</button>
+  <button onclick="cerrarExtra()">Cancelar</button>
+</div>
+
+<div id="cocina" style="display:none" class="panel">
+  <h3>Cocina</h3>
+  <div id="listaCocina"></div>
+</div>
+
+<div id="barra" style="display:none" class="panel">
+  <h3>Barra</h3>
+  <div id="listaBarra"></div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAxI0dtf4RdxNDYlmk_dVYhF5NyZOg8B2w",
+  authDomain: "bar-el-pelotazo-16c19.firebaseapp.com",
+  databaseURL: "https://bar-el-pelotazo-16c19-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "bar-el-pelotazo-16c19",
+  storageBucket: "bar-el-pelotazo-16c19.firebasestorage.app",
+  messagingSenderId: "209747310104",
+  appId: "1:209747310104:web:aea60ec14671e302f9f56d"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let camareros = {};
+let carritoData = [];
+let camareroActual = null;
+
+function vista(v){
+  document.getElementById("cliente").style.display = "none";
+  document.getElementById("cocina").style.display = "none";
+  document.getElementById("barra").style.display = "none";
+  document.getElementById("loginModal").style.display = "none";
+  document.getElementById(v).style.display = "block";
+}
+
+function volverCliente(){
+  document.getElementById("camareroPanel").style.display = "none";
+  vista('cliente');
+}
+
+db.ref("carta").on("value", snap => {
+  let html = "";
+  Object.values(snap.val() || {}).forEach(p => {
+    const nombre = p.nombre || "Producto";
+    const precio = Number(p.precio || 0);
+    html += `<div class="producto">${nombre} - ${precio.toFixed(2)}€</div>`;
+  });
+  document.getElementById("cartaCliente").innerHTML = html;
+});
+
+db.ref("camareros").on("value", snap => {
+  camareros = snap.val() || {};
+});
+
+function abrirLogin(){
+  document.getElementById("loginModal").style.display = "block";
+}
+
+function loginCamarero(){
+  const pin = document.getElementById("pinLogin").value.trim();
+  const c = Object.values(camareros).find(x => String(x.pin || "").trim() === pin);
+  if(!c){
+    alert("PIN incorrecto");
+    return;
+  }
+  camareroActual = c;
+  document.getElementById("cliente").style.display = "none";
+  document.getElementById("loginModal").style.display = "none";
+  document.getElementById("camareroPanel").style.display = "block";
+  cargarCartaCamarero();
+}
+
+function cargarCartaCamarero(){
+  db.ref("carta").once("value", snap => {
+    let html = "";
+    Object.values(snap.val() || {}).forEach(p => {
+      const nombre = p.nombre || "Producto";
+      const precio = Number(p.precio || 0);
+      const cocina = !!p.cocina;
+      const safeNombre = String(nombre).replace(/'/g, "\\'");
+      html += `
+        <div class="producto">
+          ${nombre} - ${precio.toFixed(2)}€
+          <button onclick="add('${safeNombre}', ${precio}, ${cocina})">+</button>
+        </div>
+      `;
+    });
+    document.getElementById("cartaCamarero").innerHTML = html;
+  });
+}
+
+function add(nombre, precio, cocina){
+  carritoData.push({
+    nombre: nombre,
+    precio: Number(precio || 0),
+    cocina: !!cocina
+  });
+  render();
+}
+
+function abrirExtra(){
+  document.getElementById("extraModal").style.display = "block";
+}
+
+function cerrarExtra(){
+  document.getElementById("extraModal").style.display = "none";
+}
+
+function agregarExtra(){
+  const nombre = document.getElementById("extraNombre").value.trim();
+  const precio = parseFloat(document.getElementById("extraPrecio").value);
+  const destino = document.getElementById("extraDestino").value;
+
+  if(!nombre || isNaN(precio)){
+    alert("Datos incorrectos");
+    return;
+  }
+
+  carritoData.push({
+    nombre: nombre,
+    precio: Number(precio),
+    cocina: destino === "cocina"
+  });
+
+  document.getElementById("extraNombre").value = "";
+  document.getElementById("extraPrecio").value = "";
+  document.getElementById("extraDestino").value = "cocina";
+  cerrarExtra();
+  render();
+}
+
+function render(){
+  let html = "";
+  let total = 0;
+
+  carritoData.forEach((p, i) => {
+    const precio = Number(p.precio || 0);
+    total += precio;
+    html += `
+      <div>
+        ${p.nombre} - ${precio.toFixed(2)}€
+        <button onclick="delItem(${i})">❌</button>
+      </div>
+    `;
+  });
+
+  document.getElementById("carrito").innerHTML = html;
+  document.getElementById("total").innerText = "TOTAL " + total.toFixed(2) + "€";
+}
+
+function delItem(i){
+  carritoData.splice(i, 1);
+  render();
+}
+
+function enviarPedido(){
+  if(!camareroActual){
+    alert("Primero entra como camarero");
+    return;
+  }
+  if(!carritoData.length){
+    alert("Añade productos");
+    return;
+  }
+
+  db.ref("pedidos").push({
+    camarero: camareroActual.nombre || "Sin nombre",
+    items: carritoData,
+    timestamp: Date.now()
+  });
+
+  carritoData = [];
+  render();
+  alert("Pedido enviado");
+}
+
+db.ref("pedidos").on("value", snap => {
+  let htmlC = "";
+  let htmlB = "";
+
+  Object.values(snap.val() || {}).forEach(p => {
+    const items = Array.isArray(p.items) ? p.items : [];
+    const cocinaItems = items.filter(i => i.cocina);
+    const barraItems = items.filter(i => !i.cocina);
+
+    if(cocinaItems.length){
+      htmlC += `
+        <div class="pedido">
+          ${cocinaItems.map(i => `${i.nombre} - ${Number(i.precio || 0).toFixed(2)}€`).join("<br>")}
+        </div>
+      `;
+    }
+
+    if(barraItems.length){
+      htmlB += `
+        <div class="pedido">
+          ${barraItems.map(i => `${i.nombre} - ${Number(i.precio || 0).toFixed(2)}€`).join("<br>")}
+        </div>
+      `;
+    }
+  });
+
+  document.getElementById("listaCocina").innerHTML = htmlC || "<div class='pedido'>Sin pedidos</div>";
+  document.getElementById("listaBarra").innerHTML = htmlB || "<div class='pedido'>Sin pedidos</div>";
+});
+</script>
+
+</body>
+</html>
