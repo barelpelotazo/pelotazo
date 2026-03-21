@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Bar App V3</title>
+<title>Bar App V4</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
@@ -14,37 +13,44 @@ body{font-family:Arial;margin:0;background:#f5f5f5}
 button{padding:10px;margin:5px;border:none;border-radius:8px;font-weight:bold}
 input,select{padding:10px;margin:5px;border-radius:8px;border:1px solid #ccc}
 .producto{background:white;padding:10px;margin:5px;border-radius:10px}
+.pedido{background:#fff;padding:10px;margin:10px;border-radius:10px;border-left:5px solid #333}
 </style>
 </head>
 
 <body>
 
-<h2 style="text-align:center">BAR APP V3</h2>
+<h2 style="text-align:center">BAR APP V4</h2>
+
+<div style="text-align:center">
+  <button onclick="vista('cliente')">Cliente</button>
+  <button onclick="vista('cocina')">Cocina</button>
+  <button onclick="vista('barra')">Barra</button>
+</div>
 
 <!-- CLIENTE -->
 <div id="cliente">
   <h3 style="text-align:center">Carta</h3>
   <div id="cartaCliente"></div>
 
-  <div style="text-align:center;margin-top:20px;">
+  <div style="text-align:center">
     <button onclick="abrirLogin()">Acceso camarero</button>
   </div>
 </div>
 
 <!-- LOGIN -->
 <div id="loginModal" style="display:none;text-align:center;">
-  <h3>PIN Camarero</h3>
+  <h3>PIN</h3>
   <input id="pinLogin">
   <button onclick="loginCamarero()">Entrar</button>
 </div>
 
 <!-- CAMARERO -->
 <div id="camareroPanel" style="display:none;">
-  <h3 style="text-align:center">Pedido</h3>
+  <button onclick="vista('cliente')">← Volver</button>
 
-  <button onclick="abrirExtra()" style="background:purple;color:white">
-    + EXTRA
-  </button>
+  <h3>Pedido</h3>
+
+  <button onclick="abrirExtra()">+ EXTRA</button>
 
   <div id="cartaCamarero"></div>
 
@@ -55,19 +61,27 @@ input,select{padding:10px;margin:5px;border-radius:8px;border:1px solid #ccc}
   <button onclick="enviarPedido()">Enviar pedido</button>
 </div>
 
-<!-- MODAL EXTRA -->
+<!-- EXTRA -->
 <div id="extraModal" style="display:none;text-align:center;">
-  <h3>Nuevo producto</h3>
   <input id="extraNombre" placeholder="Nombre">
   <input id="extraPrecio" type="number" placeholder="Precio">
-
   <select id="extraDestino">
     <option value="cocina">Cocina</option>
     <option value="barra">Barra</option>
   </select>
-
   <button onclick="agregarExtra()">Añadir</button>
-  <button onclick="cerrarExtra()">Cancelar</button>
+</div>
+
+<!-- COCINA -->
+<div id="cocina" style="display:none">
+  <h3>Cocina</h3>
+  <div id="listaCocina"></div>
+</div>
+
+<!-- BARRA -->
+<div id="barra" style="display:none">
+  <h3>Barra</h3>
+  <div id="listaBarra"></div>
 </div>
 
 <script>
@@ -86,6 +100,14 @@ let camareros = {};
 let carrito = [];
 let camareroActual = null;
 
+// CAMBIO VISTA
+function vista(v){
+  ["cliente","cocina","barra"].forEach(x=>{
+    document.getElementById(x).style.display="none";
+  });
+  document.getElementById(v).style.display="block";
+}
+
 // CARTA CLIENTE
 db.ref("carta").on("value", snap=>{
   let html="";
@@ -101,20 +123,17 @@ db.ref("camareros").on("value", snap=>{
 });
 
 // LOGIN
-function abrirLogin(){
-  loginModal.style.display="block";
-}
+function abrirLogin(){ loginModal.style.display="block"; }
 
 function loginCamarero(){
   const pin=pinLogin.value;
   const c=Object.values(camareros).find(x=>x.pin===pin);
-
   if(!c){alert("PIN incorrecto");return;}
 
   camareroActual=c;
   cliente.style.display="none";
-  loginModal.style.display="none";
   camareroPanel.style.display="block";
+  loginModal.style.display="none";
 
   cargarCartaCamarero();
 }
@@ -136,75 +155,67 @@ function cargarCartaCamarero(){
 }
 
 // ADD
-function add(nombre,precio,cocina){
-  carrito.push({nombre,precio,cocina});
-  render();
-}
+function add(n,p,c){ carrito.push({nombre:n,precio:p,cocina:c}); render(); }
 
 // EXTRA
-function abrirExtra(){
-  extraModal.style.display="block";
-}
-function cerrarExtra(){
-  extraModal.style.display="none";
-}
+function abrirExtra(){ extraModal.style.display="block"; }
 function agregarExtra(){
-  const n=extraNombre.value;
-  const p=parseFloat(extraPrecio.value);
-  const d=extraDestino.value;
-
-  if(!n||isNaN(p)){alert("Datos incorrectos");return;}
-
   carrito.push({
-    nombre:n,
-    precio:p,
-    cocina:d==="cocina"
+    nombre:extraNombre.value,
+    precio:parseFloat(extraPrecio.value),
+    cocina:extraDestino.value==="cocina"
   });
-
-  cerrarExtra();
+  extraModal.style.display="none";
   render();
 }
 
 // RENDER
 function render(){
-  let html="";
-  let total=0;
-
+  let html="",total=0;
   carrito.forEach((p,i)=>{
     total+=p.precio;
-    html+=`
-      <div>
-        ${p.nombre} - ${p.precio}€
-        <button onclick="del(${i})">❌</button>
-      </div>
-    `;
+    html+=`${p.nombre} ${p.precio}€ <button onclick="del(${i})">❌</button><br>`;
   });
-
-  carritoEl=carrito;
-  document.getElementById("carrito").innerHTML=html;
-  document.getElementById("total").innerText="TOTAL: "+total+"€";
+  carrito.innerHTML=html;
+  document.getElementById("total").innerText="TOTAL "+total+"€";
 }
 
 // DELETE
-function del(i){
-  carrito.splice(i,1);
-  render();
-}
+function del(i){ carrito.splice(i,1); render(); }
 
 // ENVIAR
 function enviarPedido(){
-  if(!carrito.length){alert("Vacío");return;}
-
   db.ref("pedidos").push({
     camarero:camareroActual.nombre,
     items:carrito,
     timestamp:Date.now()
   });
-
-  carrito=[];
-  render();
-  alert("Pedido enviado");
+  carrito=[]; render();
 }
+
+// COCINA
+db.ref("pedidos").on("value", snap=>{
+  let htmlC="", htmlB="";
+  Object.values(snap.val()||{}).forEach(p=>{
+    let cocinaItems=p.items.filter(i=>i.cocina);
+    let barraItems=p.items.filter(i=>!i.cocina);
+
+    if(cocinaItems.length){
+      htmlC+=`<div class="pedido">
+        ${cocinaItems.map(i=>i.nombre).join("<br>")}
+      </div>`;
+    }
+
+    if(barraItems.length){
+      htmlB+=`<div class="pedido">
+        ${barraItems.map(i=>i.nombre).join("<br>")}
+      </div>`;
+    }
+  });
+
+  listaCocina.innerHTML=htmlC;
+  listaBarra.innerHTML=htmlB;
+});
 
 </script>
 
